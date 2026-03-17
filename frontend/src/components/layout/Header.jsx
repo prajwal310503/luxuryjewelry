@@ -431,13 +431,10 @@ const MegaMenuDropdown = ({ item }) => {
       transition={{ duration: 0.2, ease: 'easeOut' }}
       className="absolute top-full left-0 right-0 z-50"
       style={{
-        background: 'rgba(255,255,255,0.88)',
-        backdropFilter: 'blur(24px) saturate(200%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-        borderTop: '1px solid rgba(255,255,255,0.60)',
-        boxShadow: '0 16px 48px rgba(90,65,63,0.10)',
+        background: '#ffffff',
+        borderTop: '1px solid #f0ece9',
+        boxShadow: '0 24px 64px rgba(0,0,0,0.11)',
       }}
-      style={{ boxShadow: '0 24px 64px rgba(0,0,0,0.11)' }}
     >
       {isImageOnly ? (
         /* ── Collections layout: 3 equal image cards ─────────────────── */
