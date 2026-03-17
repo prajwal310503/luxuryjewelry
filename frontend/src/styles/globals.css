@@ -1,0 +1,345 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Futura Std / Jost ──────────────────────────────────────────────────── */
+html { font-family: "Futura Std","Futura","Jost","Century Gothic","Trebuchet MS",Arial,sans-serif !important; }
+body { font-family: "Futura Std","Futura","Jost","Century Gothic","Trebuchet MS",Arial,sans-serif !important; }
+*, *::before, *::after { font-family: "Futura Std","Futura","Jost","Century Gothic","Trebuchet MS",Arial,sans-serif !important; }
+input, textarea, select, button { font-family: "Futura Std","Futura","Jost","Century Gothic","Trebuchet MS",Arial,sans-serif !important; }
+
+.logo-script, .logo-script * {
+  font-family: "Playfair Display", Georgia, serif !important;
+  font-style: italic !important;
+}
+
+@layer base {
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: "Futura Std","Futura","Jost","Century Gothic","Trebuchet MS",Arial,sans-serif !important;
+    @apply text-gray-800 antialiased;
+    background: linear-gradient(135deg, #fdf9f6 0%, #f9f3ee 40%, #f5ede4 100%);
+    min-height: 100vh;
+    font-feature-settings: 'kern' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Futura Std","Futura","Jost","Century Gothic","Trebuchet MS",Arial,sans-serif !important;
+    @apply font-semibold tracking-wide;
+  }
+
+  * { @apply border-gray-200; }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: rgba(245,237,228,0.4); }
+  ::-webkit-scrollbar-thumb { background: rgba(90,65,63,0.25); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(90,65,63,0.45); }
+
+  input, textarea, select { @apply outline-none; }
+}
+
+/* ─── Glass mixins ───────────────────────────────────────────────────────── */
+@layer components {
+
+  /* ── Glassmorphism base ── */
+  .glass {
+    background: rgba(255,255,255,0.70);
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.55);
+  }
+
+  .glass-sm {
+    background: rgba(255,255,255,0.60);
+    backdrop-filter: blur(10px) saturate(160%);
+    -webkit-backdrop-filter: blur(10px) saturate(160%);
+    border: 1px solid rgba(255,255,255,0.45);
+  }
+
+  .glass-strong {
+    background: rgba(255,255,255,0.82);
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border: 1px solid rgba(255,255,255,0.65);
+  }
+
+  /* ── Liquid glass card ── */
+  .glass-card {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.60);
+    border-radius: 20px;
+    box-shadow:
+      0 8px 32px rgba(90,65,63,0.08),
+      0 2px 8px rgba(90,65,63,0.04),
+      inset 0 1px 0 rgba(255,255,255,0.75),
+      inset 0 -1px 0 rgba(0,0,0,0.03);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+  }
+  .glass-card:hover {
+    box-shadow:
+      0 16px 48px rgba(90,65,63,0.13),
+      0 4px 16px rgba(90,65,63,0.07),
+      inset 0 1px 0 rgba(255,255,255,0.85);
+    transform: translateY(-2px);
+  }
+
+  /* ── Sidebar glass ── */
+  .glass-sidebar {
+    background: rgba(255,255,255,0.78);
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border-right: 1px solid rgba(255,255,255,0.6);
+    box-shadow: 4px 0 24px rgba(90,65,63,0.06), inset -1px 0 0 rgba(255,255,255,0.8);
+  }
+
+  /* ── Header glass ── */
+  .glass-header {
+    background: rgba(255,255,255,0.82);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(255,255,255,0.6);
+    box-shadow: 0 1px 20px rgba(90,65,63,0.07), inset 0 -1px 0 rgba(255,255,255,0.6);
+  }
+
+  /* ── Input glass ── */
+  .glass-input {
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.7);
+    border-bottom: 1px solid rgba(90,65,63,0.15);
+    border-radius: 14px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.03), 0 1px 0 rgba(255,255,255,0.8);
+  }
+  .glass-input:focus {
+    background: rgba(255,255,255,0.80);
+    border-color: rgba(90,65,63,0.30);
+    box-shadow: 0 0 0 3px rgba(90,65,63,0.08), inset 0 2px 4px rgba(0,0,0,0.02);
+  }
+
+  /* ── Button liquid glass ── */
+  .glass-btn {
+    background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.70);
+    border-radius: 999px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8);
+    transition: all 0.25s ease;
+  }
+  .glass-btn:hover {
+    background: rgba(255,255,255,0.75);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+
+  /* ── Liquid pill badge ── */
+  .glass-pill {
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 999px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+  }
+
+  /* ════════ EXISTING COMPONENT OVERRIDES ════════ */
+
+  .container-luxury {
+    @apply max-w-container mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Buttons — pill shape + shine */
+  .btn-primary {
+    @apply bg-primary text-white px-7 py-3 font-body font-medium
+           hover:bg-primary-600 active:scale-95
+           transition-all duration-300 inline-flex items-center gap-2 tracking-wide
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    border-radius: 999px;
+    box-shadow: 0 4px 16px rgba(90,65,63,0.22), inset 0 1px 0 rgba(255,255,255,0.18);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 6px 22px rgba(90,65,63,0.32), inset 0 1px 0 rgba(255,255,255,0.22);
+  }
+
+  .btn-secondary {
+    @apply bg-gold text-white px-7 py-3 font-body font-medium
+           hover:bg-gold-dark transition-all duration-300 inline-flex items-center gap-2 tracking-wide;
+    border-radius: 999px;
+    box-shadow: 0 4px 16px rgba(201,168,76,0.28), inset 0 1px 0 rgba(255,255,255,0.22);
+  }
+
+  .btn-outline {
+    @apply border border-primary/30 text-primary px-7 py-3 font-body font-medium
+           hover:bg-primary hover:text-white hover:border-primary
+           transition-all duration-300 inline-flex items-center gap-2 tracking-wide;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 2px 8px rgba(90,65,63,0.06), inset 0 1px 0 rgba(255,255,255,0.8);
+  }
+  .btn-outline:hover {
+    box-shadow: 0 4px 16px rgba(90,65,63,0.20);
+  }
+
+  .btn-ghost {
+    @apply text-primary px-4 py-2 font-body font-medium
+           hover:bg-white/60 transition-all duration-200 tracking-wide;
+    border-radius: 999px;
+  }
+
+  /* Cards — liquid glass */
+  .card-luxury {
+    background: rgba(255,255,255,0.75);
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.62);
+    border-radius: 20px;
+    box-shadow:
+      0 4px 24px rgba(90,65,63,0.07),
+      0 1px 4px rgba(90,65,63,0.04),
+      inset 0 1px 0 rgba(255,255,255,0.80);
+    transition: box-shadow 0.35s ease, transform 0.35s ease;
+  }
+  .card-luxury:hover {
+    box-shadow:
+      0 12px 40px rgba(90,65,63,0.11),
+      0 2px 8px rgba(90,65,63,0.06),
+      inset 0 1px 0 rgba(255,255,255,0.90);
+  }
+
+  /* Inputs — glass */
+  .input-luxury {
+    @apply w-full px-4 py-3 font-body text-sm
+           placeholder:text-gray-400;
+    background: rgba(255,255,255,0.70);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.65);
+    border-bottom-color: rgba(90,65,63,0.18);
+    border-radius: 14px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.03), 0 1px 0 rgba(255,255,255,0.75);
+    transition: all 0.2s ease;
+  }
+  .input-luxury:focus {
+    background: rgba(255,255,255,0.85);
+    border-color: rgba(90,65,63,0.28);
+    box-shadow: 0 0 0 3px rgba(90,65,63,0.08), inset 0 1px 3px rgba(0,0,0,0.02);
+    outline: none;
+  }
+
+  .label-luxury {
+    @apply block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5;
+  }
+
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full;
+  }
+  .badge-gold    { @apply badge bg-gold/10 text-gold-dark; }
+  .badge-success { @apply badge bg-green-100 text-green-800; }
+  .badge-warning { @apply badge bg-amber-100 text-amber-800; }
+  .badge-danger  { @apply badge bg-red-100 text-red-600; }
+  .badge-primary { @apply badge bg-primary/10 text-primary; }
+
+  .section-title    { @apply text-2xl md:text-3xl lg:text-4xl font-heading font-semibold text-gray-900 tracking-wide; }
+  .section-subtitle { @apply text-sm text-gray-500 font-body mt-2 tracking-wide; }
+  .section-eyebrow  { @apply block text-xs font-semibold tracking-widest uppercase text-gold mb-3; }
+
+  .skeleton { @apply bg-gray-200/70 rounded-2xl animate-pulse; }
+
+  .divider-luxury { @apply flex items-center gap-4 my-6; }
+  .divider-luxury::before, .divider-luxury::after {
+    @apply flex-1 h-px content-[''];
+    background: linear-gradient(90deg, transparent, rgba(201,168,76,0.35), transparent);
+  }
+
+  .price-tag     { @apply font-heading font-semibold text-primary; }
+  .price-compare { @apply font-body text-gray-400 line-through text-sm; }
+  .price-discount { @apply badge bg-red-100/80 text-red-600 font-semibold; }
+
+  /* Admin sidebar nav — glass hover */
+  .admin-nav-item {
+    @apply flex items-center gap-3 px-4 py-2.5 text-sm font-medium
+           text-gray-600 transition-all duration-200 tracking-wide;
+    border-radius: 14px;
+    position: relative;
+  }
+  .admin-nav-item:hover {
+    color: #5a413f;
+    background: rgba(255,255,255,0.70);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 2px 10px rgba(90,65,63,0.07), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .admin-nav-item.active {
+    color: #5a413f;
+    background: rgba(255,255,255,0.82);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(90,65,63,0.10), inset 0 1px 0 rgba(255,255,255,1);
+    border: 1px solid rgba(255,255,255,0.70);
+  }
+
+  .page-enter       { @apply opacity-0 translate-y-4; }
+  .page-enter-active { @apply opacity-100 translate-y-0 transition-all duration-300; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .aspect-jewelry { aspect-ratio: 1/1; }
+  .aspect-banner  { aspect-ratio: 16/7; }
+
+  .bg-luxury-gradient {
+    background: linear-gradient(135deg, #fdf9f6 0%, #f9f3ee 40%, #f5ede4 100%);
+  }
+  .bg-gold-gradient {
+    background: linear-gradient(135deg, #C9A84C 0%, #E2C97E 50%, #C9A84C 100%);
+  }
+  .text-gradient-gold {
+    background: linear-gradient(135deg, #C9A84C, #9C7E2A);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Liquid glass glow orbs — decorative backgrounds */
+  .glass-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    pointer-events: none;
+    opacity: 0.35;
+  }
+
+  .shimmer-loading {
+    background: linear-gradient(90deg, rgba(240,240,240,0.6) 25%, rgba(224,224,224,0.5) 50%, rgba(240,240,240,0.6) 75%);
+    background-size: 200px 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  .tracking-widest2 { letter-spacing: 0.3em; }
+
+  /* Rounded utilities */
+  .rounded-pill  { border-radius: 999px; }
+  .rounded-glass { border-radius: 20px; }
+  .rounded-card  { border-radius: 24px; }
+}
+
+/* ─── Animations ─────────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+@keyframes liquid-float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33%       { transform: translateY(-8px) rotate(1deg); }
+  66%       { transform: translateY(-4px) rotate(-1deg); }
+}
+.animate-liquid-float { animation: liquid-float 6s ease-in-out infinite; }
