@@ -21,7 +21,7 @@ const useAuthStore = create(
           return data.data;
         } catch (error) {
           set({ loading: false });
-          toast.error(error.message || 'Login failed');
+          toast.error(error.response?.data?.message || error.message || 'Login failed');
           throw error;
         }
       },
