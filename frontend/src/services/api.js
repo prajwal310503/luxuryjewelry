@@ -146,6 +146,7 @@ export const cmsAPI = {
 export const adminAPI = {
   getDashboard: () => api.get('/admin/dashboard'),
   getUsers: (params) => api.get('/admin/users', { params }),
+  changeUserRole: (id, role) => api.put(`/admin/users/${id}/role`, { role }),
   toggleUser: (id) => api.put(`/admin/users/${id}/toggle`),
   getVendors: (params) => api.get('/admin/vendors', { params }),
   updateVendorStatus: (id, data) => api.put(`/admin/vendors/${id}/status`, data),

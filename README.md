@@ -9,12 +9,14 @@ A full-stack luxury jewelry e-commerce platform with admin dashboard, vendor das
 ## Login Credentials
 
 ### Admin
-| Field    | Value                        |
-|----------|------------------------------|
+| Field    | Value                         |
+|----------|-------------------------------|
 | URL      | `http://localhost:5173/login` |
-| Email    | `admin@luxuryjewelry.com`    |
-| Password | `admin@123`                  |
-| Access   | Full admin panel             |
+| Email    | `admin@luxuryjewelry.com`     |
+| Password | `admin@123`                   |
+| Access   | Full admin panel              |
+
+> To change admin password — login → Account, or change role/status of any user from **Admin → Users & Roles** page.
 
 ### Vendor — ONSK Jewelry
 | Field      | Value                         |

@@ -115,6 +115,27 @@ exports.getUsers = async (req, res, next) => {
   }
 };
 
+// @desc    Admin: Change user role
+// @route   PUT /api/admin/users/:id/role
+// @access  Admin
+exports.changeUserRole = async (req, res, next) => {
+  try {
+    const { role } = req.body;
+    if (!['admin', 'vendor', 'customer'].includes(role)) return sendError(res, 400, 'Invalid role');
+
+    const user = await User.findById(req.params.id);
+    if (!user) return sendError(res, 404, 'User not found');
+    if (String(user._id) === String(req.user.id)) return sendError(res, 400, 'Cannot change your own role');
+
+    user.role = role;
+    await user.save({ validateBeforeSave: false });
+
+    sendSuccess(res, 200, `Role changed to ${role}`, { role: user.role });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Admin: Toggle user status
 // @route   PUT /api/admin/users/:id/toggle
 // @access  Admin

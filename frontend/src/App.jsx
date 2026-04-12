@@ -55,6 +55,7 @@ const AdminBlog = lazy(() => import('./admin/pages/Blog'));
 const AdminMenus = lazy(() => import('./admin/pages/Menus'));
 const AdminStores = lazy(() => import('./admin/pages/Stores'));
 const AdminSettings = lazy(() => import('./admin/pages/Settings'));
+const AdminUsers = lazy(() => import('./admin/pages/Users'));
 
 // Vendor Pages
 const VendorDashboard = lazy(() => import('./vendor/pages/Dashboard'));
@@ -151,6 +152,7 @@ export default function App() {
           <Route path="cms" element={<AdminCMSBuilder />} />
           <Route path="vendors" element={<AdminVendors />} />
           <Route path="orders" element={<AdminOrders />} />
+          <Route path="users" element={<AdminUsers />} />
           <Route path="customers" element={<AdminCustomers />} />
           <Route path="reviews" element={<AdminReviews />} />
           <Route path="attributes" element={<AdminAttributes />} />

@@ -5,6 +5,7 @@ const {
   getDashboard,
   getUsers,
   toggleUserStatus,
+  changeUserRole,
   getVendors,
   updateVendorStatus,
   getReviews,
@@ -36,6 +37,7 @@ const adminAuth = [protect, authorize('admin')];
 router.get('/dashboard', ...adminAuth, getDashboard);
 
 router.get('/users', ...adminAuth, getUsers);
+router.put('/users/:id/role', ...adminAuth, changeUserRole);
 router.put('/users/:id/toggle', ...adminAuth, toggleUserStatus);
 
 router.get('/vendors', ...adminAuth, getVendors);
