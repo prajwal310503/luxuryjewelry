@@ -49,15 +49,17 @@ app.use(
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200,
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'development' ? 5000 : 200,
+  skip: () => process.env.NODE_ENV === 'development',
   message: { success: false, message: 'Too many requests, please try again later.' },
 });
 app.use('/api', limiter);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: process.env.NODE_ENV === 'development' ? 500 : 20,
+  skip: () => process.env.NODE_ENV === 'development',
   message: { success: false, message: 'Too many auth attempts.' },
 });
 
@@ -75,9 +77,11 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Serve local uploads (used when Cloudinary is not configured)
-// Allow cross-origin image loading (helmet sets same-origin by default)
+// Explicitly allow cross-origin loading — overrides helmet's same-origin default
 app.use('/uploads', (req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET');
   next();
 }, express.static(path.join(__dirname, '../../uploads')));
 

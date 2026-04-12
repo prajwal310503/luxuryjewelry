@@ -288,15 +288,62 @@ const TrustBar = ({ cmsContent }) => {
   );
 };
 
+// ─── Per-category Unsplash fallback images ────────────────────────────────────
+const CAT_FALLBACK = {
+  rings:        'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=500&h=750&fit=crop&q=80&auto=format',
+  earrings:     'https://images.unsplash.com/photo-1535632787350-4e68ef0ac584?w=500&h=750&fit=crop&q=80&auto=format',
+  pendants:     'https://images.unsplash.com/photo-1599643477877-530eb83abc8e?w=500&h=750&fit=crop&q=80&auto=format',
+  necklaces:    'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=500&h=750&fit=crop&q=80&auto=format',
+  bangles:      'https://images.unsplash.com/photo-1543294001-f7cd5d7fb516?w=500&h=750&fit=crop&q=80&auto=format',
+  bracelets:    'https://images.unsplash.com/photo-1573408301185-9519f94815e4?w=500&h=750&fit=crop&q=80&auto=format',
+  chains:       'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=500&h=750&fit=crop&q=80&auto=format',
+  nosepins:     'https://images.unsplash.com/photo-1630019852942-f89202989a59?w=500&h=750&fit=crop&q=80&auto=format',
+  mangalsutra:  'https://images.unsplash.com/photo-1601821765780-754fa98637c1?w=500&h=750&fit=crop&q=80&auto=format',
+  anklets:      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=500&h=750&fit=crop&q=80&auto=format',
+  kada:         'https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?w=500&h=750&fit=crop&q=80&auto=format',
+  charms:       'https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?w=500&h=750&fit=crop&q=80&auto=format',
+};
+
 // ─── CATEGORY GRID ────────────────────────────────────────────────────────────
 const CategoryGrid = ({ categories, cmsContent }) => {
   if (!categories?.length) return null;
-  const heading = cmsContent?.title || 'SHOP BY JEWELRY CATEGORY';
+  const heading  = cmsContent?.title    || 'SHOP BY JEWELRY CATEGORY';
   const subtitle = cmsContent?.subtitle || 'Jewelry for Every Moment';
+
+  // Duplicate for seamless loop — CSS animation moves -50% so 2 copies = perfect loop
+  const items = [...categories, ...categories];
+
+  const CatCard = ({ cat, keyPrefix }) => (
+    <Link
+      key={keyPrefix}
+      to={`/collections/${cat.slug}`}
+      className="group flex-shrink-0 block"
+      style={{ width: '220px', marginRight: '20px' }}
+    >
+      <div
+        className="relative w-full overflow-hidden transition-all duration-500 ease-in-out group-hover:[border-radius:40px]"
+        style={{ aspectRatio: '2 / 3', background: '#f5ede4', borderRadius: '20px' }}
+      >
+        <img
+          src={cat.image || CAT_FALLBACK[cat.slug] || CAT_FALLBACK.rings}
+          alt={cat.name}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+          onError={(e) => { e.target.onerror = null; e.target.src = CAT_FALLBACK[cat.slug] || CAT_FALLBACK.rings; }}
+        />
+      </div>
+      <p
+        className="text-center text-[12px] font-semibold text-gray-800 uppercase mt-3 tracking-widest group-hover:text-primary transition-colors duration-300"
+        style={{ letterSpacing: '0.18em' }}
+      >
+        {cat.name}
+      </p>
+    </Link>
+  );
+
   return (
     <section className="py-16 bg-white">
       <div className="container-luxury">
-
         <div className="text-center mb-12">
           <h2
             className="text-[21px] font-semibold text-gray-900 uppercase"
@@ -308,44 +355,20 @@ const CategoryGrid = ({ categories, cmsContent }) => {
             {subtitle}
           </p>
         </div>
+      </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 md:gap-4">
-          {categories.slice(0, 6).map((cat, idx) => (
-            <motion.div
-              key={cat._id}
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: idx * 0.05, duration: 0.4 }}
-            >
-              <Link to={`/collections/${cat.slug}`} className="group block">
-                <div
-                  className="relative w-full overflow-hidden transition-all duration-500 ease-in-out group-hover:[border-radius:40px]"
-                  style={{ aspectRatio: '2 / 3', background: '#f5ede4', borderRadius: '16px' }}
-                >
-                  {cat.image ? (
-                    <img
-                      src={cat.image}
-                      alt={cat.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center opacity-30">
-                      <RingIcon />
-                    </div>
-                  )}
-                </div>
-                <p
-                  className="text-center text-[11px] font-semibold text-gray-800 uppercase mt-3 tracking-widest group-hover:text-primary transition-colors duration-300"
-                  style={{ letterSpacing: '0.18em' }}
-                >
-                  {cat.name}
-                </p>
-              </Link>
-            </motion.div>
+      {/* Full-width marquee — overflow only on x axis so text below cards is not clipped */}
+      <div className="relative w-full" style={{ overflowX: 'hidden' }}>
+        <div className="absolute left-0 top-0 bottom-0 w-20 z-10 pointer-events-none"
+          style={{ background: 'linear-gradient(to right, white 40%, transparent)' }} />
+        <div className="absolute right-0 top-0 bottom-0 w-20 z-10 pointer-events-none"
+          style={{ background: 'linear-gradient(to left, white 40%, transparent)' }} />
+
+        <div className="marquee-track" style={{ paddingBottom: '16px' }}>
+          {items.map((cat, idx) => (
+            <CatCard key={`${cat._id}-${idx}`} cat={cat} keyPrefix={`${cat._id}-${idx}`} />
           ))}
         </div>
-
       </div>
     </section>
   );
@@ -357,6 +380,7 @@ const FeaturedProducts = ({ products, title = 'FEATURED PRODUCTS', subtitle, cms
   const heading = cmsContent?.title || title;
   const sub = cmsContent?.subtitle || subtitle;
   const eyebrow = cmsContent?.eyebrow || 'Handpicked';
+  const displayed = products.slice(0, 12);
   return (
     <section className="py-16 bg-white">
       <div className="container-luxury">
@@ -370,28 +394,21 @@ const FeaturedProducts = ({ products, title = 'FEATURED PRODUCTS', subtitle, cms
               <p className="section-subtitle tracking-wide">{sub}</p>
             )}
           </div>
-          <Link
-            to="/collections"
-            className="hidden sm:flex items-center gap-2 text-xs font-semibold text-primary hover:text-gold transition-colors tracking-widest uppercase"
-            style={{ letterSpacing: '0.16em' }}
-          >
-            View All <ArrowRightIcon />
-          </Link>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
-          {products.map((product) => (
-            <ProductCard key={product._id} product={product} />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+          {displayed.map((product, idx) => (
+            <ProductCard key={product._id} product={product} index={idx} />
           ))}
         </div>
 
-        <div className="mt-8 text-center sm:hidden">
+        <div className="mt-10 flex justify-center">
           <Link
             to="/collections"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-primary tracking-widest uppercase border-b border-primary pb-0.5"
-            style={{ letterSpacing: '0.16em' }}
+            className="inline-flex items-center gap-2.5 px-10 py-3.5 text-xs font-bold uppercase tracking-widest border border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300 rounded-full"
+            style={{ letterSpacing: '0.18em' }}
           >
-            View All <ArrowRightIcon />
+            See More <ArrowRightIcon />
           </Link>
         </div>
       </div>
@@ -498,17 +515,21 @@ const DealsSection = ({ products, cmsContent }) => {
           </div>
         ) : products?.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
-            {products.slice(0, 8).map((product) => (
-              <ProductCard key={product._id} product={product} />
+            {products.slice(0, 8).map((product, idx) => (
+              <ProductCard key={product._id} product={product} index={idx} />
             ))}
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="rounded-xl overflow-hidden">
-                <div className="skeleton w-full rounded-xl" style={{ aspectRatio: '1/1' }} />
-                <div className="skeleton h-3 mt-3 rounded-full w-3/4" />
-                <div className="skeleton h-3 mt-2 rounded-full w-1/2" />
+              <div key={i} style={{ borderRadius: 20, overflow: 'hidden', background: 'rgba(255,255,255,0.72)', border: '1px solid rgba(255,255,255,0.65)', boxShadow: '0 4px 20px rgba(90,65,63,0.07)' }}>
+                <div className="shimmer-img w-full" style={{ aspectRatio: '1/1' }} />
+                <div className="p-4 space-y-2.5">
+                  <div className="shimmer-text h-2.5 w-16 rounded" />
+                  <div className="shimmer-text h-3.5 w-full rounded" />
+                  <div className="shimmer-text h-3.5 w-3/4 rounded" />
+                  <div className="shimmer-text h-4 w-20 rounded mt-1" />
+                </div>
               </div>
             ))}
           </div>
@@ -654,28 +675,32 @@ const WHY_CHOOSE_FALLBACK = [
     title: 'FAST & SECURE SHIPPING',
     subtitle: 'Your Excitement, Our Priority',
     link: '#',
-    image: '',
+    image: 'http://localhost:8000/uploads/promo-shipping.jpg',
+    unsplash: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=900&h=400&fit=crop&q=80&auto=format',
     bg: 'linear-gradient(145deg, #1c1c2e 0%, #2d2d44 100%)',
   },
   {
     title: 'VAULT OF DREAMS',
     subtitle: 'Complete 9, Unlock the Shine',
     link: '#',
-    image: '',
+    image: 'http://localhost:8000/uploads/promo-ring.jpg',
+    unsplash: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=900&h=400&fit=crop&q=80&auto=format',
     bg: 'linear-gradient(145deg, #0d1117 0%, #1a1a2e 100%)',
   },
   {
     title: 'VIRTUAL CONSULTATION',
     subtitle: 'See it, Love it, Buy it',
     link: '#',
-    image: '',
+    image: 'http://localhost:8000/uploads/promo-consultation.jpg',
+    unsplash: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=900&h=400&fit=crop&q=80&auto=format',
     bg: 'linear-gradient(145deg, #1a2744 0%, #0d1b2a 100%)',
   },
   {
     title: 'BESPOKE DESIGNS',
     subtitle: 'Handcrafted to Perfection',
     link: '#',
-    image: '',
+    image: 'http://localhost:8000/uploads/promo-bespoke.webp',
+    unsplash: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=900&h=400&fit=crop&q=80&auto=format',
     bg: 'linear-gradient(145deg, #2c1810 0%, #1a0e08 100%)',
   },
 ];
@@ -720,13 +745,17 @@ const WhyChooseSection = ({ cmsContent }) => {
                   <div className="absolute inset-0" style={{ background: item.bg || '#1a1a1a' }} />
 
                   {/* Image */}
-                  {item.image && (
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  )}
+                  <img
+                    src={item.image || WHY_CHOOSE_FALLBACK[i]?.image}
+                    alt={item.title}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      const fb = WHY_CHOOSE_FALLBACK[i]?.unsplash;
+                      if (fb && e.target.src !== fb) { e.target.src = fb; }
+                      else { e.target.style.display = 'none'; }
+                    }}
+                  />
 
                   {/* Dark overlay */}
                   <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors duration-300" />
@@ -765,88 +794,328 @@ const WhyChooseSection = ({ cmsContent }) => {
 };
 
 // ─── DIAMOND CUTS SECTION ─────────────────────────────────────────────────────
+const BACKEND = 'http://localhost:8000';
 const DIAMOND_CUTS_DATA = [
-  { name: 'EMERALD',  slug: 'emerald'  },
-  { name: 'OVAL',     slug: 'oval'     },
-  { name: 'CUSHION',  slug: 'cushion'  },
-  { name: 'ROUND',    slug: 'round'    },
-  { name: 'PRINCESS', slug: 'princess' },
-  { name: 'PEAR',     slug: 'pear'     },
-  { name: 'MARQUISE', slug: 'marquise' },
-  { name: 'HEART',    slug: 'heart'    },
+  { name: 'ROUND',    slug: 'round',    image: `${BACKEND}/uploads/diamond-cut-round.jpg`    },
+  { name: 'OVAL',     slug: 'oval',     image: `${BACKEND}/uploads/diamond-cut-oval.jpg`     },
+  { name: 'CUSHION',  slug: 'cushion',  image: `${BACKEND}/uploads/diamond-cut-cushion.jpg`  },
+  { name: 'PRINCESS', slug: 'princess', image: `${BACKEND}/uploads/diamond-cut-princess.jpg` },
+  { name: 'EMERALD',  slug: 'emerald',  image: `${BACKEND}/uploads/diamond-cut-emerald.jpg`  },
+  { name: 'PEAR',     slug: 'pear',     image: `${BACKEND}/uploads/diamond-cut-pear.jpg`     },
+  { name: 'MARQUISE', slug: 'marquise', image: `${BACKEND}/uploads/diamond-cut-marquise.jpg` },
+  { name: 'HEART',    slug: 'heart',    image: `${BACKEND}/uploads/diamond-cut-heart.jpg`    },
 ];
 
 const DiamondShapeSVG = ({ shape }) => {
-  const c = '#b08070';
-  const sp = { stroke: c, strokeWidth: 1.6, fill: 'rgba(176,128,112,0.08)', strokeLinecap: 'round', strokeLinejoin: 'round' };
-  const line = { stroke: c, strokeWidth: 0.8, opacity: 0.3 };
+  // dk=dark facet  lt=light facet  tb=table  str=stroke  sp=sparkle
+  const dk='#4a6880'; const lt='#daeeff'; const mid='#8aaac8'; const str='#6a8aaa';
 
   const paths = {
+
+    // ── ROUND BRILLIANT ── 16 alternating sectors + table octagon
     round: (
-      <svg viewBox="0 0 60 60" className="w-full h-full">
-        <circle cx="30" cy="30" r="23" {...sp} />
-        <polygon points="30,7 50,19 50,41 30,53 10,41 10,19" fill="none" stroke={c} strokeWidth="0.9" opacity={0.25}/>
-        <line x1="30" y1="7" x2="30" y2="53" {...line}/>
-        <line x1="10" y1="19" x2="50" y2="41" {...line}/>
-        <line x1="50" y1="19" x2="10" y2="41" {...line}/>
+      <svg viewBox="0 0 100 100" className="w-full h-full">
+        <defs>
+          <radialGradient id="ds-rnd" cx="44%" cy="38%" r="62%">
+            <stop offset="0%" stopColor="#f4f8fc"/><stop offset="100%" stopColor="#a0b8cc"/>
+          </radialGradient>
+        </defs>
+        <circle cx="50" cy="50" r="44" fill="url(#ds-rnd)"/>
+        {/* 8 dark sectors */}
+        <polygon points="50,50 94,50 90.7,66.8" fill={dk} opacity="0.48"/>
+        <polygon points="50,50 81.1,81.1 66.8,90.7" fill={dk} opacity="0.48"/>
+        <polygon points="50,50 50,94 33.2,90.7" fill={dk} opacity="0.48"/>
+        <polygon points="50,50 18.9,81.1 9.3,66.8" fill={dk} opacity="0.48"/>
+        <polygon points="50,50 6,50 9.3,33.2" fill={dk} opacity="0.48"/>
+        <polygon points="50,50 18.9,18.9 33.2,9.3" fill={dk} opacity="0.48"/>
+        <polygon points="50,50 50,6 66.8,9.3" fill={dk} opacity="0.48"/>
+        <polygon points="50,50 81.1,18.9 90.7,33.2" fill={dk} opacity="0.48"/>
+        {/* 8 light sectors */}
+        <polygon points="50,50 90.7,66.8 81.1,81.1" fill={lt} opacity="0.7"/>
+        <polygon points="50,50 66.8,90.7 50,94" fill={lt} opacity="0.7"/>
+        <polygon points="50,50 33.2,90.7 18.9,81.1" fill={lt} opacity="0.7"/>
+        <polygon points="50,50 9.3,66.8 6,50" fill={lt} opacity="0.7"/>
+        <polygon points="50,50 9.3,33.2 18.9,18.9" fill={lt} opacity="0.7"/>
+        <polygon points="50,50 33.2,9.3 50,6" fill={lt} opacity="0.7"/>
+        <polygon points="50,50 66.8,9.3 81.1,18.9" fill={lt} opacity="0.7"/>
+        <polygon points="50,50 90.7,33.2 94,50" fill={lt} opacity="0.7"/>
+        {/* Table octagon */}
+        <polygon points="70.3,58.4 58.4,70.3 41.6,70.3 29.7,58.4 29.7,41.6 41.6,29.7 58.4,29.7 70.3,41.6" fill="white" fillOpacity="0.65" stroke={mid} strokeWidth="0.5"/>
+        {/* Facet lines girdle→table */}
+        <line x1="94" y1="50" x2="70.3" y2="41.6" stroke={mid} strokeWidth="0.4" opacity="0.55"/>
+        <line x1="94" y1="50" x2="70.3" y2="58.4" stroke={mid} strokeWidth="0.4" opacity="0.55"/>
+        <line x1="81.1" y1="81.1" x2="70.3" y2="58.4" stroke={mid} strokeWidth="0.4" opacity="0.55"/>
+        <line x1="81.1" y1="81.1" x2="58.4" y2="70.3" stroke={mid} strokeWidth="0.4" opacity="0.55"/>
+        <line x1="50" y1="94" x2="58.4" y2="70.3" stroke={mid} strokeWidth="0.4" opacity="0.55"/>
+        <line x1="50" y1="94" x2="41.6" y2="70.3" stroke={mid} strokeWidth="0.4" opacity="0.55"/>
+        <line x1="18.9" y1="81.1" x2="29.7" y2="58.4" stroke={mid} strokeWidth="0.4" opacity="0.55"/>
+        <line x1="18.9" y1="81.1" x2="41.6" y2="70.3" stroke={mid} strokeWidth="0.4" opacity="0.55"/>
+        <line x1="6" y1="50" x2="29.7" y2="58.4" stroke={mid} strokeWidth="0.4" opacity="0.55"/>
+        <line x1="6" y1="50" x2="29.7" y2="41.6" stroke={mid} strokeWidth="0.4" opacity="0.55"/>
+        <line x1="18.9" y1="18.9" x2="29.7" y2="41.6" stroke={mid} strokeWidth="0.4" opacity="0.55"/>
+        <line x1="18.9" y1="18.9" x2="41.6" y2="29.7" stroke={mid} strokeWidth="0.4" opacity="0.55"/>
+        <line x1="50" y1="6" x2="41.6" y2="29.7" stroke={mid} strokeWidth="0.4" opacity="0.55"/>
+        <line x1="50" y1="6" x2="58.4" y2="29.7" stroke={mid} strokeWidth="0.4" opacity="0.55"/>
+        <line x1="81.1" y1="18.9" x2="58.4" y2="29.7" stroke={mid} strokeWidth="0.4" opacity="0.55"/>
+        <line x1="81.1" y1="18.9" x2="70.3" y2="41.6" stroke={mid} strokeWidth="0.4" opacity="0.55"/>
+        <circle cx="50" cy="50" r="44" fill="none" stroke={str} strokeWidth="0.8"/>
+        <ellipse cx="37" cy="31" rx="4" ry="3" fill="white" opacity="0.95" transform="rotate(-25,37,31)"/>
+        <circle cx="46" cy="24" r="2" fill="white" opacity="0.75"/>
       </svg>
     ),
+
+    // ── OVAL ── same 16-sector approach clipped to ellipse
     oval: (
-      <svg viewBox="0 0 48 70" className="w-full h-full">
-        <ellipse cx="24" cy="35" rx="19" ry="30" {...sp}/>
-        <line x1="24" y1="5" x2="24" y2="65" {...line}/>
-        <line x1="5" y1="35" x2="43" y2="35" {...line}/>
-        <ellipse cx="24" cy="35" rx="10" ry="16" fill="none" stroke={c} strokeWidth="0.8" opacity={0.22}/>
+      <svg viewBox="0 0 80 112" className="w-full h-full">
+        <defs>
+          <radialGradient id="ds-ovl" cx="42%" cy="36%" r="62%">
+            <stop offset="0%" stopColor="#f4f8fc"/><stop offset="100%" stopColor="#a0b8cc"/>
+          </radialGradient>
+          <clipPath id="cp-ovl"><ellipse cx="40" cy="56" rx="34" ry="49"/></clipPath>
+        </defs>
+        <ellipse cx="40" cy="56" rx="34" ry="49" fill="url(#ds-ovl)"/>
+        <g clipPath="url(#cp-ovl)">
+          <polygon points="40,56 74,56 71,73" fill={dk} opacity="0.48"/>
+          <polygon points="40,56 63,89 52,100" fill={dk} opacity="0.48"/>
+          <polygon points="40,56 40,105 27,100" fill={dk} opacity="0.48"/>
+          <polygon points="40,56 17,89 9,73" fill={dk} opacity="0.48"/>
+          <polygon points="40,56 6,56 9,39" fill={dk} opacity="0.48"/>
+          <polygon points="40,56 17,23 28,12" fill={dk} opacity="0.48"/>
+          <polygon points="40,56 40,7 53,12" fill={dk} opacity="0.48"/>
+          <polygon points="40,56 63,23 71,39" fill={dk} opacity="0.48"/>
+          <polygon points="40,56 71,73 63,89" fill={lt} opacity="0.7"/>
+          <polygon points="40,56 52,100 40,105" fill={lt} opacity="0.7"/>
+          <polygon points="40,56 27,100 17,89" fill={lt} opacity="0.7"/>
+          <polygon points="40,56 9,73 6,56" fill={lt} opacity="0.7"/>
+          <polygon points="40,56 9,39 17,23" fill={lt} opacity="0.7"/>
+          <polygon points="40,56 28,12 40,7" fill={lt} opacity="0.7"/>
+          <polygon points="40,56 53,12 63,23" fill={lt} opacity="0.7"/>
+          <polygon points="40,56 71,39 74,56" fill={lt} opacity="0.7"/>
+        </g>
+        <polygon points="57,64 50,75 30,75 23,64 23,48 30,37 50,37 57,48" fill="white" fillOpacity="0.65" stroke={mid} strokeWidth="0.5"/>
+        <ellipse cx="40" cy="56" rx="34" ry="49" fill="none" stroke={str} strokeWidth="0.8"/>
+        <ellipse cx="30" cy="36" rx="4" ry="3" fill="white" opacity="0.95" transform="rotate(-20,30,36)"/>
+        <circle cx="37" cy="28" r="2" fill="white" opacity="0.75"/>
       </svg>
     ),
+
+    // ── CUSHION ── 16 sectors clipped to rounded square
     cushion: (
-      <svg viewBox="0 0 60 60" className="w-full h-full">
-        <path d="M18,6 L42,6 Q54,6 54,18 L54,42 Q54,54 42,54 L18,54 Q6,54 6,42 L6,18 Q6,6 18,6Z" {...sp}/>
-        <line x1="30" y1="6" x2="30" y2="54" {...line}/>
-        <line x1="6" y1="30" x2="54" y2="30" {...line}/>
-        <line x1="14" y1="14" x2="46" y2="46" {...line}/>
-        <line x1="46" y1="14" x2="14" y2="46" {...line}/>
+      <svg viewBox="0 0 100 100" className="w-full h-full">
+        <defs>
+          <radialGradient id="ds-csh" cx="42%" cy="36%" r="64%">
+            <stop offset="0%" stopColor="#f4f8fc"/><stop offset="100%" stopColor="#a0b8cc"/>
+          </radialGradient>
+          <clipPath id="cp-csh">
+            <path d="M22,8 L78,8 Q92,8 92,22 L92,78 Q92,92 78,92 L22,92 Q8,92 8,78 L8,22 Q8,8 22,8Z"/>
+          </clipPath>
+        </defs>
+        <path d="M22,8 L78,8 Q92,8 92,22 L92,78 Q92,92 78,92 L22,92 Q8,92 8,78 L8,22 Q8,8 22,8Z" fill="url(#ds-csh)"/>
+        <g clipPath="url(#cp-csh)">
+          <polygon points="50,50 92,50 88,67" fill={dk} opacity="0.48"/>
+          <polygon points="50,50 85,85 68,88" fill={dk} opacity="0.48"/>
+          <polygon points="50,50 50,92 33,88" fill={dk} opacity="0.48"/>
+          <polygon points="50,50 15,85 12,68" fill={dk} opacity="0.48"/>
+          <polygon points="50,50 8,50 12,33" fill={dk} opacity="0.48"/>
+          <polygon points="50,50 15,15 33,12" fill={dk} opacity="0.48"/>
+          <polygon points="50,50 50,8 67,12" fill={dk} opacity="0.48"/>
+          <polygon points="50,50 85,15 88,33" fill={dk} opacity="0.48"/>
+          <polygon points="50,50 88,67 85,85" fill={lt} opacity="0.7"/>
+          <polygon points="50,50 68,88 50,92" fill={lt} opacity="0.7"/>
+          <polygon points="50,50 33,88 15,85" fill={lt} opacity="0.7"/>
+          <polygon points="50,50 12,68 8,50" fill={lt} opacity="0.7"/>
+          <polygon points="50,50 12,33 15,15" fill={lt} opacity="0.7"/>
+          <polygon points="50,50 33,12 50,8" fill={lt} opacity="0.7"/>
+          <polygon points="50,50 67,12 85,15" fill={lt} opacity="0.7"/>
+          <polygon points="50,50 88,33 92,50" fill={lt} opacity="0.7"/>
+        </g>
+        <polygon points="70.3,58.4 58.4,70.3 41.6,70.3 29.7,58.4 29.7,41.6 41.6,29.7 58.4,29.7 70.3,41.6" fill="white" fillOpacity="0.65" stroke={mid} strokeWidth="0.5"/>
+        <path d="M22,8 L78,8 Q92,8 92,22 L92,78 Q92,92 78,92 L22,92 Q8,92 8,78 L8,22 Q8,8 22,8Z" fill="none" stroke={str} strokeWidth="0.8"/>
+        <ellipse cx="36" cy="30" rx="4" ry="3" fill="white" opacity="0.95" transform="rotate(-20,36,30)"/>
+        <circle cx="45" cy="23" r="2" fill="white" opacity="0.75"/>
       </svg>
     ),
+
+    // ── PRINCESS ── square with 16 sectors + corner diagonals
     princess: (
-      <svg viewBox="0 0 58 58" className="w-full h-full">
-        <rect x="7" y="7" width="44" height="44" {...sp}/>
-        <line x1="7" y1="7" x2="51" y2="51" {...line}/>
-        <line x1="51" y1="7" x2="7" y2="51" {...line}/>
-        <line x1="29" y1="7" x2="29" y2="51" {...line}/>
-        <line x1="7" y1="29" x2="51" y2="29" {...line}/>
+      <svg viewBox="0 0 100 100" className="w-full h-full">
+        <defs>
+          <linearGradient id="ds-prc" x1="15%" y1="10%" x2="88%" y2="90%">
+            <stop offset="0%" stopColor="#f4f8fc"/><stop offset="100%" stopColor="#9ab4c8"/>
+          </linearGradient>
+          <clipPath id="cp-prc"><rect x="8" y="8" width="84" height="84"/></clipPath>
+        </defs>
+        <rect x="8" y="8" width="84" height="84" fill="url(#ds-prc)"/>
+        <g clipPath="url(#cp-prc)">
+          <polygon points="50,50 92,50 92,29" fill={dk} opacity="0.48"/>
+          <polygon points="50,50 92,8 71,8" fill={dk} opacity="0.48"/>
+          <polygon points="50,50 50,8 29,8" fill={dk} opacity="0.48"/>
+          <polygon points="50,50 8,8 8,29" fill={dk} opacity="0.48"/>
+          <polygon points="50,50 8,50 8,71" fill={dk} opacity="0.48"/>
+          <polygon points="50,50 8,92 29,92" fill={dk} opacity="0.48"/>
+          <polygon points="50,50 50,92 71,92" fill={dk} opacity="0.48"/>
+          <polygon points="50,50 92,92 92,71" fill={dk} opacity="0.48"/>
+          <polygon points="50,50 92,29 92,8" fill={lt} opacity="0.62"/>
+          <polygon points="50,50 71,8 50,8" fill={lt} opacity="0.62"/>
+          <polygon points="50,50 29,8 8,8" fill={lt} opacity="0.62"/>
+          <polygon points="50,50 8,29 8,50" fill={lt} opacity="0.62"/>
+          <polygon points="50,50 8,71 8,92" fill={lt} opacity="0.62"/>
+          <polygon points="50,50 29,92 50,92" fill={lt} opacity="0.62"/>
+          <polygon points="50,50 71,92 92,92" fill={lt} opacity="0.62"/>
+          <polygon points="50,50 92,71 92,50" fill={lt} opacity="0.62"/>
+        </g>
+        <polygon points="68,58 58,68 42,68 32,58 32,42 42,32 58,32 68,42" fill="white" fillOpacity="0.65" stroke={mid} strokeWidth="0.5"/>
+        <line x1="8" y1="8" x2="32" y2="32" stroke={mid} strokeWidth="0.45" opacity="0.6"/>
+        <line x1="92" y1="8" x2="68" y2="32" stroke={mid} strokeWidth="0.45" opacity="0.6"/>
+        <line x1="92" y1="92" x2="68" y2="68" stroke={mid} strokeWidth="0.45" opacity="0.6"/>
+        <line x1="8" y1="92" x2="32" y2="68" stroke={mid} strokeWidth="0.45" opacity="0.6"/>
+        <rect x="8" y="8" width="84" height="84" fill="none" stroke={str} strokeWidth="0.8"/>
+        <ellipse cx="32" cy="27" rx="4.5" ry="3" fill="white" opacity="0.95" transform="rotate(-20,32,27)"/>
+        <circle cx="43" cy="20" r="2" fill="white" opacity="0.75"/>
       </svg>
     ),
+
+    // ── EMERALD ── step-cut (3 concentric rings, alternating facet colors)
     emerald: (
-      <svg viewBox="0 0 50 70" className="w-full h-full">
-        <polygon points="14,4 36,4 46,14 46,56 36,66 14,66 4,56 4,14" {...sp}/>
-        <polygon points="17,12 33,12 40,19 40,51 33,58 17,58 10,51 10,19" fill="none" stroke={c} strokeWidth="0.8" opacity={0.25}/>
-        <line x1="4" y1="35" x2="46" y2="35" {...line}/>
-        <line x1="4" y1="24" x2="46" y2="24" stroke={c} strokeWidth="0.6" opacity={0.2}/>
-        <line x1="4" y1="46" x2="46" y2="46" stroke={c} strokeWidth="0.6" opacity={0.2}/>
+      <svg viewBox="0 0 80 112" className="w-full h-full">
+        <defs>
+          <linearGradient id="ds-em" x1="10%" y1="5%" x2="90%" y2="95%">
+            <stop offset="0%" stopColor="#eef4fa"/><stop offset="100%" stopColor="#98b2ca"/>
+          </linearGradient>
+        </defs>
+        <polygon points="21,5 59,5 75,21 75,91 59,107 21,107 5,91 5,21" fill="url(#ds-em)" stroke={str} strokeWidth="0.8"/>
+        {/* Outer ring */}
+        <polygon points="21,5 59,5 55,18 25,18" fill="#e6f2fc" opacity="0.78"/>
+        <polygon points="25,94 55,94 59,107 21,107" fill="#8aaac8" opacity="0.65"/>
+        <polygon points="5,21 21,5 25,18 13,29 13,83 25,94 5,91" fill={dk} opacity="0.5"/>
+        <polygon points="75,21 59,5 55,18 67,29 67,83 55,94 75,91" fill="#c8ddf0" opacity="0.72"/>
+        {/* Middle ring */}
+        <polygon points="25,18 55,18 51,30 29,30" fill="#f0f8ff" opacity="0.82"/>
+        <polygon points="29,82 51,82 55,94 25,94" fill="#7898b8" opacity="0.62"/>
+        <polygon points="13,29 25,18 29,30 18,41 18,71 29,82 13,83" fill={dk} opacity="0.48"/>
+        <polygon points="67,29 55,18 51,30 62,41 62,71 51,82 67,83" fill="#b8d4ec" opacity="0.75"/>
+        {/* Table */}
+        <polygon points="29,30 51,30 62,41 62,71 51,82 29,82 18,71 18,41" fill="white" fillOpacity="0.65" stroke={mid} strokeWidth="0.5"/>
+        {/* Step lines */}
+        <line x1="5" y1="21" x2="75" y2="21" stroke={str} strokeWidth="0.4" opacity="0.5"/>
+        <line x1="13" y1="29" x2="67" y2="29" stroke={str} strokeWidth="0.4" opacity="0.45"/>
+        <line x1="18" y1="41" x2="62" y2="41" stroke={str} strokeWidth="0.35" opacity="0.4"/>
+        <line x1="18" y1="71" x2="62" y2="71" stroke={str} strokeWidth="0.35" opacity="0.4"/>
+        <line x1="13" y1="83" x2="67" y2="83" stroke={str} strokeWidth="0.4" opacity="0.45"/>
+        <line x1="5" y1="91" x2="75" y2="91" stroke={str} strokeWidth="0.4" opacity="0.5"/>
+        <ellipse cx="22" cy="21" rx="3.5" ry="2.5" fill="white" opacity="0.95" transform="rotate(-15,22,21)"/>
+        <circle cx="32" cy="14" r="1.8" fill="white" opacity="0.75"/>
       </svg>
     ),
+
+    // ── PEAR ── 16 sectors clipped to teardrop
     pear: (
-      <svg viewBox="0 0 50 76" className="w-full h-full">
-        <path d="M25,70 C8,62 2,50 2,38 C2,20 12,8 25,5 C38,8 48,20 48,38 C48,50 42,62 25,70Z" {...sp}/>
-        <line x1="25" y1="5" x2="25" y2="70" {...line}/>
-        <line x1="3" y1="38" x2="47" y2="38" {...line}/>
-        <ellipse cx="25" cy="30" rx="12" ry="17" fill="none" stroke={c} strokeWidth="0.7" opacity={0.22}/>
+      <svg viewBox="0 0 80 115" className="w-full h-full">
+        <defs>
+          <radialGradient id="ds-pear" cx="42%" cy="34%" r="64%">
+            <stop offset="0%" stopColor="#f4f8fc"/><stop offset="100%" stopColor="#a0b8cc"/>
+          </radialGradient>
+          <clipPath id="cp-pear">
+            <path d="M40,109 C20,99 6,82 6,62 C6,38 19,13 40,7 C61,13 74,38 74,62 C74,82 60,99 40,109Z"/>
+          </clipPath>
+        </defs>
+        <path d="M40,109 C20,99 6,82 6,62 C6,38 19,13 40,7 C61,13 74,38 74,62 C74,82 60,99 40,109Z" fill="url(#ds-pear)"/>
+        <g clipPath="url(#cp-pear)">
+          <polygon points="40,56 74,56 70,71" fill={dk} opacity="0.48"/>
+          <polygon points="40,56 64,87 53,100" fill={dk} opacity="0.48"/>
+          <polygon points="40,56 40,109 28,101" fill={dk} opacity="0.48"/>
+          <polygon points="40,56 17,87 10,71" fill={dk} opacity="0.48"/>
+          <polygon points="40,56 6,56 10,41" fill={dk} opacity="0.48"/>
+          <polygon points="40,56 17,26 28,14" fill={dk} opacity="0.48"/>
+          <polygon points="40,56 40,7 52,14" fill={dk} opacity="0.48"/>
+          <polygon points="40,56 63,26 70,41" fill={dk} opacity="0.48"/>
+          <polygon points="40,56 70,71 64,87" fill={lt} opacity="0.7"/>
+          <polygon points="40,56 53,100 40,109" fill={lt} opacity="0.7"/>
+          <polygon points="40,56 28,101 17,87" fill={lt} opacity="0.7"/>
+          <polygon points="40,56 10,71 6,56" fill={lt} opacity="0.7"/>
+          <polygon points="40,56 10,41 17,26" fill={lt} opacity="0.7"/>
+          <polygon points="40,56 28,14 40,7" fill={lt} opacity="0.7"/>
+          <polygon points="40,56 52,14 63,26" fill={lt} opacity="0.7"/>
+          <polygon points="40,56 70,41 74,56" fill={lt} opacity="0.7"/>
+        </g>
+        <polygon points="56,63 49,74 31,74 24,63 24,49 31,38 49,38 56,49" fill="white" fillOpacity="0.65" stroke={mid} strokeWidth="0.5"/>
+        <path d="M40,109 C20,99 6,82 6,62 C6,38 19,13 40,7 C61,13 74,38 74,62 C74,82 60,99 40,109Z" fill="none" stroke={str} strokeWidth="0.8"/>
+        <ellipse cx="30" cy="34" rx="4" ry="3" fill="white" opacity="0.95" transform="rotate(-20,30,34)"/>
+        <circle cx="38" cy="26" r="2" fill="white" opacity="0.75"/>
       </svg>
     ),
+
+    // ── MARQUISE ── 16 sectors clipped to eye shape
     marquise: (
-      <svg viewBox="0 0 80 42" className="w-full h-full">
-        <path d="M40,4 C56,4 76,18 76,21 C76,24 56,38 40,38 C24,38 4,24 4,21 C4,18 24,4 40,4Z" {...sp}/>
-        <line x1="4" y1="21" x2="76" y2="21" {...line}/>
-        <line x1="40" y1="4" x2="40" y2="38" {...line}/>
-        <ellipse cx="40" cy="21" rx="18" ry="10" fill="none" stroke={c} strokeWidth="0.7" opacity={0.22}/>
+      <svg viewBox="0 0 130 70" className="w-full h-full">
+        <defs>
+          <radialGradient id="ds-mq" cx="42%" cy="40%" r="60%">
+            <stop offset="0%" stopColor="#f4f8fc"/><stop offset="100%" stopColor="#a0b8cc"/>
+          </radialGradient>
+          <clipPath id="cp-mq">
+            <path d="M65,5 C83,5 125,26 125,35 C125,44 83,65 65,65 C47,65 5,44 5,35 C5,26 47,5 65,5Z"/>
+          </clipPath>
+        </defs>
+        <path d="M65,5 C83,5 125,26 125,35 C125,44 83,65 65,65 C47,65 5,44 5,35 C5,26 47,5 65,5Z" fill="url(#ds-mq)"/>
+        <g clipPath="url(#cp-mq)">
+          <polygon points="65,35 125,35 120,47" fill={dk} opacity="0.48"/>
+          <polygon points="65,35 107,57 89,63" fill={dk} opacity="0.48"/>
+          <polygon points="65,35 65,65 42,63" fill={dk} opacity="0.48"/>
+          <polygon points="65,35 24,57 10,47" fill={dk} opacity="0.48"/>
+          <polygon points="65,35 5,35 10,23" fill={dk} opacity="0.48"/>
+          <polygon points="65,35 24,13 42,7" fill={dk} opacity="0.48"/>
+          <polygon points="65,35 65,5 88,7" fill={dk} opacity="0.48"/>
+          <polygon points="65,35 106,13 120,23" fill={dk} opacity="0.48"/>
+          <polygon points="65,35 120,47 107,57" fill={lt} opacity="0.7"/>
+          <polygon points="65,35 89,63 65,65" fill={lt} opacity="0.7"/>
+          <polygon points="65,35 42,63 24,57" fill={lt} opacity="0.7"/>
+          <polygon points="65,35 10,47 5,35" fill={lt} opacity="0.7"/>
+          <polygon points="65,35 10,23 24,13" fill={lt} opacity="0.7"/>
+          <polygon points="65,35 42,7 65,5" fill={lt} opacity="0.7"/>
+          <polygon points="65,35 88,7 106,13" fill={lt} opacity="0.7"/>
+          <polygon points="65,35 120,23 125,35" fill={lt} opacity="0.7"/>
+        </g>
+        <polygon points="88,41 78,50 52,50 42,41 42,29 52,20 78,20 88,29" fill="white" fillOpacity="0.65" stroke={mid} strokeWidth="0.5"/>
+        <path d="M65,5 C83,5 125,26 125,35 C125,44 83,65 65,65 C47,65 5,44 5,35 C5,26 47,5 65,5Z" fill="none" stroke={str} strokeWidth="0.8"/>
+        <ellipse cx="48" cy="20" rx="4.5" ry="3" fill="white" opacity="0.95" transform="rotate(-15,48,20)"/>
+        <circle cx="59" cy="13" r="2.2" fill="white" opacity="0.75"/>
       </svg>
     ),
+
+    // ── HEART ── 14 sectors clipped to heart + centre cleft line
     heart: (
-      <svg viewBox="0 0 62 62" className="w-full h-full">
-        <path d="M31,54 C31,54 5,37 5,21 C5,12 12,5 21,6 C25,6.5 29,9.5 31,14 C33,9.5 37,6.5 41,6 C50,5 57,12 57,21 C57,37 31,54 31,54Z" {...sp}/>
-        <line x1="31" y1="14" x2="31" y2="54" {...line}/>
-        <line x1="8" y1="22" x2="54" y2="22" {...line}/>
+      <svg viewBox="0 0 100 100" className="w-full h-full">
+        <defs>
+          <radialGradient id="ds-hrt" cx="42%" cy="38%" r="60%">
+            <stop offset="0%" stopColor="#f4f8fc"/><stop offset="100%" stopColor="#a0b8cc"/>
+          </radialGradient>
+          <clipPath id="cp-hrt">
+            <path d="M50,88 C50,88 8,62 8,36 C8,20 18,9 32,10 C39,10.5 45,14.5 50,22 C55,14.5 61,10.5 68,10 C82,9 92,20 92,36 C92,62 50,88 50,88Z"/>
+          </clipPath>
+        </defs>
+        <path d="M50,88 C50,88 8,62 8,36 C8,20 18,9 32,10 C39,10.5 45,14.5 50,22 C55,14.5 61,10.5 68,10 C82,9 92,20 92,36 C92,62 50,88 50,88Z" fill="url(#ds-hrt)"/>
+        <g clipPath="url(#cp-hrt)">
+          <polygon points="50,52 8,36 12,55" fill={dk} opacity="0.48"/>
+          <polygon points="50,52 12,55 20,70" fill={lt} opacity="0.7"/>
+          <polygon points="50,52 20,70 34,82" fill={dk} opacity="0.48"/>
+          <polygon points="50,52 34,82 50,88" fill={lt} opacity="0.7"/>
+          <polygon points="50,52 92,36 88,55" fill={lt} opacity="0.7"/>
+          <polygon points="50,52 88,55 80,70" fill={dk} opacity="0.48"/>
+          <polygon points="50,52 80,70 66,82" fill={lt} opacity="0.7"/>
+          <polygon points="50,52 66,82 50,88" fill={dk} opacity="0.48"/>
+          <polygon points="50,52 8,36 18,22" fill={lt} opacity="0.58"/>
+          <polygon points="50,52 18,22 32,10" fill={dk} opacity="0.42"/>
+          <polygon points="50,52 32,10 50,22" fill={lt} opacity="0.65"/>
+          <polygon points="50,52 50,22 68,10" fill={dk} opacity="0.42"/>
+          <polygon points="50,52 68,10 82,22" fill={lt} opacity="0.58"/>
+          <polygon points="50,52 82,22 92,36" fill={dk} opacity="0.48"/>
+        </g>
+        <polygon points="50,42 64,48 60,63 50,68 40,63 36,48" fill="white" fillOpacity="0.65" stroke={mid} strokeWidth="0.5"/>
+        <path d="M50,88 C50,88 8,62 8,36 C8,20 18,9 32,10 C39,10.5 45,14.5 50,22 C55,14.5 61,10.5 68,10 C82,9 92,20 92,36 C92,62 50,88 50,88Z" fill="none" stroke={str} strokeWidth="0.8"/>
+        <line x1="50" y1="22" x2="50" y2="88" stroke={mid} strokeWidth="0.5" opacity="0.38"/>
+        <ellipse cx="28" cy="24" rx="4" ry="3" fill="white" opacity="0.95" transform="rotate(-15,28,24)"/>
+        <circle cx="38" cy="17" r="2" fill="white" opacity="0.75"/>
+        <ellipse cx="68" cy="24" rx="3.5" ry="2.5" fill="white" opacity="0.85" transform="rotate(15,68,24)"/>
       </svg>
     ),
   };
@@ -881,17 +1150,18 @@ const GIFT_BUDGETS = [
 ];
 
 const GIFT_OCCASIONS = [
-  { title: 'GIFTS FOR WIFE', slug: 'gifts-for-wife', bg: 'linear-gradient(145deg,#1a0808 0%,#3d1212 50%,#2a0c0c 100%)' },
-  { title: 'ANNIVERSARY GIFTS', slug: 'anniversary-gifts', bg: 'linear-gradient(145deg,#08081a 0%,#12123d 50%,#0c0c2a 100%)' },
-  { title: 'BIRTHDAY GIFTS', slug: 'birthday-gifts', bg: 'linear-gradient(145deg,#1a0812 0%,#3d1225 50%,#2a0c1a 100%)' },
-  { title: 'ENGAGEMENT GIFTS', slug: 'engagement-gifts', bg: 'linear-gradient(145deg,#08140a 0%,#12301a 50%,#0c2010 100%)' },
-  { title: 'GIFTS FOR HER', slug: 'gifts-for-her', bg: 'linear-gradient(145deg,#1a0e08 0%,#3d2312 50%,#2a180c 100%)' },
+  { title: 'GIFTS FOR WIFE',     slug: 'gifts-for-wife',     bg: 'linear-gradient(145deg,#1a0808 0%,#3d1212 50%,#2a0c0c 100%)' },
+  { title: 'ANNIVERSARY GIFTS',  slug: 'anniversary-gifts',  bg: 'linear-gradient(145deg,#08081a 0%,#12123d 50%,#0c0c2a 100%)' },
+  { title: 'BIRTHDAY GIFTS',     slug: 'birthday-gifts',     bg: 'linear-gradient(145deg,#1a0812 0%,#3d1225 50%,#2a0c1a 100%)' },
+  { title: 'ENGAGEMENT GIFTS',   slug: 'engagement-gifts',   bg: 'linear-gradient(145deg,#08140a 0%,#12301a 50%,#0c2010 100%)' },
+  { title: 'GIFTS FOR HER',      slug: 'gifts-for-her',      bg: 'linear-gradient(145deg,#1a0e08 0%,#3d2312 50%,#2a180c 100%)' },
 ];
 
 const GiftingSection = ({ cmsContent }) => {
   const budgets   = cmsContent?.budgets?.length   ? cmsContent.budgets   : GIFT_BUDGETS;
   const occasions = cmsContent?.occasions?.length ? cmsContent.occasions : GIFT_OCCASIONS;
-  const heading   = cmsContent?.heading || 'Gift what lasts beyond the vows.';
+  const heading   = cmsContent?.heading  || 'Gift what lasts beyond the vows.';
+  const subtitle  = cmsContent?.subtitle || '';
   const [current, setCurrent] = useState(0);
   const total = occasions.length;
   const go = (idx) => setCurrent((idx + total) % total);
@@ -904,43 +1174,48 @@ const GiftingSection = ({ cmsContent }) => {
           {/* Left — title + budget cards */}
           <div>
             <p
-              className="font-heading italic text-gray-800 mb-9 leading-snug"
+              className="font-heading italic text-gray-800 mb-2 leading-snug"
               style={{ fontSize: 'clamp(1.6rem, 3.5vw, 2.4rem)' }}
             >
               {heading}
             </p>
+            {subtitle && (
+              <p className="text-sm text-gray-400 mb-8 tracking-wide">{subtitle}</p>
+            )}
+            {!subtitle && <div className="mb-8" />}
 
             <div className="grid grid-cols-3 gap-3">
-              {budgets.map(({ label, slug }) => (
+              {budgets.map((budget, idx) => (
                 <Link
-                  key={slug}
-                  to={`/collections/${slug}`}
-                  className="group block bg-[#fafafa] hover:bg-white border border-gray-100 hover:border-red-200 hover:shadow-lg rounded-xl transition-all duration-300 overflow-hidden"
+                  key={budget.slug || idx}
+                  to={`/collections/${budget.slug}`}
+                  className="group block rounded-xl overflow-hidden relative"
+                  style={{ aspectRatio: '3/4' }}
                 >
-                  {/* Ribbon cross */}
-                  <div className="relative" style={{ paddingTop: '60%' }}>
-                    {/* Horizontal band */}
-                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[3px] bg-red-500/70" />
-                    {/* Vertical band */}
-                    <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[3px] bg-red-500/70" />
-                    {/* Bow centered */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <BowSVG />
+                  {budget.image ? (
+                    <img
+                      src={budget.image}
+                      alt={`Gift under ${budget.label}`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[#fafafa] border border-gray-100 rounded-xl flex flex-col">
+                      <div className="flex-1 relative">
+                        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[3px] bg-red-500/70" />
+                        <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[3px] bg-red-500/70" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <BowSVG />
+                        </div>
+                      </div>
+                      <div className="mx-5 h-[2px] bg-red-500/60" />
+                      <div className="px-3 py-4 text-center">
+                        <p className="text-[9px] uppercase tracking-[0.2em] text-gray-400 mb-1">GIFT UNDER</p>
+                        <p className="font-heading font-bold text-red-500" style={{ fontSize: 'clamp(1.4rem, 2.5vw, 1.8rem)' }}>
+                          {budget.label}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Divider line */}
-                  <div className="mx-5 h-[2px] bg-red-500/60" />
-
-                  <div className="px-3 py-4 text-center">
-                    <p className="text-[9px] uppercase tracking-[0.2em] text-gray-400 mb-1">GIFT UNDER</p>
-                    <p
-                      className="font-heading font-bold text-red-500 group-hover:text-red-600 transition-colors"
-                      style={{ fontSize: 'clamp(1.4rem, 2.5vw, 1.8rem)' }}
-                    >
-                      {label}
-                    </p>
-                  </div>
+                  )}
                 </Link>
               ))}
             </div>
@@ -950,7 +1225,7 @@ const GiftingSection = ({ cmsContent }) => {
           <div className="relative rounded-2xl overflow-hidden" style={{ aspectRatio: '4/3' }}>
             {occasions.map((occ, i) => (
               <motion.div
-                key={occ.slug}
+                key={occ.slug || i}
                 animate={{ opacity: i === current ? 1 : 0 }}
                 transition={{ duration: 0.6 }}
                 className="absolute inset-0"
@@ -958,7 +1233,7 @@ const GiftingSection = ({ cmsContent }) => {
               >
                 {occ.image
                   ? <img src={occ.image} alt={occ.title} className="w-full h-full object-cover" />
-                  : <div className="w-full h-full" style={{ background: occ.bg }} />
+                  : <div className="w-full h-full" style={{ background: occ.bg || 'linear-gradient(145deg,#1a0808 0%,#3d1212 50%,#2a0c0c 100%)' }} />
                 }
                 <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent pointer-events-none" />
                 <Link
@@ -1001,9 +1276,9 @@ const GiftingSection = ({ cmsContent }) => {
               </button>
             </div>
 
-            {/* Dots */}
+            {/* Dots — fixed to use live occasions array */}
             <div className="absolute bottom-5 left-5 z-10 flex gap-1.5">
-              {GIFT_OCCASIONS.map((_, i) => (
+              {occasions.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => go(i)}
@@ -1019,22 +1294,61 @@ const GiftingSection = ({ cmsContent }) => {
   );
 };
 
+// Diamond cut card with image + SVG fallback on error
+const DiamondCutCard = ({ cut, slug }) => {
+  const isDirectUrl = cut.image && (cut.image.startsWith('http') && !cut.image.includes('/uploads/diamond-cut-'));
+  // For CMS direct URLs (Cloudinary etc): try once, fallback to SVG
+  // For local uploads: try webp → jpg → png
+  const EXTS = ['webp', 'jpg', 'png'];
+  const baseUrl = (!isDirectUrl && cut.image) ? cut.image.replace(/\.[^.]+$/, '') : null;
+  const [extIdx, setExtIdx] = useState(0);
+  const [imgFailed, setImgFailed] = useState(false);
+
+  const imgSrc = isDirectUrl ? cut.image : (baseUrl ? `${baseUrl}.${EXTS[extIdx]}` : null);
+  const showImg = !!(imgSrc && !imgFailed);
+
+  const handleError = () => {
+    if (!isDirectUrl && extIdx < EXTS.length - 1) {
+      setExtIdx((i) => i + 1);
+    } else {
+      setImgFailed(true);
+    }
+  };
+
+  return (
+    <div className="relative w-[90px] h-[90px] sm:w-full sm:aspect-square flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+      {showImg ? (
+        <img
+          src={imgSrc}
+          alt={cut.name}
+          className="w-full h-full object-contain drop-shadow-md"
+          onError={handleError}
+        />
+      ) : (
+        <DiamondShapeSVG shape={slug} />
+      )}
+    </div>
+  );
+};
+
 // ─── DIAMOND CUTS SECTION ─────────────────────────────────────────────────────
 const DiamondCutsSection = ({ cmsContent }) => {
   const heading  = cmsContent?.title    || 'EXPLORE OUR DIAMOND CUTS';
   const subtitle = cmsContent?.subtitle || 'Where Geometry Elevates Style';
-  const cuts = cmsContent?.items?.length ? cmsContent.items : DIAMOND_CUTS_DATA;
+  // CMS stores cuts under 'cuts' key; fallback to hardcoded data with upload-based images
+  const cmsCuts = cmsContent?.cuts?.filter((c) => c.name);
+  const cuts = cmsCuts?.length ? cmsCuts : DIAMOND_CUTS_DATA;
 
   return (
-    <section className="py-16 bg-[#faf7f4]">
+    <section className="py-16 bg-white">
       <div className="container-luxury">
 
-        <div className="mb-12">
+        <div className="mb-10">
           <PillHeading title={heading} subtitle={subtitle} simple />
         </div>
 
         {/* Scrollable on mobile, 8-col grid on sm+ */}
-        <div className="flex gap-2 overflow-x-auto pb-2 sm:grid sm:grid-cols-8 sm:gap-4 sm:overflow-visible scrollbar-none">
+        <div className="flex gap-6 overflow-x-auto pb-2 sm:grid sm:grid-cols-8 sm:gap-8 sm:overflow-visible scrollbar-none justify-center">
           {cuts.map((cut, i) => {
             const slug = cut.slug || cut.name?.toLowerCase?.() || '';
             return (
@@ -1043,25 +1357,16 @@ const DiamondCutsSection = ({ cmsContent }) => {
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.06, duration: 0.4 }}
-                className="flex-shrink-0 w-[88px] sm:w-auto"
+                transition={{ delay: i * 0.07, duration: 0.45 }}
+                className="flex-shrink-0 w-[90px] sm:w-auto"
               >
                 <Link
                   to={`/collections?cut=${slug}`}
                   className="group flex flex-col items-center gap-3"
                 >
-                  <div
-                    className="relative w-[76px] h-[76px] sm:w-full sm:aspect-square rounded-full bg-white group-hover:bg-luxury-cream border border-gray-200/70 group-hover:border-primary/30 transition-all duration-300 shadow-sm group-hover:shadow-md flex items-center justify-center overflow-hidden"
-                    style={{ maxWidth: '96px', maxHeight: '96px', padding: cut.image ? '0' : '18px' }}
-                  >
-                    {cut.image
-                      ? <img src={cut.image} alt={cut.name} className="w-full h-full object-cover" />
-                      : <DiamondShapeSVG shape={slug} />
-                    }
-                    <div className="absolute inset-0 rounded-full ring-0 group-hover:ring-2 ring-primary/20 transition-all duration-300" />
-                  </div>
+                  <DiamondCutCard cut={cut} slug={slug} />
                   <p
-                    className="text-[9.5px] font-semibold text-gray-500 uppercase tracking-widest group-hover:text-primary transition-colors duration-300 text-center whitespace-nowrap"
+                    className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest group-hover:text-gray-800 transition-colors duration-300 text-center"
                     style={{ letterSpacing: '0.12em' }}
                   >
                     {cut.name}
@@ -1077,24 +1382,278 @@ const DiamondCutsSection = ({ cmsContent }) => {
   );
 };
 
-// ─── STORES SLIDER ────────────────────────────────────────────────────────────
-const STORE_FALLBACKS = [
-  { bg: 'linear-gradient(135deg,#1c1209 0%,#3a2010 60%,#2d1b10 100%)', name: 'OUR FLAGSHIP STORE', city: 'Coming Soon' },
-  { bg: 'linear-gradient(135deg,#0d1117 0%,#1a2744 60%,#0d1b2a 100%)', name: 'EXPERIENCE CENTRE', city: 'Opening Soon' },
+// ─── LIFESTYLE LOOKBOOK ───────────────────────────────────────────────────────
+const LIFESTYLE_CONFIG = [
+  {
+    id: 1,
+    eyebrow: 'BRIDAL & FESTIVE',
+    heading: 'Crafted for\nYour Moments',
+    sub: 'Timeless bridal jewelry — woven with tradition, worn with grace.',
+    modelImage: 'http://localhost:8000/uploads/lifestyle-bridal.jpg',
+    modelUnsplash: 'https://images.unsplash.com/photo-1610992015732-2449b76344bc?w=900&h=1100&fit=crop&q=80&auto=format',
+    modelFallback: 'linear-gradient(145deg,#c9a84c22 0%,#f5e6c0 50%,#faf7f4 100%)',
+    align: 'left',
+    accent: '#C9A84C',
+    bg: '#faf7f4',
+    link: '/collections/bridal',
+    // product slugs to show in mini-grid (fetched from DB)
+    slugs: ['kundan-choker-necklace','temple-gold-bangle-set','pearl-drop-earrings','diamond-floral-pendant-set'],
+    labels: ['Kundan Necklace','Temple Bangles','Pearl Earrings','Floral Pendant'],
+  },
+  {
+    id: 2,
+    eyebrow: 'EVERYDAY LUXURY',
+    heading: 'Wear It Every\nDay, Forever',
+    sub: 'Light. Delicate. Perfectly you — from dawn meetings to candlelit dinners.',
+    modelImage: 'http://localhost:8000/uploads/lifestyle-everyday.jpg',
+    modelUnsplash: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=900&h=1100&fit=crop&q=80&auto=format',
+    modelFallback: 'linear-gradient(145deg,#b76e7922 0%,#f2dde0 50%,#f5ede4 100%)',
+    align: 'right',
+    accent: '#B76E79',
+    bg: '#f5ede4',
+    link: '/collections/daily-wear',
+    slugs: ['diamond-stud-earrings','diamond-solitaire-pendant-18kt','classic-solitaire-diamond-ring','black-beads-gold-mangalsutra'],
+    labels: ['Diamond Studs','Gold Pendant','Solitaire Ring','Mangalsutra'],
+  },
 ];
 
-const StoresSection = ({ stores }) => {
-  const items = stores?.length ? stores : null;
+// Shop-the-look product chip shown ON the model photo
+const ShopChip = ({ product, label, delay = 0 }) => {
+  const img = product?.images?.find((i) => i.isPrimary) || product?.images?.[0];
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.8 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true }}
+      transition={{ delay, duration: 0.4 }}
+    >
+      <Link
+        to={`/products/${product?.slug || '#'}`}
+        className="group flex items-center gap-2 rounded-2xl overflow-hidden transition-all duration-300 hover:scale-105"
+        style={{
+          background: 'rgba(255,255,255,0.92)',
+          backdropFilter: 'blur(12px)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+          border: '1px solid rgba(255,255,255,0.9)',
+          padding: '6px 12px 6px 6px',
+        }}
+      >
+        {/* Product thumbnail */}
+        <div className="w-11 h-11 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
+          {img?.url ? (
+            <img src={img.url} alt={label} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-400" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-amber-50 to-amber-100" />
+          )}
+        </div>
+        {/* Label */}
+        <span className="text-[10px] font-bold text-gray-800 uppercase tracking-wide leading-tight max-w-[80px]">
+          {label}
+        </span>
+        {/* Arrow */}
+        <svg className="w-3 h-3 text-primary flex-shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </Link>
+    </motion.div>
+  );
+};
+
+const LifestyleLookbookSection = ({ panel1Products = [], panel2Products = [], fallbackProducts = [], cmsContent }) => {
+  // Merge CMS overrides into LIFESTYLE_CONFIG (text + image)
+  const panels = LIFESTYLE_CONFIG.map((cfg, i) => {
+    const cms = cmsContent?.panels?.[i] || {};
+    return {
+      ...cfg,
+      eyebrow:       cms.eyebrow || cfg.eyebrow,
+      heading:       cms.heading || cfg.heading,
+      sub:           cms.sub     || cfg.sub,
+      link:          cms.link    || cfg.link,
+      accent:        cms.accent  || cfg.accent,
+      bg:            cms.bg      || cfg.bg,
+      modelImage:    cms.image   || cfg.modelImage,
+      modelUnsplash: cfg.modelUnsplash,
+    };
+  });
+
+  // Products for each panel: admin-selected via toggle, else fall back to slug match
+  const getPanelProducts = (panelProducts, cfg) => {
+    if (panelProducts.length > 0) {
+      return panelProducts.slice(0, 4).map((p, i) => ({ product: p, label: p.title }));
+    }
+    // Fallback: match by hardcoded slugs from LIFESTYLE_CONFIG
+    return cfg.slugs.map((slug, si) => ({
+      product: fallbackProducts.find((p) => p.slug === slug) || null,
+      label: cfg.labels[si],
+    }));
+  };
+
+  return (
+  <section className="overflow-hidden">
+    {panels.map((panel, pi) => {
+      const isLeft = panel.align === 'left';
+      const miniProducts = getPanelProducts(pi === 0 ? panel1Products : panel2Products, panel);
+
+      return (
+        <div
+          key={panel.id}
+          className="flex flex-col lg:flex-row"
+          style={{ background: panel.bg, minHeight: '540px' }}
+        >
+          {/* ── Model photo column with jewelry chips overlaid ── */}
+          <motion.div
+            initial={{ opacity: 0, x: isLeft ? -40 : 40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, ease: 'easeOut' }}
+            className={`relative w-full lg:w-[48%] overflow-hidden flex-shrink-0 ${isLeft ? 'lg:order-1' : 'lg:order-2'}`}
+            style={{ minHeight: '480px' }}
+          >
+            {/* Model image */}
+            <img
+              src={panel.modelImage}
+              alt={panel.eyebrow}
+              className="absolute inset-0 w-full h-full object-cover object-top"
+              loading="lazy"
+              onError={(e) => {
+                e.target.onerror = null;
+                if (panel.modelUnsplash && e.target.src !== panel.modelUnsplash) {
+                  e.target.src = panel.modelUnsplash;
+                } else {
+                  e.target.style.display = 'none';
+                  e.target.parentNode.style.background = panel.modelFallback;
+                }
+              }}
+            />
+
+            {/* Fade edge toward content */}
+            <div
+              className="absolute inset-0 pointer-events-none hidden lg:block"
+              style={{
+                background: isLeft
+                  ? `linear-gradient(to right, transparent 65%, ${panel.bg} 100%)`
+                  : `linear-gradient(to left, transparent 65%, ${panel.bg} 100%)`,
+              }}
+            />
+          </motion.div>
+
+          {/* ── Content column ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
+            className={`flex-1 flex flex-col justify-center px-8 py-14 lg:py-16 lg:px-14 ${isLeft ? 'lg:order-2' : 'lg:order-1'}`}
+          >
+            <span
+              className="block text-[10px] font-bold uppercase tracking-[0.35em] mb-4"
+              style={{ color: panel.accent }}
+            >
+              {panel.eyebrow}
+            </span>
+
+            <h2
+              className="font-heading font-bold text-gray-900 mb-4 leading-tight"
+              style={{ fontSize: 'clamp(1.6rem, 3.5vw, 2.5rem)', whiteSpace: 'pre-line' }}
+            >
+              {panel.heading}
+            </h2>
+
+            <p className="text-gray-500 text-sm leading-relaxed mb-8 max-w-xs tracking-wide">
+              {panel.sub}
+            </p>
+
+            {/* 2×2 product grid on content side */}
+            <div className="grid grid-cols-2 gap-3 mb-8" style={{ maxWidth: '300px' }}>
+              {miniProducts.map(({ product, label }, mi) =>
+                product ? (
+                  <Link key={mi} to={`/products/${product.slug}`} className="group block">
+                    <div className="rounded-xl overflow-hidden aspect-square bg-white/60 shadow-sm group-hover:shadow-md transition-all">
+                      {product.images?.[0]?.url ? (
+                        <img src={product.images[0].url} alt={label} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-amber-50 to-amber-100" />
+                      )}
+                    </div>
+                    <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mt-1.5 truncate">{label}</p>
+                  </Link>
+                ) : (
+                  <div key={mi}>
+                    <div className="rounded-xl aspect-square bg-gray-100 animate-pulse" />
+                    <div className="h-2 mt-2 bg-gray-100 rounded animate-pulse w-3/4" />
+                  </div>
+                )
+              )}
+            </div>
+
+            <Link
+              to={panel.link}
+              className="inline-flex items-center gap-2.5 font-bold uppercase text-[11px] tracking-[0.22em] border-b-2 pb-0.5 w-fit transition-all duration-200 hover:gap-4"
+              style={{ color: panel.accent, borderColor: panel.accent }}
+            >
+              Explore Collection
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </motion.div>
+        </div>
+      );
+    })}
+  </section>
+  );
+};
+
+// ─── STORES SLIDER ────────────────────────────────────────────────────────────
+const STORE_FALLBACKS = [
+  { bg: 'linear-gradient(135deg,#1c1209 0%,#3a2010 60%,#2d1b10 100%)', name: 'FLAGSHIP STORE — MUMBAI', city: 'Bandra West, Mumbai' },
+  { bg: 'linear-gradient(135deg,#0d1117 0%,#1a2744 60%,#0d1b2a 100%)', name: 'EXPERIENCE CENTRE — PUNE', city: 'Koregaon Park, Pune' },
+  { bg: 'linear-gradient(135deg,#1a0e08 0%,#3d2312 60%,#2a180c 100%)', name: 'BOUTIQUE — BANGALORE', city: 'Indiranagar, Bangalore' },
+];
+
+// Uploadable fallback images from Admin → Site Images → Visit Our Stores
+const STORE_UPLOAD_KEYS = ['store-main', 'store-panel2', 'store-panel3'];
+const BACKEND_BASE = 'http://localhost:8000';
+
+const StoresSection = ({ stores, cmsContent }) => {
+  const [uploadedImages, setUploadedImages] = useState({});
+
+  // Try to resolve uploaded store images
+  useEffect(() => {
+    const EXTS = ['webp', 'jpg', 'png'];
+    STORE_UPLOAD_KEYS.forEach((key) => {
+      const tryExt = (idx) => {
+        if (idx >= EXTS.length) return;
+        const url = `${BACKEND_BASE}/uploads/${key}.${EXTS[idx]}`;
+        const img = new Image();
+        img.onload = () => setUploadedImages((prev) => ({ ...prev, [key]: url }));
+        img.onerror = () => tryExt(idx + 1);
+        img.src = url;
+      };
+      tryExt(0);
+    });
+  }, []);
+
+  // Priority: CMS stores → DB stores → site-image uploads → gradient fallbacks
+  const cmsStores = cmsContent?.stores?.filter((s) => s.name || s.image);
+  const items = cmsStores?.length
+    ? cmsStores
+    : stores?.length
+    ? stores
+    : STORE_FALLBACKS.map((fb, i) => ({
+        ...fb,
+        image: uploadedImages[STORE_UPLOAD_KEYS[i]] || null,
+      }));
+
+  const total = items.length;
   const [current, setCurrent] = useState(0);
   const timerRef = useRef(null);
-  const total = items ? items.length : STORE_FALLBACKS.length;
 
   const resetTimer = () => {
     clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setCurrent((c) => (c + 1) % total), 5000);
   };
   useEffect(() => { resetTimer(); return () => clearInterval(timerRef.current); }, [total]);
-
   const go = (idx) => { setCurrent((idx + total) % total); resetTimer(); };
 
   return (
@@ -1102,114 +1661,62 @@ const StoresSection = ({ stores }) => {
       <div className="container-luxury">
 
         <div className="mb-10">
-          <PillHeading title="VISIT OUR STORES" subtitle="Experience Jewelry in Person" simple />
+          <PillHeading title={cmsContent?.title || 'VISIT OUR STORES'} subtitle={cmsContent?.subtitle || 'Experience Jewelry in Person'} simple />
         </div>
 
         {/* Slider */}
         <div className="relative overflow-hidden rounded-2xl" style={{ aspectRatio: '16/7' }}>
-          {(items || STORE_FALLBACKS).map((store, i) => {
-            const isFallback = !items;
-            return (
-              <motion.div
-                key={store._id || i}
-                animate={{ opacity: i === current ? 1 : 0 }}
-                transition={{ duration: 0.7 }}
-                className="absolute inset-0"
-                style={{ pointerEvents: i === current ? 'auto' : 'none' }}
-              >
-                {/* Image / gradient */}
-                {store.image
-                  ? <img src={store.image} alt={store.name} className="w-full h-full object-cover" />
-                  : <div className="w-full h-full" style={{ background: store.bg || 'linear-gradient(135deg,#1c1209 0%,#2d1b10 100%)' }} />
-                }
-                {/* Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
-                {/* Content */}
-                <div className="absolute bottom-0 inset-x-0 p-8 text-center z-10">
-                  <p
-                    className="font-heading font-bold text-white uppercase mb-1.5"
-                    style={{ fontSize: 'clamp(1.1rem, 2.5vw, 1.8rem)', letterSpacing: '0.12em' }}
-                  >
-                    {isFallback ? 'EXPERIENCE OUR STORE' : `EXPERIENCE ${(store.name || '').toUpperCase()} IN ${(store.city || '').toUpperCase()}`}
-                  </p>
-                  {store.city && (
-                    <p className="text-white/70 text-xs tracking-widest uppercase mb-5" style={{ letterSpacing: '0.2em' }}>
-                      {store.city}
-                    </p>
-                  )}
-                  {!isFallback ? (
-                    <Link
-                      to={`/stores/${store.slug}`}
-                      className="inline-block bg-white text-gray-900 font-semibold text-[11px] uppercase tracking-widest px-8 py-2.5 hover:bg-white/90 transition-colors"
-                      style={{ letterSpacing: '0.14em' }}
-                    >
-                      SHOP NOW
-                    </Link>
-                  ) : (
-                    <Link
-                      to="/stores"
-                      className="inline-block bg-white text-gray-900 font-semibold text-[11px] uppercase tracking-widest px-8 py-2.5 hover:bg-white/90 transition-colors"
-                      style={{ letterSpacing: '0.14em' }}
-                    >
-                      VIEW STORES
-                    </Link>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
+          {items.map((store, i) => (
+            <motion.div
+              key={i}
+              animate={{ opacity: i === current ? 1 : 0 }}
+              transition={{ duration: 0.7 }}
+              className="absolute inset-0"
+              style={{ pointerEvents: i === current ? 'auto' : 'none' }}
+            >
+              {store.image
+                ? <img src={store.image} alt={store.name} className="w-full h-full object-cover" />
+                : <div className="w-full h-full" style={{ background: store.bg }} />
+              }
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+              <div className="absolute bottom-0 inset-x-0 p-8 text-center z-10">
+                <p className="font-heading font-bold text-white uppercase mb-1.5"
+                  style={{ fontSize: 'clamp(1.1rem, 2.5vw, 1.8rem)', letterSpacing: '0.12em' }}>
+                  {(store.name || '').toUpperCase()}
+                </p>
+                {store.city && (
+                  <p className="text-white/70 text-xs tracking-widest uppercase mb-5" style={{ letterSpacing: '0.2em' }}>{store.city}</p>
+                )}
+                <Link
+                  to={store.slug ? `/stores/${store.slug}` : '/stores'}
+                  className="inline-block bg-white text-gray-900 font-semibold text-[11px] uppercase tracking-widest px-8 py-2.5 hover:bg-white/90 transition-colors mt-4"
+                  style={{ letterSpacing: '0.14em' }}
+                >
+                  SHOP NOW
+                </Link>
+              </div>
+            </motion.div>
+          ))}
 
-          {/* Prev / Next */}
           {total > 1 && (
             <>
-              <button
-                onClick={() => go(current - 1)}
-                className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/80 hover:bg-white rounded-full flex items-center justify-center text-gray-700 shadow transition-all"
-              >
+              <button onClick={() => go(current - 1)} className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/80 hover:bg-white rounded-full flex items-center justify-center text-gray-700 shadow transition-all">
                 <ChevronLeftIcon />
               </button>
-              <button
-                onClick={() => go(current + 1)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/80 hover:bg-white rounded-full flex items-center justify-center text-gray-700 shadow transition-all"
-              >
+              <button onClick={() => go(current + 1)} className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/80 hover:bg-white rounded-full flex items-center justify-center text-gray-700 shadow transition-all">
                 <ChevronRightIcon />
               </button>
             </>
           )}
 
-          {/* Dots */}
-          {total > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-1.5">
-              {stores.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => go(i)}
-                  className={`rounded-full transition-all duration-300 ${i === current ? 'w-5 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/70'}`}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Store name pills below slider */}
-        {total > 1 && items && (
-          <div className="flex flex-wrap justify-center gap-2 mt-5">
-            {items.map((store, i) => (
-              <button
-                key={i}
-                onClick={() => go(i)}
-                className={`text-[10px] font-semibold uppercase tracking-widest px-4 py-1.5 rounded-full border transition-all duration-200 ${
-                  i === current
-                    ? 'bg-primary text-white border-primary'
-                    : 'border-gray-200 text-gray-500 hover:border-primary/40 hover:text-primary'
-                }`}
-                style={{ letterSpacing: '0.12em' }}
-              >
-                {store.name}
-              </button>
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-1.5">
+            {items.map((_, i) => (
+              <button key={i} onClick={() => go(i)}
+                className={`rounded-full transition-all duration-300 ${i === current ? 'w-5 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/70'}`}
+              />
             ))}
           </div>
-        )}
+        </div>
 
       </div>
     </section>
@@ -1574,30 +2081,17 @@ const FAQSection = ({ cmsContent }) => {
 
 // ─── BLOG SECTION ─────────────────────────────────────────────────────────────
 const BLOG_FALLBACK = [
-  {
-    _id: 'b1', title: 'What Are Engagement Ring Trends in 2026', slug: 'engagement-ring-trends-2026',
-    category: 'ENGAGEMENT RING', imageTitle: 'Engagement Ring\nTrend in 2026',
-    bg: 'linear-gradient(145deg,#c4a882 0%,#a0826a 100%)',
-  },
-  {
-    _id: 'b2', title: 'How To Measure Your Ring Size', slug: 'how-to-measure-ring-size',
-    category: 'EDUCATION', imageTitle: 'How To Measure\nRing Size',
-    bg: 'linear-gradient(145deg,#1e1e2e 0%,#2d2d4e 100%)',
-  },
-  {
-    _id: 'b3', title: 'Diamond Eternity Ring Guide', slug: 'diamond-eternity-ring-guide',
-    category: 'EDUCATION', imageTitle: 'Diamond Eternity\nRing Guide',
-    bg: 'linear-gradient(145deg,#c8ced8 0%,#a8b0be 100%)',
-  },
-  {
-    _id: 'b4', title: 'Trending Hoop Earrings Styles', slug: 'trending-hoop-earrings-styles',
-    category: 'EDUCATION', imageTitle: 'Hoop Earrings\nThrough the Ages',
-    bg: 'linear-gradient(145deg,#e8d5c0 0%,#d0b898 100%)',
-  },
+  { _id: 'b1', title: 'How to Choose the Perfect Engagement Ring', slug: 'how-to-choose-engagement-ring', category: 'ENGAGEMENT RING', imageTitle: 'Choosing the\nPerfect Ring', bg: 'linear-gradient(145deg,#c4a882 0%,#a0826a 100%)' },
+  { _id: 'b2', title: 'Understanding Diamond Quality: The 4 Cs Explained', slug: 'diamond-4cs-quality-guide', category: 'EDUCATION', imageTitle: 'Diamond Quality\nThe 4 Cs', bg: 'linear-gradient(145deg,#1e1e2e 0%,#2d2d4e 100%)' },
+  { _id: 'b3', title: 'Gold Purity Guide: 18KT vs 22KT vs 24KT', slug: 'gold-purity-guide-18kt-22kt', category: 'EDUCATION', imageTitle: '18KT vs 22KT\nGold Guide', bg: 'linear-gradient(145deg,#c8a84c 0%,#9c7e2a 100%)' },
+  { _id: 'b4', title: 'Bridal Jewelry Trends to Watch in 2026', slug: 'bridal-jewelry-trends-2026', category: 'BRIDAL', imageTitle: 'Bridal Jewelry\nTrends 2026', bg: 'linear-gradient(145deg,#e8d5c0 0%,#d0b898 100%)' },
 ];
 
-const BlogSection = ({ blogs }) => {
-  const posts = blogs?.length ? blogs.slice(0, 4) : BLOG_FALLBACK;
+const BlogSection = ({ blogs, cmsContent }) => {
+  const posts = (blogs?.length ? blogs : BLOG_FALLBACK).slice(0, 4);
+  const eyebrow = cmsContent?.eyebrow || 'JEWELRY BLOG';
+  const title   = cmsContent?.title   || 'Where Craft Inspires Conversation';
+  const subtitle = cmsContent?.subtitle || 'Expert Guides & Style Inspiration';
 
   return (
     <section className="py-16 bg-[#faf7f4]">
@@ -1605,18 +2099,21 @@ const BlogSection = ({ blogs }) => {
 
         {/* Heading */}
         <div className="text-center mb-12">
+          <span className="block text-[10px] font-bold uppercase tracking-[0.32em] mb-3" style={{ color: '#c9a84c' }}>
+            {subtitle}
+          </span>
           <h2
             className="font-heading font-bold text-gray-900 uppercase"
             style={{ fontSize: 'clamp(1.1rem, 2.5vw, 1.7rem)', letterSpacing: '0.14em' }}
           >
-            JEWELRY BLOG
+            {eyebrow}
           </h2>
           <p className="text-[13.5px] text-gray-500 mt-2 tracking-wide">
-            Where Craft Inspires Conversation
+            {title}
           </p>
         </div>
 
-        {/* Grid */}
+        {/* Grid — 4 cols */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
           {posts.map((post, i) => (
             <motion.div
@@ -1629,33 +2126,38 @@ const BlogSection = ({ blogs }) => {
               <Link to={`/blog/${post.slug}`} className="group block">
                 {/* Card image */}
                 <div className="relative rounded-xl overflow-hidden" style={{ aspectRatio: '3/4' }}>
-                  {post.image
-                    ? <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    : <div className="w-full h-full" style={{ background: post.bg || 'linear-gradient(145deg,#c4a882 0%,#a08060 100%)' }} />
-                  }
-                  {/* Image title overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center p-5">
-                    <p
-                      className="font-heading italic text-center leading-snug"
-                      style={{
-                        fontSize: 'clamp(0.85rem, 1.5vw, 1.1rem)',
-                        color: post.bg?.includes('1e1e') ? '#fff' : '#2a1a0a',
-                        whiteSpace: 'pre-line',
-                      }}
-                    >
-                      {post.imageTitle || post.title}
-                    </p>
+                  {post.image ? (
+                    <>
+                      <img src={post.image} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+                    </>
+                  ) : (
+                    <div className="w-full h-full" style={{ background: post.bg || 'linear-gradient(145deg,#c4a882 0%,#a08060 100%)' }} />
+                  )}
+                  <div className="absolute top-3 left-3 z-10">
+                    <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/90 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                      {post.category}
+                    </span>
                   </div>
+                  {post.image ? (
+                    <div className="absolute bottom-0 inset-x-0 p-4 z-10">
+                      <p className="font-heading italic text-white leading-snug" style={{ fontSize: 'clamp(0.8rem, 1.4vw, 1rem)', whiteSpace: 'pre-line' }}>
+                        {post.imageTitle || post.title}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center p-5">
+                      <p className="font-heading italic text-center leading-snug"
+                        style={{ fontSize: 'clamp(0.85rem, 1.5vw, 1.1rem)', color: post.bg?.includes('1e1e') || post.bg?.includes('2d1b') ? '#fff' : '#2a1a0a', whiteSpace: 'pre-line' }}>
+                        {post.imageTitle || post.title}
+                      </p>
+                    </div>
+                  )}
                 </div>
-
-                {/* Info row */}
                 <div className="mt-3 flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-1.5">{post.category}</p>
-                    <h3 className="font-heading font-bold text-gray-900 text-[12px] sm:text-[13px] uppercase leading-snug line-clamp-2" style={{ letterSpacing: '0.04em' }}>
-                      {post.title}
-                    </h3>
-                  </div>
+                  <h3 className="font-heading font-bold text-gray-900 text-[12px] sm:text-[13px] uppercase leading-snug line-clamp-2 flex-1" style={{ letterSpacing: '0.04em' }}>
+                    {post.title}
+                  </h3>
                   <div className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:border-primary group-hover:text-primary group-hover:bg-primary/5 transition-all">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -1667,17 +2169,14 @@ const BlogSection = ({ blogs }) => {
           ))}
         </div>
 
-        {/* View all */}
-        <div className="text-center mt-10">
+        {/* View All button */}
+        <div className="mt-10 flex justify-center">
           <Link
             to="/blog"
-            className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-primary hover:text-primary/80 border-b border-primary/30 hover:border-primary pb-0.5 transition-all"
-            style={{ letterSpacing: '0.14em' }}
+            className="inline-flex items-center gap-2.5 px-10 py-3.5 text-xs font-bold uppercase tracking-widest border border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300 rounded-full"
+            style={{ letterSpacing: '0.18em' }}
           >
-            VIEW ALL POSTS
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
+            View All Articles <ArrowRightIcon />
           </Link>
         </div>
 
@@ -1692,20 +2191,24 @@ export default function Home() {
   const [categories, setCategories] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [dealProducts, setDealProducts] = useState([]);
+  const [lifestyle1Products, setLifestyle1Products] = useState([]);
+  const [lifestyle2Products, setLifestyle2Products] = useState([]);
   const [stores, setStores] = useState([]);
   const [blogs, setBlogs] = useState([]);
   const [cmsSections, setCmsSections] = useState({});
 
   useEffect(() => {
     const load = async () => {
-      const [bannersRes, categoriesRes, featuredRes, dealsRes, sectionsRes, storesRes, blogsRes] = await Promise.allSettled([
+      const [bannersRes, categoriesRes, featuredRes, dealsRes, sectionsRes, storesRes, blogsRes, ls1Res, ls2Res] = await Promise.allSettled([
         cmsAPI.getBanners('hero'),
         categoryAPI.getAll({ parent: 'null' }),
-        productAPI.getAll({ limit: 10, sort: 'rating' }),
-        productAPI.getAll({ limit: 10, segments: 'Deal of Week' }),
+        productAPI.getAll({ limit: 60, isFeatured: true, sort: 'rating' }),
+        productAPI.getAll({ limit: 8, isBestSeller: true, sort: 'popular' }),
         cmsAPI.getPageSections('home'),
         storeAPI.getStores(),
         blogAPI.getAll({ featured: 'true', limit: 4 }),
+        productAPI.getAll({ limit: 4, isLifestyle1: true }),
+        productAPI.getAll({ limit: 4, isLifestyle2: true }),
       ]);
       if (bannersRes.status === 'fulfilled') setBanners(bannersRes.value.data.data || []);
       if (categoriesRes.status === 'fulfilled') setCategories(categoriesRes.value.data.data || []);
@@ -1713,9 +2216,20 @@ export default function Home() {
       setFeaturedProducts(featured);
       const deals = dealsRes.status === 'fulfilled' ? (dealsRes.value.data.data || []) : [];
       // Fall back to featured products if no "Deal of Week" segment products exist yet
-      setDealProducts(deals.length ? deals : featured.slice(0, 8));
+      setDealProducts(deals.length >= 4 ? deals.slice(0, 8) : featured.slice(0, 8));
       if (storesRes.status === 'fulfilled') setStores(storesRes.value.data.data || []);
-      if (blogsRes.status === 'fulfilled') setBlogs(blogsRes.value.data.data || []);
+      if (ls1Res.status === 'fulfilled') setLifestyle1Products(ls1Res.value.data.data || []);
+      if (ls2Res.status === 'fulfilled') setLifestyle2Products(ls2Res.value.data.data || []);
+      // Use featured blogs; if admin hasn't featured any, fall back to latest 4
+      const featuredBlogs = blogsRes.status === 'fulfilled' ? (blogsRes.value.data.data || []) : [];
+      if (featuredBlogs.length > 0) {
+        setBlogs(featuredBlogs);
+      } else {
+        try {
+          const latestRes = await blogAPI.getAll({ limit: 4 });
+          setBlogs(latestRes.data.data || []);
+        } catch { /* keep empty, fallback renders */ }
+      }
       if (sectionsRes.status === 'fulfilled') {
         const sections = sectionsRes.value.data.data || [];
         const byType = {};
@@ -1740,6 +2254,12 @@ export default function Home() {
       <CategoryGrid categories={categories} cmsContent={cmsSections.category_grid} />
       <DealsSection products={dealProducts} cmsContent={cmsSections.deals} />
       <WhyChooseSection cmsContent={cmsSections.why_choose} />
+      <LifestyleLookbookSection
+        panel1Products={lifestyle1Products}
+        panel2Products={lifestyle2Products}
+        fallbackProducts={featuredProducts}
+        cmsContent={cmsSections.lifestyle_lookbook}
+      />
       <FeaturedProducts
         products={featuredProducts}
         title="SHOP BEST JEWELRY"
@@ -1747,9 +2267,9 @@ export default function Home() {
         cmsContent={cmsSections.featured_products}
       />
       <DiamondCutsSection cmsContent={cmsSections.diamond_cuts} />
-      <StoresSection stores={stores} />
+      <StoresSection stores={stores} cmsContent={cmsSections.visit_stores} />
       <GiftingSection cmsContent={cmsSections.gifting} />
-      <BlogSection blogs={blogs} />
+      <BlogSection blogs={blogs} cmsContent={cmsSections.blog_section} />
       <ServicesSection cmsContent={cmsSections.services} />
       <Newsletter cmsContent={cmsSections.newsletter} />
       <FAQSection cmsContent={cmsSections.faq} />

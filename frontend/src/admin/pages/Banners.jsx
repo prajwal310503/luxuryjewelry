@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { cmsAPI } from '../../services/api';
+import Select from '../../components/ui/Select';
 
 // ── Position config with recommended sizes ───────────────────────────────────
 const POSITIONS_CONFIG = [
@@ -357,11 +358,11 @@ export default function AdminBanners() {
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="label-luxury">Alignment</label>
-                    <select value={form.alignment} onChange={(e) => set('alignment', e.target.value)} className="input-luxury">
+                    <Select value={form.alignment} onChange={(e) => set('alignment', e.target.value)}>
                       <option value="left">Left</option>
                       <option value="center">Center</option>
                       <option value="right">Right</option>
-                    </select>
+                    </Select>
                   </div>
                   <div>
                     <label className="label-luxury">Text Color</label>

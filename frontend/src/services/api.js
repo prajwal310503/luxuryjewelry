@@ -61,10 +61,17 @@ export const productAPI = {
   getVendorProducts: (params) => api.get('/products/vendor/my', { params }),
   // Admin
   adminGetAll: (params) => api.get('/admin/products', { params }),
+  adminGetById: (id) => api.get(`/admin/products/${id}`),
   adminCreate: (data) => api.post('/admin/products', data),
   adminUpdate: (id, data) => api.put(`/admin/products/${id}`, data),
   adminUpdateStatus: (id, data) => api.put(`/admin/products/${id}/status`, data),
-  adminToggleFeatured: (id) => api.put(`/admin/products/${id}/featured`),
+  adminToggleFeatured:   (id) => api.put(`/admin/products/${id}/featured`),
+  adminToggleBestSeller: (id) => api.put(`/admin/products/${id}/bestseller`),
+  adminToggleNewArrival: (id) => api.put(`/admin/products/${id}/newarrival`),
+  adminToggleLifestyle1: (id) => api.put(`/admin/products/${id}/lifestyle1`),
+  adminToggleLifestyle2: (id) => api.put(`/admin/products/${id}/lifestyle2`),
+  adminDelete: (id) => api.delete(`/admin/products/${id}`),
+  adminRemoveImage: (id, imageIndex) => api.delete(`/admin/products/${id}/images/${imageIndex}`),
 };
 
 // ==================== CATEGORIES ====================
@@ -121,7 +128,18 @@ export const cmsAPI = {
   deleteBanner: (id) => api.delete(`/cms/admin/banners/${id}`),
   adminGetMenus: () => api.get('/cms/admin/menus'),
   upsertMenu: (location, data) => api.put(`/cms/admin/menus/${location}`, data),
-  uploadImage: (formData) => api.post('/cms/admin/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  // Use native fetch so browser sets correct Content-Type boundary for multipart
+  uploadImage: async (formData) => {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE}/cms/admin/upload`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.message || 'Upload failed');
+    return { data: json };
+  },
 };
 
 // ==================== ADMIN ====================
@@ -174,17 +192,27 @@ export const storeAPI = {
 };
 
 // ==================== BLOG ====================
+// Helper: use native fetch for multipart blog uploads so the browser sets
+// the correct Content-Type boundary automatically (Axios overrides it).
+async function blogFetch(method, path, data) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${token}` },
+    body: data,
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.message || 'Request failed');
+  return { data: json };
+}
+
 export const blogAPI = {
   getAll: (params) => api.get('/blog', { params }),
   getBySlug: (slug) => api.get(`/blog/${slug}`),
   // Admin
   adminGetAll: () => api.get('/blog/admin/all'),
-  adminCreate: (data) => api.post('/blog/admin', data, {
-    headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {},
-  }),
-  adminUpdate: (id, data) => api.put(`/blog/admin/${id}`, data, {
-    headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {},
-  }),
+  adminCreate: (data) => blogFetch('POST', '/blog/admin', data),
+  adminUpdate: (id, data) => blogFetch('PUT', `/blog/admin/${id}`, data),
   adminDelete: (id) => api.delete(`/blog/admin/${id}`),
   adminToggle: (id) => api.put(`/blog/admin/${id}/toggle`),
 };

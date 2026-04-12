@@ -345,6 +345,7 @@ const SEARCH_PLACEHOLDERS = [
 
 const SearchBar = ({ className = '' }) => {
   const [query, setQuery] = useState('');
+  const [focused, setFocused] = useState(false);
   const [pi, setPi] = useState(0);
   const navigate = useNavigate();
 
@@ -360,33 +361,54 @@ const SearchBar = ({ className = '' }) => {
 
   return (
     <form onSubmit={handleSearch} className={`relative ${className}`}>
-      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+      {/* Search icon */}
+      <span className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors duration-200"
+        style={{ color: focused ? '#5a413f' : '#a0a0a0' }}>
         <SearchIcon />
       </span>
+
       <input
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         placeholder={SEARCH_PLACEHOLDERS[pi]}
-        className="w-full h-[46px] pl-12 pr-5 text-[13px] transition-all placeholder:text-gray-400"
+        className="w-full h-[44px] pl-11 pr-[108px] text-[13px] text-gray-800 placeholder:text-gray-400 transition-all duration-200"
         style={{
           borderRadius: '999px',
-          background: 'rgba(255,255,255,0.62)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255,255,255,0.70)',
-          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.03), 0 1px 0 rgba(255,255,255,0.8)',
+          background: focused ? '#ffffff' : 'rgba(245,241,238,0.85)',
+          border: focused
+            ? '1.5px solid rgba(90,65,63,0.45)'
+            : '1.5px solid rgba(90,65,63,0.18)',
+          boxShadow: focused
+            ? '0 0 0 3px rgba(90,65,63,0.09), 0 2px 8px rgba(90,65,63,0.06)'
+            : '0 1px 3px rgba(0,0,0,0.04)',
           outline: 'none',
         }}
       />
+
+      {/* Search button */}
+      <button
+        type="submit"
+        className="absolute right-1.5 top-1/2 -translate-y-1/2 h-[34px] px-5 text-[12px] font-semibold text-white tracking-wide transition-all duration-200 hover:opacity-90 active:scale-95"
+        style={{
+          borderRadius: '999px',
+          background: 'linear-gradient(135deg, #5a413f 0%, #3a2927 100%)',
+          boxShadow: '0 2px 8px rgba(90,65,63,0.30)',
+        }}
+      >
+        Search
+      </button>
     </form>
   );
 };
 
 // ─── Mega Menu Dropdown ───────────────────────────────────────────────────────
-const FeatImagePanel = ({ fi, className = '' }) => (
+const FeatImagePanel = ({ fi, className = '', onClose }) => (
   <Link
     to={fi.link || '#'}
+    onClick={onClose}
     className={`relative overflow-hidden group block ${className}`}
   >
     {fi.image
@@ -408,7 +430,7 @@ const FeatImagePanel = ({ fi, className = '' }) => (
   </Link>
 );
 
-const MegaMenuDropdown = ({ item }) => {
+const MegaMenuDropdown = ({ item, onClose }) => {
   const child = item.children?.[0];
   if (!child) return null;
   const cols = child.columns || [];
@@ -441,7 +463,7 @@ const MegaMenuDropdown = ({ item }) => {
         <div className="container-luxury py-7 pb-9">
           <div className="flex gap-5" style={{ height: 340 }}>
             {featImages.map((fi, i) => (
-              <FeatImagePanel key={i} fi={fi} className="flex-1 rounded-2xl overflow-hidden" />
+              <FeatImagePanel key={i} fi={fi} className="flex-1 rounded-2xl overflow-hidden" onClose={onClose} />
             ))}
           </div>
         </div>
@@ -470,6 +492,7 @@ const MegaMenuDropdown = ({ item }) => {
                     <li key={si}>
                       <Link
                         to={sub.url || '#'}
+                        onClick={onClose}
                         className="flex items-center gap-3 text-[13px] text-gray-800 hover:text-primary transition-colors leading-snug"
                       >
                         <MegaItemIcon type={sub.icon} color={sub.color} />
@@ -489,7 +512,7 @@ const MegaMenuDropdown = ({ item }) => {
               style={{ width: featImages.length > 1 ? featImages.length * 230 : 265 }}
             >
               {featImages.map((fi, i) => (
-                <FeatImagePanel key={i} fi={fi} className="flex-1" />
+                <FeatImagePanel key={i} fi={fi} className="flex-1" onClose={onClose} />
               ))}
             </div>
           )}
@@ -625,26 +648,26 @@ const NAV_FALLBACK = [
         {
           heading: 'Shop By Style',
           items: [
-            { label: 'Solitaire Rings',  url: '/collections/solitaire-rings', icon: 'solitaire' },
-            { label: 'Halo Rings',       url: '/collections/halo-rings',      icon: 'halo' },
-            { label: 'Eternity Rings',   url: '/collections/eternity-rings',  icon: 'eternity' },
-            { label: 'Stackable Rings',  url: '/collections/stackable-rings', icon: 'stackable' },
-            { label: 'Couple Bands',     url: '/collections/couple-bands',    icon: 'couple' },
-            { label: 'Cocktail Rings',   url: '/collections/cocktail-rings',  icon: 'trilogy' },
-            { label: 'Statement Rings',  url: '/collections/statement-rings', icon: 'side-stone' },
+            { label: 'Solitaire Rings',  url: '/collections/rings?collectionStyles=Solitaire', icon: 'solitaire' },
+            { label: 'Halo Rings',       url: '/collections/rings?collectionStyles=Halo',      icon: 'halo' },
+            { label: 'Eternity Rings',   url: '/collections/rings?collectionStyles=Eternity',  icon: 'eternity' },
+            { label: 'Stackable Rings',  url: '/collections/rings?collectionStyles=Stackable', icon: 'stackable' },
+            { label: 'Couple Bands',     url: '/collections/rings?collectionStyles=Couple+Bands', icon: 'couple' },
+            { label: 'Cocktail Rings',   url: '/collections/rings?collectionStyles=Cocktail',  icon: 'trilogy' },
+            { label: 'Statement Rings',  url: '/collections/rings?collectionStyles=Statement', icon: 'side-stone' },
           ],
         },
         {
           heading: 'Shop By Shape',
           items: [
-            { label: 'Round',    url: '/collections/rings/round',    icon: 'round' },
-            { label: 'Oval',     url: '/collections/rings/oval',     icon: 'oval' },
-            { label: 'Princess', url: '/collections/rings/princess', icon: 'princess' },
-            { label: 'Cushion',  url: '/collections/rings/cushion',  icon: 'cushion' },
-            { label: 'Pear',     url: '/collections/rings/pear',     icon: 'pear' },
-            { label: 'Emerald',  url: '/collections/rings/emerald',  icon: 'emerald' },
-            { label: 'Heart',    url: '/collections/rings/heart',    icon: 'heart' },
-            { label: 'Marquise', url: '/collections/rings/marquise', icon: 'marquise' },
+            { label: 'Round',    url: '/collections/rings?themes=Round',    icon: 'round' },
+            { label: 'Oval',     url: '/collections/rings?themes=Oval',     icon: 'oval' },
+            { label: 'Princess', url: '/collections/rings?themes=Princess', icon: 'princess' },
+            { label: 'Cushion',  url: '/collections/rings?themes=Cushion',  icon: 'cushion' },
+            { label: 'Pear',     url: '/collections/rings?themes=Pear',     icon: 'pear' },
+            { label: 'Emerald',  url: '/collections/rings?themes=Emerald',  icon: 'emerald' },
+            { label: 'Heart',    url: '/collections/rings?themes=Heart',    icon: 'heart' },
+            { label: 'Marquise', url: '/collections/rings?themes=Marquise', icon: 'marquise' },
           ],
         },
         MAT_4,
@@ -666,24 +689,24 @@ const NAV_FALLBACK = [
         {
           heading: 'Shop By Style',
           items: [
-            { label: 'Stud Earrings',      url: '/collections/stud-earrings',       icon: 'round' },
-            { label: 'Hoop Earrings',      url: '/collections/hoop-earrings',       icon: 'eternity' },
-            { label: 'Drop Earrings',      url: '/collections/drop-earrings',       icon: 'pear' },
-            { label: 'Chandelier',         url: '/collections/chandelier-earrings', icon: 'special' },
-            { label: 'Huggie Earrings',    url: '/collections/huggie-earrings',     icon: 'cushion' },
-            { label: 'Jhumka Earrings',    url: '/collections/jhumka-earrings',     icon: 'marquise' },
-            { label: 'Statement Earrings', url: '/collections/statement-earrings',  icon: 'side-stone' },
+            { label: 'Stud Earrings',      url: '/collections/earrings?collectionStyles=Studs',       icon: 'round' },
+            { label: 'Hoop Earrings',      url: '/collections/earrings?collectionStyles=Hoops',       icon: 'eternity' },
+            { label: 'Drop Earrings',      url: '/collections/earrings?collectionStyles=Drops',       icon: 'pear' },
+            { label: 'Chandelier',         url: '/collections/earrings?collectionStyles=Chandelier',  icon: 'special' },
+            { label: 'Huggie Earrings',    url: '/collections/earrings?collectionStyles=Huggies',     icon: 'cushion' },
+            { label: 'Jhumka Earrings',    url: '/collections/earrings?collectionStyles=Jhumka',      icon: 'marquise' },
+            { label: 'Statement Earrings', url: '/collections/earrings?collectionStyles=Statement',   icon: 'side-stone' },
           ],
         },
         {
           heading: 'Shop By Shape',
           items: [
-            { label: 'Round',    url: '/collections/earrings/round',    icon: 'round' },
-            { label: 'Oval',     url: '/collections/earrings/oval',     icon: 'oval' },
-            { label: 'Pear',     url: '/collections/earrings/pear',     icon: 'pear' },
-            { label: 'Heart',    url: '/collections/earrings/heart',    icon: 'heart' },
-            { label: 'Princess', url: '/collections/earrings/princess', icon: 'princess' },
-            { label: 'Cushion',  url: '/collections/earrings/cushion',  icon: 'cushion' },
+            { label: 'Round',    url: '/collections/earrings?themes=Round',    icon: 'round' },
+            { label: 'Oval',     url: '/collections/earrings?themes=Oval',     icon: 'oval' },
+            { label: 'Pear',     url: '/collections/earrings?themes=Pear',     icon: 'pear' },
+            { label: 'Heart',    url: '/collections/earrings?themes=Heart',    icon: 'heart' },
+            { label: 'Princess', url: '/collections/earrings?themes=Princess', icon: 'princess' },
+            { label: 'Cushion',  url: '/collections/earrings?themes=Cushion',  icon: 'cushion' },
           ],
         },
         MAT_4,
@@ -705,33 +728,33 @@ const NAV_FALLBACK = [
         {
           heading: 'Bracelets',
           items: [
-            { label: 'Chain Bracelets',  url: '/collections/chain-bracelets' },
-            { label: 'Cuff Bracelets',   url: '/collections/cuff-bracelets' },
-            { label: 'Tennis Bracelets', url: '/collections/tennis-bracelets' },
-            { label: "Men's",            url: '/collections/mens-bracelets' },
+            { label: 'Chain Bracelets',  url: '/collections/bracelets?collectionStyles=Chain' },
+            { label: 'Cuff Bracelets',   url: '/collections/bracelets?collectionStyles=Cuff' },
+            { label: 'Tennis Bracelets', url: '/collections/bracelets?collectionStyles=Tennis' },
+            { label: 'All Bracelets',    url: '/collections/bracelets' },
           ],
         },
         {
           heading: 'Necklaces',
           items: [
-            { label: 'Chain Necklaces',   url: '/collections/chain-necklaces' },
-            { label: 'Pendant Necklaces', url: '/collections/pendant-necklaces' },
-            { label: 'Tennis Necklaces',  url: '/collections/tennis-necklaces' },
+            { label: 'Chain Necklaces',   url: '/collections/necklaces?collectionStyles=Chain' },
+            { label: 'Pendant Necklaces', url: '/collections/necklaces?collectionStyles=Pendant' },
+            { label: 'Tennis Necklaces',  url: '/collections/necklaces?collectionStyles=Tennis' },
           ],
         },
         {
           heading: 'Mangalsutra',
           items: [
-            { label: 'Mangalsutra Necklaces',  url: '/collections/mangalsutra-necklaces' },
-            { label: 'Mangalsutra Bracelets',  url: '/collections/mangalsutra-bracelets' },
+            { label: 'Gold Mangalsutra',    url: '/collections/mangalsutra?collectionStyles=Gold' },
+            { label: 'Diamond Mangalsutra', url: '/collections/mangalsutra?collectionStyles=Diamond' },
           ],
         },
         {
           heading: 'Plain Gold',
           items: [
-            { label: 'Gold Rings',    url: '/collections/plain-gold-rings' },
-            { label: 'Gold Chains',   url: '/collections/gold-chains' },
-            { label: 'Gold Earrings', url: '/collections/plain-gold-earrings' },
+            { label: 'Gold Rings',    url: '/collections/rings?collectionStyles=Plain+Gold' },
+            { label: 'Gold Chains',   url: '/collections/chains' },
+            { label: 'Gold Earrings', url: '/collections/earrings?collectionStyles=Plain+Gold' },
           ],
         },
         {
@@ -1102,7 +1125,7 @@ export default function Header() {
           {/* Mega menu — full width, absolutely positioned below nav */}
           <AnimatePresence>
             {activeMegaItem && (
-              <MegaMenuDropdown key={activeMegaItem.label} item={activeMegaItem} />
+              <MegaMenuDropdown key={activeMegaItem.label} item={activeMegaItem} onClose={() => setActiveMenu(null)} />
             )}
           </AnimatePresence>
         </div>

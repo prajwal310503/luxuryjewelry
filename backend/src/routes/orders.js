@@ -10,8 +10,8 @@ const {
   vendorGetOrders,
 } = require('../controllers/orderController');
 
-// Customer
-router.post('/', protect, authorize('customer'), createOrder);
+// Customer (allow any authenticated user to place orders)
+router.post('/', protect, createOrder);
 router.get('/my', protect, getMyOrders);
 router.get('/:id', protect, getOrder);
 

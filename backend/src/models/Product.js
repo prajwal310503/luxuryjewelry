@@ -84,9 +84,11 @@ const ProductSchema = new mongoose.Schema(
 
     // Visibility
     isActive: { type: Boolean, default: true },
-    isFeatured: { type: Boolean, default: false },
+    isFeatured:  { type: Boolean, default: false },
     isNewArrival: { type: Boolean, default: false },
     isBestSeller: { type: Boolean, default: false },
+    isLifestyle1: { type: Boolean, default: false }, // Bridal & Festive panel (max 4)
+    isLifestyle2: { type: Boolean, default: false }, // Everyday Luxury panel (max 4)
 
     // SEO
     seo: {

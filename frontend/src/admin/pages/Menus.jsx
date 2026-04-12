@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { cmsAPI } from '../../services/api';
+import Select from '../../components/ui/Select';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const PlusIcon = () => (
@@ -334,15 +335,14 @@ const ItemEditor = ({ item, idx, total, expanded, onToggle, onUpdate, onRemove, 
             </div>
             <div>
               <label className="label-luxury">Type</label>
-              <select
+              <Select
                 value={item.type}
                 onChange={(e) => onUpdate('type', e.target.value)}
-                className="input-luxury"
               >
                 <option value="link">Link — simple nav link</option>
                 <option value="mega">Mega — full-width dropdown with columns</option>
                 <option value="dropdown">Dropdown — simple sub-links</option>
-              </select>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -357,16 +357,15 @@ const ItemEditor = ({ item, idx, total, expanded, onToggle, onUpdate, onRemove, 
               </div>
               <div>
                 <label className="label-luxury">Badge style</label>
-                <select
+                <Select
                   value={item.badgeColor || ''}
                   onChange={(e) => onUpdate('badgeColor', e.target.value)}
-                  className="input-luxury"
                 >
                   <option value="">Dark (default)</option>
                   <option value="gold">Gold</option>
                   <option value="red">Red / Sale</option>
                   <option value="primary">Brand</option>
-                </select>
+                </Select>
               </div>
             </div>
           </div>

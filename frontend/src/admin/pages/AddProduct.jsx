@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { productAPI, categoryAPI, attributeAPI, adminAPI } from '../../services/api';
+import Select from '../../components/ui/Select';
 
 
 const SEGMENTS = ['New Arrival', 'Best Seller', 'Trending', 'Customer Choice', 'Deal of Day', 'Deal of Week', 'Exclusive', 'Limited', 'In Stock', 'Fast Delivery'];
@@ -57,7 +58,8 @@ export default function AdminAddProduct() {
   const [attributes, setAttributes] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [currentImages, setCurrentImages] = useState([]);
-  const [pendingImageFiles, setPendingImageFiles] = useState([]); // {file, previewUrl} for new product
+  const [pendingImageFiles, setPendingImageFiles] = useState([]); // [{file, previewUrl}, undefined] indexed by slot
+  const [updating, setUpdating] = useState(false);
   const [productId, setProductId] = useState(id || null);
 
   const [form, setForm] = useState({
@@ -106,7 +108,7 @@ export default function AdminAddProduct() {
       attributeAPI.getAll({ limit: 100 }),
       adminAPI.getVendors({ limit: 100, status: 'approved' }),
     ];
-    if (isEdit) fetches.push(productAPI.adminGetAll({ id }));
+    if (isEdit) fetches.push(productAPI.adminGetById(id));
 
     Promise.all(fetches).then(([catRes, attrRes, vendorRes, prodRes]) => {
       setCategories(catRes.data.data || []);
@@ -114,7 +116,7 @@ export default function AdminAddProduct() {
       setVendors(vendorRes.data.data || []);
 
       if (isEdit && prodRes) {
-        const p = (prodRes.data.data || [])[0] || prodRes.data.data;
+        const p = prodRes.data.data;
         if (p) {
           setCurrentImages(p.images || []);
           setProductId(p._id);
@@ -306,17 +308,18 @@ export default function AdminAddProduct() {
         const { data } = await productAPI.adminCreate(payload);
         const newId = data.data._id;
         setProductId(newId);
-        // Upload any pre-selected images after product creation
-        if (pendingImageFiles.length > 0) {
+        // Upload any pre-selected slot images (slot 0 = main, slot 1 = hover)
+        const slots = pendingImageFiles.filter(Boolean);
+        if (slots.length > 0) {
           const formData = new FormData();
-          pendingImageFiles.forEach(({ file }) => formData.append('images', file));
+          slots.forEach(({ file }) => formData.append('images', file));
           try {
             const imgRes = await adminAPI.uploadProductImages(newId, formData);
             setCurrentImages(imgRes.data.data || []);
           } catch {
             toast.error('Product created but image upload failed');
           }
-          pendingImageFiles.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+          slots.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
           setPendingImageFiles([]);
         }
         toast.success('Product published');
@@ -329,19 +332,82 @@ export default function AdminAddProduct() {
     }
   };
 
+  // Upload image for a specific slot (0 = main/primary, 1 = hover)
+  const handleSlotUpload = async (e, slotIndex) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!productId) {
+      // Pre-select mode: store pending previews per slot
+      const previewUrl = URL.createObjectURL(file);
+      setPendingImageFiles((prev) => {
+        const next = [...prev];
+        // revoke old preview for this slot if it exists
+        if (next[slotIndex]?.previewUrl) URL.revokeObjectURL(next[slotIndex].previewUrl);
+        next[slotIndex] = { file, previewUrl };
+        return next;
+      });
+      e.target.value = '';
+      return;
+    }
+
+    // If slot already has an image, remove it first (replace in-place)
+    if (currentImages[slotIndex]) {
+      try {
+        const { data } = await productAPI.adminRemoveImage(productId, slotIndex);
+        setCurrentImages(data.data || []);
+      } catch { /* ignore removal error, proceed with upload */ }
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('images', file);
+      const { data } = await adminAPI.uploadProductImages(productId, formData);
+      setCurrentImages(data.data || []);
+      toast.success(slotIndex === 0 ? 'Main image updated' : 'Hover image updated');
+    } catch {
+      toast.error('Image upload failed');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  // Remove a specific image slot
+  const handleRemoveImage = async (slotIndex) => {
+    if (!productId) {
+      setPendingImageFiles((prev) => {
+        const next = [...prev];
+        if (next[slotIndex]?.previewUrl) URL.revokeObjectURL(next[slotIndex].previewUrl);
+        next[slotIndex] = undefined;
+        return next;
+      });
+      return;
+    }
+    if (!currentImages[slotIndex]) return;
+    setUpdating(true);
+    try {
+      const { data } = await productAPI.adminRemoveImage(productId, slotIndex);
+      setCurrentImages(data.data || []);
+      toast.success('Image removed');
+    } catch {
+      toast.error('Remove failed');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Legacy multi-upload (kept for backward compat, not used in new UI)
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
-
     if (!productId) {
-      // Pre-select mode: store locally with preview
       const newPending = files.map((file) => ({ file, previewUrl: URL.createObjectURL(file) }));
       setPendingImageFiles((prev) => [...prev, ...newPending]);
       e.target.value = '';
       return;
     }
-
-    // Edit mode or after save: upload immediately
     setUploading(true);
     try {
       const formData = new FormData();
@@ -409,12 +475,12 @@ export default function AdminAddProduct() {
             <SectionTitle>Vendor</SectionTitle>
             <div>
               <label className="label-luxury">Assign to Vendor *</label>
-              <select value={form.vendor} onChange={(e) => set('vendor', e.target.value)} className="input-luxury">
+              <Select value={form.vendor} onChange={(e) => set('vendor', e.target.value)} placeholder="Select Vendor">
                 <option value="">Select Vendor</option>
                 {vendors.map((v) => (
                   <option key={v._id} value={v._id}>{v.storeName || v.name || v._id}</option>
                 ))}
-              </select>
+              </Select>
               <p className="text-2xs text-gray-400 mt-1">Only approved vendors are listed.</p>
             </div>
           </div>
@@ -449,17 +515,17 @@ export default function AdminAddProduct() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="label-luxury">Category *</label>
-                <select value={form.category} onChange={(e) => set('category', e.target.value)} className="input-luxury">
+                <Select value={form.category} onChange={(e) => set('category', e.target.value)} placeholder="Select Category">
                   <option value="">Select Category</option>
                   {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-                </select>
+                </Select>
               </div>
               <div>
                 <label className="label-luxury">Subcategory</label>
-                <select value={form.subcategory} onChange={(e) => set('subcategory', e.target.value)} className="input-luxury" disabled={!form.category || subcategories.length === 0}>
+                <Select value={form.subcategory} onChange={(e) => set('subcategory', e.target.value)} placeholder="Select Subcategory" disabled={!form.category || subcategories.length === 0}>
                   <option value="">Select Subcategory</option>
                   {subcategories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-                </select>
+                </Select>
               </div>
             </div>
           </div>
@@ -490,11 +556,11 @@ export default function AdminAddProduct() {
             </div>
             <div className="mt-4">
               <label className="label-luxury">Status</label>
-              <select value={form.status} onChange={(e) => set('status', e.target.value)} className="input-luxury max-w-xs">
+              <Select value={form.status} onChange={(e) => set('status', e.target.value)} className="max-w-xs">
                 <option value="approved">Approved (Live)</option>
                 <option value="draft">Draft (Hidden)</option>
                 <option value="archived">Archived</option>
-              </select>
+              </Select>
             </div>
           </div>
 
@@ -678,54 +744,90 @@ export default function AdminAddProduct() {
 
         {/* Right sidebar */}
         <div className="space-y-6">
-          {/* Images */}
+          {/* Images — exactly 2 slots */}
           <div className="card-luxury p-6">
             <SectionTitle>Product Images</SectionTitle>
-            {/* Saved images */}
-            {currentImages.length > 0 && (
-              <div className="grid grid-cols-2 gap-2 mb-3">
-                {currentImages.map((img, idx) => (
-                  <div key={idx} className="aspect-square rounded-lg overflow-hidden bg-luxury-cream border border-gray-100">
-                    <img src={img.url} alt="" className="w-full h-full object-cover" />
-                  </div>
-                ))}
-              </div>
-            )}
-            {/* Pending previews (new product, not yet uploaded) */}
-            {pendingImageFiles.length > 0 && (
-              <div className="mb-3">
-                <p className="text-2xs text-amber-600 mb-2">Will upload on publish ({pendingImageFiles.length} selected)</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {pendingImageFiles.map(({ previewUrl }, idx) => (
-                    <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden bg-luxury-cream border border-amber-200">
-                      <img src={previewUrl} alt="" className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          URL.revokeObjectURL(previewUrl);
-                          setPendingImageFiles((prev) => prev.filter((_, j) => j !== idx));
-                        }}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
+            <p className="text-xs text-gray-400 mb-4 leading-snug">
+              Slot 1 is shown by default. Slot 2 appears when customer hovers the product card.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              {[0, 1].map((slotIdx) => {
+                const saved   = currentImages[slotIdx];
+                const pending = pendingImageFiles[slotIdx];
+                const imgUrl  = saved?.url || pending?.previewUrl || null;
+                const label   = slotIdx === 0 ? 'Main Image' : 'Hover Image';
+                const hint    = slotIdx === 0 ? 'Shown always' : 'Shown on hover';
+                const inputId = `img-slot-${slotIdx}`;
+
+                return (
+                  <div key={slotIdx} className="flex flex-col gap-2">
+                    {/* Label */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-gray-700">{label}</span>
+                      <span className="text-[10px] text-gray-400">{hint}</span>
                     </div>
-                  ))}
-                </div>
-              </div>
+
+                    {/* Image slot */}
+                    <div className="relative group aspect-square rounded-xl overflow-hidden border-2 border-dashed border-gray-200 bg-luxury-cream">
+                      {imgUrl ? (
+                        <>
+                          <img src={imgUrl} alt={label} className="w-full h-full object-cover" />
+                          {/* Overlay on hover */}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                            {/* Replace */}
+                            <label htmlFor={inputId} className="cursor-pointer flex items-center gap-1.5 bg-white/90 text-gray-800 text-[11px] font-semibold px-3 py-1.5 rounded-lg hover:bg-white transition-colors">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                              Replace
+                            </label>
+                            {/* Remove */}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(slotIdx)}
+                              disabled={updating}
+                              className="flex items-center gap-1.5 bg-red-500/90 text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg hover:bg-red-500 transition-colors disabled:opacity-50"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              Remove
+                            </button>
+                          </div>
+                          {/* Pending badge */}
+                          {pending && !saved && (
+                            <span className="absolute top-2 left-2 text-[9px] font-bold bg-amber-400 text-white px-1.5 py-0.5 rounded-full">PENDING</span>
+                          )}
+                        </>
+                      ) : (
+                        <label htmlFor={inputId} className="w-full h-full flex flex-col items-center justify-center gap-2 cursor-pointer text-gray-300 hover:text-primary hover:border-primary transition-colors">
+                          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.4}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                          </svg>
+                          <span className="text-[11px] font-semibold text-gray-400">Upload</span>
+                        </label>
+                      )}
+                      <input
+                        id={inputId}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleSlotUpload(e, slotIdx)}
+                        className="hidden"
+                        disabled={uploading || updating}
+                      />
+                    </div>
+
+                    {/* Status text */}
+                    {uploading && (
+                      <p className="text-[10px] text-amber-600 text-center">Uploading…</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {!productId && (pendingImageFiles[0] || pendingImageFiles[1]) && (
+              <p className="mt-3 text-[10px] text-amber-600 text-center">
+                Images will be uploaded when you save the product.
+              </p>
             )}
-            {currentImages.length === 0 && pendingImageFiles.length === 0 && (
-              <div className="aspect-square rounded-xl bg-luxury-cream border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-300 mb-3">
-                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                <p className="text-xs text-gray-400">No images yet</p>
-              </div>
-            )}
-            <label className="block">
-              <span className="btn-outline text-xs w-full text-center cursor-pointer block py-2">
-                {uploading ? 'Uploading...' : '+ Add Images'}
-              </span>
-              <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploading} />
-            </label>
           </div>
 
           {/* Price preview */}

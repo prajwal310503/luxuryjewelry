@@ -34,6 +34,13 @@ exports.getProducts = async (req, res, next) => {
       attributeFilters[`attributes.values`] = { $in: values };
     }
 
+    // Featured / BestSeller / NewArrival / Lifestyle flags
+    if (req.query.isFeatured === 'true')   baseQuery = baseQuery.where('isFeatured').equals(true);
+    if (req.query.isBestSeller === 'true') baseQuery = baseQuery.where('isBestSeller').equals(true);
+    if (req.query.isNewArrival === 'true') baseQuery = baseQuery.where('isNewArrival').equals(true);
+    if (req.query.isLifestyle1 === 'true') baseQuery = baseQuery.where('isLifestyle1').equals(true);
+    if (req.query.isLifestyle2 === 'true') baseQuery = baseQuery.where('isLifestyle2').equals(true);
+
     // Segments filter
     if (req.query.segments) {
       const segments = Array.isArray(req.query.segments) ? req.query.segments : [req.query.segments];
@@ -46,10 +53,16 @@ exports.getProducts = async (req, res, next) => {
       baseQuery = baseQuery.where('occasions').in(occasions);
     }
 
-    // Themes filter
+    // Themes filter (diamond shape: Oval, Round, Princess …)
     if (req.query.themes) {
       const themes = Array.isArray(req.query.themes) ? req.query.themes : [req.query.themes];
       baseQuery = baseQuery.where('themes').in(themes);
+    }
+
+    // CollectionStyles filter (Solitaire, Halo, Eternity …)
+    if (req.query.collectionStyles) {
+      const cs = Array.isArray(req.query.collectionStyles) ? req.query.collectionStyles : [req.query.collectionStyles];
+      baseQuery = baseQuery.where('collectionStyles').in(cs);
     }
 
     const features = new APIFeatures(baseQuery, req.query)
@@ -177,6 +190,50 @@ exports.deleteProduct = async (req, res, next) => {
   }
 };
 
+// @desc    Admin: hard delete a product
+// @route   DELETE /api/admin/products/:id
+// @access  Admin
+exports.adminDeleteProduct = async (req, res, next) => {
+  try {
+    const product = await Product.findByIdAndDelete(req.params.id);
+    if (!product) return sendError(res, 404, 'Product not found');
+    sendSuccess(res, 200, 'Product permanently deleted');
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Admin: remove a single product image by index
+// @route   DELETE /api/admin/products/:id/images/:imageIndex
+// @access  Admin
+exports.adminRemoveProductImage = async (req, res, next) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return sendError(res, 404, 'Product not found');
+
+    const idx = parseInt(req.params.imageIndex);
+    if (isNaN(idx) || idx < 0 || idx >= product.images.length) {
+      return sendError(res, 400, 'Invalid image index');
+    }
+
+    product.images.splice(idx, 1);
+    // Ensure the first image is always marked as primary
+    if (product.images.length > 0) {
+      product.images[0].isPrimary = true;
+      product.images[0].sortOrder = 0;
+      if (product.images[1]) {
+        product.images[1].isPrimary = false;
+        product.images[1].sortOrder = 1;
+      }
+    }
+    await product.save();
+
+    sendSuccess(res, 200, 'Image removed', product.images);
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Admin: get all products
 // @route   GET /api/admin/products
 // @access  Admin
@@ -205,7 +262,7 @@ exports.adminGetProducts = async (req, res, next) => {
       .skip(skip)
       .limit(limit)
       .sort('-createdAt')
-      .select('title sku price stock status vendor category isFeatured createdAt images rating');
+      .select('title sku price stock status vendor category isFeatured isBestSeller isNewArrival isLifestyle1 isLifestyle2 createdAt images rating');
 
     sendPaginated(res, products, page, limit, total);
   } catch (error) {
@@ -252,6 +309,72 @@ exports.adminToggleFeatured = async (req, res, next) => {
     await product.save();
 
     sendSuccess(res, 200, `Product ${product.isFeatured ? 'featured' : 'unfeatured'}`, product);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.adminToggleLifestyle1 = async (req, res, next) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return sendError(res, 404, 'Product not found');
+    // Enforce max 4
+    if (!product.isLifestyle1) {
+      const count = await Product.countDocuments({ isLifestyle1: true });
+      if (count >= 4) return sendError(res, 400, 'Panel 1 already has 4 products. Remove one first.');
+    }
+    product.isLifestyle1 = !product.isLifestyle1;
+    await product.save();
+    sendSuccess(res, 200, `Panel 1 updated`, product);
+  } catch (error) { next(error); }
+};
+
+exports.adminToggleLifestyle2 = async (req, res, next) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return sendError(res, 404, 'Product not found');
+    if (!product.isLifestyle2) {
+      const count = await Product.countDocuments({ isLifestyle2: true });
+      if (count >= 4) return sendError(res, 400, 'Panel 2 already has 4 products. Remove one first.');
+    }
+    product.isLifestyle2 = !product.isLifestyle2;
+    await product.save();
+    sendSuccess(res, 200, `Panel 2 updated`, product);
+  } catch (error) { next(error); }
+};
+
+exports.adminToggleBestSeller = async (req, res, next) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return sendError(res, 404, 'Product not found');
+    product.isBestSeller = !product.isBestSeller;
+    await product.save();
+    sendSuccess(res, 200, `Product ${product.isBestSeller ? 'marked as best seller' : 'removed from best sellers'}`, product);
+  } catch (error) { next(error); }
+};
+
+exports.adminToggleNewArrival = async (req, res, next) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return sendError(res, 404, 'Product not found');
+    product.isNewArrival = !product.isNewArrival;
+    await product.save();
+    sendSuccess(res, 200, `Product ${product.isNewArrival ? 'marked as new arrival' : 'removed from new arrivals'}`, product);
+  } catch (error) { next(error); }
+};
+
+// @desc    Admin: get single product by ID (for edit form)
+// @route   GET /api/admin/products/:id
+// @access  Admin
+exports.adminGetProductById = async (req, res, next) => {
+  try {
+    const product = await Product.findById(req.params.id)
+      .populate('category', 'name slug')
+      .populate('subcategory', 'name slug')
+      .populate('vendor', 'storeName')
+      .populate('attributes.attribute', 'name slug');
+    if (!product) return sendError(res, 404, 'Product not found');
+    sendSuccess(res, 200, 'Product fetched', product);
   } catch (error) {
     next(error);
   }
@@ -364,6 +487,48 @@ exports.adminUploadPromoBanner = async (req, res, next) => {
     const url = getFileUrl(file);
     if (!url) return sendError(res, 500, 'Upload failed — could not get file URL');
     sendSuccess(res, 200, 'Uploaded', { url });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Upload a named site image (overwrites fixed filename in /uploads)
+// @route   POST /api/admin/upload/site-image
+// @access  Admin
+exports.adminUploadSiteImage = async (req, res, next) => {
+  try {
+    const nodePath = require('path');
+    const fs       = require('fs');
+
+    const file = req.file;
+    if (!file) return sendError(res, 400, 'No file uploaded');
+
+    // Accept filename from query string (reliable) or body (fallback)
+    const targetName = req.query.filename || req.body.filename;
+    if (!targetName || !/^[\w\-]+\.(jpg|jpeg|png|webp|svg)$/i.test(targetName)) {
+      // Clean up the uploaded temp file
+      try { fs.unlinkSync(file.path); } catch (_) {}
+      return sendError(res, 400, 'Invalid filename');
+    }
+
+    const uploadsDir = nodePath.join(__dirname, '../../../uploads');
+
+    // Use the uploaded file's actual extension so Content-Type stays correct
+    const uploadedExt = nodePath.extname(file.originalname || file.filename).toLowerCase() || '.jpg';
+    const baseName    = targetName.replace(/\.[^.]+$/, ''); // strip extension from target
+    const finalName   = baseName + uploadedExt;             // e.g. diamond-cut-round.webp
+    const dest        = nodePath.join(uploadsDir, finalName);
+
+    // Remove any previously saved files with the same base but different extension
+    ['jpg','jpeg','png','webp','svg'].forEach((ext) => {
+      const old = nodePath.join(uploadsDir, `${baseName}.${ext}`);
+      if (old !== dest && fs.existsSync(old)) try { fs.unlinkSync(old); } catch (_) {}
+    });
+
+    fs.renameSync(file.path, dest);
+
+    const base = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 8000}`;
+    sendSuccess(res, 200, 'Site image updated', { url: `${base}/uploads/${finalName}` });
   } catch (error) {
     next(error);
   }

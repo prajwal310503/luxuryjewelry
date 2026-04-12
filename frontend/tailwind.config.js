@@ -45,7 +45,16 @@ export default {
         body: ['"Futura Std"', '"Futura"', '"Jost"', '"Century Gothic"', '"Trebuchet MS"', 'Arial', 'sans-serif'],
       },
       fontSize: {
-        '2xs': '0.625rem',
+        '2xs': '0.65rem',
+        'xs':  ['0.8rem',  { lineHeight: '1.4' }],
+        'sm':  ['0.9rem',  { lineHeight: '1.5' }],
+        'base':['1rem',    { lineHeight: '1.6' }],
+        'lg':  ['1.075rem',{ lineHeight: '1.5' }],
+        'xl':  ['1.2rem',  { lineHeight: '1.4' }],
+        '2xl': ['1.45rem', { lineHeight: '1.35' }],
+        '3xl': ['1.75rem', { lineHeight: '1.25' }],
+        '4xl': ['2.1rem',  { lineHeight: '1.2' }],
+        '5xl': ['2.6rem',  { lineHeight: '1.15' }],
       },
       maxWidth: {
         container: '1400px',
@@ -80,8 +89,8 @@ export default {
         slideUp: { from: { transform: 'translateY(20px)', opacity: '0' }, to: { transform: 'translateY(0)', opacity: '1' } },
         slideDown: { from: { transform: 'translateY(-10px)', opacity: '0' }, to: { transform: 'translateY(0)', opacity: '1' } },
         shimmer: {
-          '0%': { backgroundPosition: '-200px 0' },
-          '100%': { backgroundPosition: 'calc(200px + 100%) 0' },
+          '0%':   { backgroundPosition: '100% 0' },
+          '100%': { backgroundPosition: '-100% 0' },
         },
         marquee: {
           '0%': { transform: 'translateX(0)' },

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { productAPI, categoryAPI, attributeAPI } from '../../services/api';
+import Select from '../../components/ui/Select';
 
 const SEGMENTS = ['New Arrival', 'Best Seller', 'Trending', 'Customer Choice', 'Deal of Day', 'Deal of Week', 'Exclusive', 'Limited', 'In Stock', 'Fast Delivery'];
 const OCCASIONS = ['Womens Day', 'Mothers Day', 'Valentine', 'Engagement', 'Wedding', 'Anniversary', 'Proposal', 'Birthday', 'Festival', 'Daily Wear', 'Office Wear', 'Party Wear'];
@@ -317,30 +318,30 @@ export default function AddProduct() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="label-luxury">Category *</label>
-                <select
+                <Select
                   value={form.category}
                   onChange={(e) => set('category', e.target.value)}
-                  className="input-luxury"
+                  placeholder="Select Category"
                 >
                   <option value="">Select Category</option>
                   {categories.map((c) => (
                     <option key={c._id} value={c._id}>{c.name}</option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div>
                 <label className="label-luxury">Subcategory</label>
-                <select
+                <Select
                   value={form.subcategory}
                   onChange={(e) => set('subcategory', e.target.value)}
-                  className="input-luxury"
+                  placeholder="Select Subcategory"
                   disabled={!form.category || subcategories.length === 0}
                 >
                   <option value="">Select Subcategory</option>
                   {subcategories.map((c) => (
                     <option key={c._id} value={c._id}>{c.name}</option>
                   ))}
-                </select>
+                </Select>
               </div>
             </div>
           </div>

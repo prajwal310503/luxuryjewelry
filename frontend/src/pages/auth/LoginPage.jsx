@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import useAuthStore from '../../store/authStore';
 
-const inputCls = 'w-full h-11 border border-gray-200 rounded-xl text-sm text-gray-800 pl-10 pr-4 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-gray-400 bg-gray-50/60';
+const inputCls = 'input-luxury w-full h-11 pl-10 pr-4 text-sm text-gray-800 placeholder:text-gray-400';
 
 const IconInput = ({ icon, rightEl, ...props }) => (
   <div className="relative">
@@ -25,9 +25,16 @@ export default function LoginPage() {
     e.preventDefault();
     const user = await login(form);
     if (user) {
-      if (user.role === 'admin') navigate('/admin/dashboard');
-      else if (user.role === 'vendor') navigate('/vendor/dashboard');
-      else navigate(from);
+      // If there's a specific page they were trying to reach (e.g. /checkout), go there first
+      if (from && from !== '/') {
+        navigate(from);
+      } else if (user.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (user.role === 'vendor') {
+        navigate('/vendor/dashboard');
+      } else {
+        navigate('/');
+      }
     }
   };
 
@@ -65,7 +72,7 @@ export default function LoginPage() {
             required
             placeholder="Password"
             icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>}
-            className="w-full h-11 border border-gray-200 rounded-xl text-sm text-gray-800 pl-10 pr-11 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-gray-400 bg-gray-50/60"
+            className="input-luxury w-full h-11 pl-10 pr-11 text-sm text-gray-800 placeholder:text-gray-400"
             rightEl={
               <button type="button" onClick={() => setShowPass(!showPass)} className="text-gray-400 hover:text-gray-600 transition-colors">
                 {showPass

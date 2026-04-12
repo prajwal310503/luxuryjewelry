@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { storeAPI } from '../../services/api';
+import Select from '../../components/ui/Select';
 
 const DEFAULT_SERVICES = [
   { icon: 'exchange', title: 'GOLD EXCHANGE' },
@@ -200,17 +201,17 @@ export default function VendorStoreProfile() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {form.services.map((svc, i) => (
               <div key={i} className="p-3 bg-gray-50 border border-gray-100 rounded-xl space-y-2">
-                <select
+                <Select
                   value={svc.icon}
                   onChange={(e) => handleServiceChange(i, 'icon', e.target.value)}
-                  className="input-luxury text-xs py-1.5"
+                  compact
                 >
                   <option value="exchange">Gold Exchange</option>
                   <option value="vault">Vault of Dreams</option>
                   <option value="carat">Carat Tester</option>
                   <option value="cleaning">Jewelry Cleaning</option>
                   <option value="diamond">Diamond Testing</option>
-                </select>
+                </Select>
                 <input
                   type="text"
                   value={svc.title}

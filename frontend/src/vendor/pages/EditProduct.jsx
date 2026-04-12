@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { productAPI, categoryAPI, attributeAPI } from '../../services/api';
+import Select from '../../components/ui/Select';
 
 const SEGMENTS = ['New Arrival', 'Best Seller', 'Trending', 'Customer Choice', 'Deal of Day', 'Deal of Week', 'Exclusive', 'Limited', 'In Stock', 'Fast Delivery'];
 const OCCASIONS = ['Womens Day', 'Mothers Day', 'Valentine', 'Engagement', 'Wedding', 'Anniversary', 'Proposal', 'Birthday', 'Festival', 'Daily Wear', 'Office Wear', 'Party Wear'];
@@ -321,17 +322,17 @@ export default function EditProduct() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="label-luxury">Category *</label>
-                <select value={form.category} onChange={(e) => set('category', e.target.value)} className="input-luxury">
+                <Select value={form.category} onChange={(e) => set('category', e.target.value)} placeholder="Select Category">
                   <option value="">Select Category</option>
                   {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-                </select>
+                </Select>
               </div>
               <div>
                 <label className="label-luxury">Subcategory</label>
-                <select value={form.subcategory} onChange={(e) => set('subcategory', e.target.value)} className="input-luxury" disabled={subcategories.length === 0}>
+                <Select value={form.subcategory} onChange={(e) => set('subcategory', e.target.value)} placeholder="Select Subcategory" disabled={subcategories.length === 0}>
                   <option value="">Select Subcategory</option>
                   {subcategories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-                </select>
+                </Select>
               </div>
             </div>
           </div>

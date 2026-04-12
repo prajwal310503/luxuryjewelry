@@ -7,24 +7,24 @@ import { adminAPI } from '../../services/api';
 const formatPrice = (p) => `₹${Math.round(p || 0).toLocaleString('en-IN')}`;
 const formatNum = (n) => (n || 0).toLocaleString('en-IN');
 
-const StatCard = ({ title, value, icon, change, color = 'primary', to }) => (
-  <motion.div whileHover={{ y: -2 }} className="card-luxury p-6">
-    <div className="flex items-start justify-between">
-      <div>
-        <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">{title}</p>
-        <p className="font-heading text-3xl font-bold text-gray-900">{value}</p>
+const StatCard = ({ title, value, icon, change, to }) => (
+  <motion.div whileHover={{ y: -2 }} className="card-luxury p-4 sm:p-6">
+    <div className="flex items-start justify-between gap-2">
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] sm:text-xs font-medium text-gray-400 uppercase tracking-wider mb-1.5 truncate">{title}</p>
+        <p className="font-heading text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate">{value}</p>
         {change !== undefined && (
-          <p className={`text-xs font-medium mt-2 ${change >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-            {change >= 0 ? '↑' : '↓'} {Math.abs(change)}% this month
+          <p className={`text-xs font-medium mt-1.5 ${change >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+            {change >= 0 ? '↑' : '↓'} {Math.abs(change)}%
           </p>
         )}
       </div>
-      <div className={`w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0`}>
+      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
         {icon}
       </div>
     </div>
     {to && (
-      <Link to={to} className="block mt-4 text-xs text-primary font-medium hover:underline">
+      <Link to={to} className="block mt-3 text-xs text-primary font-medium hover:underline">
         View Details →
       </Link>
     )}
@@ -43,11 +43,45 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
-          {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-28 shimmer-loading rounded-xl" />)}
+      <div className="space-y-6">
+        {/* Stat cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="card-luxury p-5 space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2 flex-1">
+                  <div className="shimmer-text h-2.5 w-20 rounded" />
+                  <div className="shimmer-text h-7 w-28 rounded" />
+                  <div className="shimmer-text h-2.5 w-16 rounded mt-1" />
+                </div>
+                <div className="w-12 h-12 shimmer-img rounded-xl flex-shrink-0" />
+              </div>
+            </div>
+          ))}
         </div>
-        <div className="h-72 shimmer-loading rounded-xl" />
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-2 card-luxury p-5">
+            <div className="shimmer-text h-4 w-32 rounded mb-5" />
+            <div className="shimmer-img h-56 w-full rounded-xl" />
+          </div>
+          <div className="card-luxury p-5">
+            <div className="shimmer-text h-4 w-28 rounded mb-5" />
+            <div className="shimmer-img h-56 w-full rounded-xl" />
+          </div>
+        </div>
+        {/* Recent orders */}
+        <div className="card-luxury p-5 space-y-4">
+          <div className="shimmer-text h-4 w-28 rounded" />
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4">
+              <div className="shimmer-text h-3.5 w-20 rounded" />
+              <div className="shimmer-text h-3.5 w-28 rounded flex-1" />
+              <div className="shimmer-loading h-5 w-16 rounded-full" />
+              <div className="shimmer-text h-3.5 w-16 rounded" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -60,13 +94,13 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start sm:items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-gray-900">Dashboard</h1>
+          <h1 className="font-heading text-xl sm:text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-sm text-gray-400 mt-0.5">Welcome back, Admin</p>
         </div>
-        <div className="text-xs text-gray-400 bg-white rounded-lg px-3 py-2 border border-gray-100">
-          {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        <div className="text-xs text-gray-400 bg-white rounded-lg px-3 py-2 border border-gray-100 flex-shrink-0">
+          {new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
         </div>
       </div>
 

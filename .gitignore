@@ -33,3 +33,17 @@ Thumbs.db
 fix-image-urls.js
 blueprint.md
 .claude/
+
+# Build zip artifacts
+frontend/dist.zip
+
+# Seed utility scripts (keep in local only)
+backend/src/seedBlogs.js
+backend/src/seedProducts.js
+backend/src/utils/downloadImages.js
+backend/src/utils/fixImageUrls.js
+backend/src/utils/seedCategoryImages.js
+backend/src/utils/seedContent.js
+backend/src/utils/seedProducts.js
+backend/src/utils/updateImages.js
+backend/src/utils/uploadProductImages.js

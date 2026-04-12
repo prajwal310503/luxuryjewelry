@@ -1,45 +1,100 @@
 # ONSK Jewelry — Luxury Multi-Vendor Jewelry Marketplace
 
-> **Keep this repo PRIVATE** — contains credentials and connection strings.
+<!-- credentials are kept in backend/.env which is gitignored -->
+
+A full-stack luxury jewelry e-commerce platform with admin dashboard, vendor dashboard, and storefront.
 
 ---
 
-## Default Login Credentials
+## Login Credentials
 
 ### Admin
-| Field    | Value                      |
-|----------|---------------------------|
-| Email    | admin@luxuryjewelry.com   |
-| Password | Admin@123456              |
+| Field    | Value                        |
+|----------|------------------------------|
+| URL      | `http://localhost:5173/login` |
+| Email    | `admin@luxuryjewelry.com`    |
+| Password | `admin@123`                  |
+| Access   | Full admin panel             |
 
-### Vendor
-| Field    | Value                    |
-|----------|--------------------------|
-| Email    | prajwalmulik31@gmail.com |
-| Password | Prajwal@31               |
+### Vendor — ONSK Jewelry
+| Field      | Value                         |
+|------------|-------------------------------|
+| URL        | `http://localhost:5173/login` |
+| Email      | `prajwalmulik31@gmail.com`    |
+| Password   | `Prajwal@31`                  |
+| Store Name | ONSK Jewelry                  |
+| Access     | Vendor dashboard              |
 
 ---
 
-## Backend Environment Variables (`backend/.env`)
+## Running Locally
+
+### Prerequisites
+- Node.js 18+
+- MongoDB Atlas (URI already set in `backend/.env`)
+
+### Backend
+```bash
+cd backend
+npm install
+npm run dev
+# Runs on http://localhost:8000
+```
+
+### Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+# Runs on http://localhost:5173
+```
+
+### Seed Database (first time only)
+```bash
+cd backend
+node src/utils/seeder.js          # Categories, attributes, admin user
+node src/utils/seedProducts.js    # Sample products + vendor account
+node src/seedBlogs.js             # Blog posts
+```
+
+---
+
+## Admin Dashboard Pages
+
+| Page        | Route                   |
+|-------------|-------------------------|
+| Dashboard   | `/admin/dashboard`      |
+| Products    | `/admin/products`       |
+| Orders      | `/admin/orders`         |
+| Vendors     | `/admin/vendors`        |
+| Customers   | `/admin/customers`      |
+| Categories  | `/admin/categories`     |
+| Attributes  | `/admin/attributes`     |
+| Banners     | `/admin/banners`        |
+| Blog Posts  | `/admin/blog`           |
+| CMS Builder | `/admin/cms-builder`    |
+| Settings    | `/admin/settings`       |
+
+---
+
+## Environment Variables
+
+Copy `backend/.env.example` to `backend/.env` and fill in your values:
 
 ```env
 PORT=8000
 NODE_ENV=development
 
-# MongoDB Atlas
-MONGO_URI=mongodb+srv://prajwalmulik31:007007007@cluster0.wii8fis.mongodb.net/luxury_jewelry?retryWrites=true&w=majority&appName=Cluster0
+MONGO_URI=your_mongodb_connection_string
 
-# JWT
-JWT_SECRET=your_super_secret_jwt_key_here_change_in_production
+JWT_SECRET=your_jwt_secret
 JWT_EXPIRE=30d
 JWT_COOKIE_EXPIRE=30
 
-# Cloudinary
 CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 
-# Email (SMTP)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_EMAIL=your_email@gmail.com
@@ -47,23 +102,16 @@ SMTP_PASSWORD=your_app_password
 FROM_EMAIL=noreply@luxuryjewelry.com
 FROM_NAME=Luxury Jewelry
 
-# Stripe
-STRIPE_SECRET_KEY=your_stripe_secret_key
-STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
-
-# Razorpay
 RAZORPAY_KEY_ID=your_razorpay_key_id
 RAZORPAY_KEY_SECRET=your_razorpay_key_secret
 
-# Frontend URL
 FRONTEND_URL=http://localhost:5173
 
-# Admin Seed
 ADMIN_EMAIL=admin@luxuryjewelry.com
-ADMIN_PASSWORD=Admin@123456
+ADMIN_PASSWORD=your_admin_password
 ```
 
-## Frontend Environment Variables (`frontend/.env`)
+Create `frontend/.env`:
 
 ```env
 VITE_API_URL=http://localhost:8000/api
@@ -71,16 +119,19 @@ VITE_API_URL=http://localhost:8000/api
 
 ---
 
-## MongoDB Atlas
+## Tech Stack
 
-- **Username:** prajwalmulik31
-- **Password:** 007007007
-- **Cluster:** cluster0.wii8fis.mongodb.net
-- **Database:** luxury_jewelry
+| Layer    | Technology                                          |
+|----------|-----------------------------------------------------|
+| Frontend | React 18, Vite, TailwindCSS, Framer Motion, Zustand |
+| Backend  | Node.js, Express, MongoDB, Mongoose, JWT            |
+| Storage  | Cloudinary                                          |
+| Auth     | JWT + HTTP-only cookies, role-based access control  |
 
 ---
 
-## Tech Stack
+## Design System
 
-- **Backend:** Node.js, Express, MongoDB Atlas, Mongoose, JWT, Cloudinary
-- **Frontend:** React 18, Vite, TailwindCSS, Framer Motion, Zustand
+- **Primary:** `#5a413f` · **Gold:** `#C9A84C` · **Rose Gold:** `#B76E79`
+- **Font:** Futura Std / Jost (body), Playfair Display italic (logo)
+- **Style:** Glassmorphism, warm luxury palette

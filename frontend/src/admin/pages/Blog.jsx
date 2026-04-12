@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { blogAPI } from '../../services/api';
+import Select from '../../components/ui/Select';
 
 const CATEGORIES = ['EDUCATION', 'ENGAGEMENT RING', 'GIFTING', 'TRENDS', 'BRIDAL', 'CARE & MAINTENANCE', 'DIAMONDS'];
 
@@ -286,9 +287,9 @@ export default function AdminBlog() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="label-luxury">Category</label>
-                    <select value={form.category} onChange={(e) => set('category', e.target.value)} className="input-luxury">
+                    <Select value={form.category} onChange={(e) => set('category', e.target.value)}>
                       {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    </Select>
                   </div>
                   <div>
                     <label className="label-luxury">Author</label>

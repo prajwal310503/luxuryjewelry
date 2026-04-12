@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { attributeAPI } from '../../services/api';
+import Select from '../../components/ui/Select';
 
 const GROUPS = ['material', 'diamond', 'gemstone', 'size', 'merchandising', 'other'];
 const TYPES = ['select', 'multiselect', 'color', 'size', 'boolean', 'text', 'number'];
@@ -177,10 +178,10 @@ export default function AdminAttributes() {
             <form onSubmit={handleCreateAttr} className="space-y-4">
               <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Name *</label><input required type="text" value={attrForm.name} onChange={(e) => setAttrForm({ ...attrForm, name: e.target.value })} className="input-luxury" /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Type</label><select value={attrForm.type} onChange={(e) => setAttrForm({ ...attrForm, type: e.target.value })} className="input-luxury">{TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Display Type</label><select value={attrForm.displayType} onChange={(e) => setAttrForm({ ...attrForm, displayType: e.target.value })} className="input-luxury">{DISPLAY_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Type</label><Select value={attrForm.type} onChange={(e) => setAttrForm({ ...attrForm, type: e.target.value })}>{TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</Select></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Display Type</label><Select value={attrForm.displayType} onChange={(e) => setAttrForm({ ...attrForm, displayType: e.target.value })}>{DISPLAY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</Select></div>
               </div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Group</label><select value={attrForm.group} onChange={(e) => setAttrForm({ ...attrForm, group: e.target.value })} className="input-luxury">{GROUPS.map((g) => <option key={g} className="capitalize">{g}</option>)}</select></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Group</label><Select value={attrForm.group} onChange={(e) => setAttrForm({ ...attrForm, group: e.target.value })}>{GROUPS.map((g) => <option key={g} value={g}>{g}</option>)}</Select></div>
               <div className="flex gap-5">
                 <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={attrForm.isFilterable} onChange={(e) => setAttrForm({ ...attrForm, isFilterable: e.target.checked })} className="accent-primary" /><span className="text-sm">Filterable</span></label>
                 <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={attrForm.isVariant} onChange={(e) => setAttrForm({ ...attrForm, isVariant: e.target.checked })} className="accent-primary" /><span className="text-sm">Is Variant</span></label>

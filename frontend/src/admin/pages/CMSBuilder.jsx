@@ -20,9 +20,17 @@ function ImageUpload({ value, onChange, label = 'Image' }) {
     try {
       const fd = new FormData();
       fd.append('image', file);
-      const { data } = await cmsAPI.uploadImage(fd);
-      onChange(data.url || data.data?.url || '');
-    } catch { toast.error('Upload failed'); }
+      const token = localStorage.getItem('token');
+      // Use native fetch — lets browser set correct multipart boundary automatically
+      const res = await fetch('/api/cms/admin/upload', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.message || 'Upload failed');
+      onChange(json.url || json.data?.url || '');
+    } catch (err) { toast.error(err.message || 'Upload failed'); }
     setUploading(false);
     e.target.value = '';
   };
@@ -65,6 +73,9 @@ const GROUPS = [
       { key: 'diamond_cuts',      page: 'home',   label: 'Diamond Cuts',          desc: 'Section heading for the diamond-shapes row',                               icon: 'M6 3h12l4 6-10 12L2 9l4-6z' },
       { key: 'services',          page: 'home',   label: 'Store Services',        desc: '4 service cards — title and description for each',                          icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2M5 21H3M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
       { key: 'gifting',           page: 'home',   label: 'Gifting Section',       desc: 'Gift-by-budget cards and gift occasion slides',                             icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 10V11' },
+      { key: 'visit_stores',       page: 'home',   label: 'Visit Our Stores',      desc: 'Slider of store images — add store name, city and photo for each slide',   icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2M5 21H3M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
+      { key: 'lifestyle_lookbook',  page: 'home',   label: 'Lifestyle Lookbook',    desc: 'Two side-by-side lifestyle panels — model photo, heading, subtext, and link', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
+      { key: 'blog_section',       page: 'home',   label: 'Blog Section',          desc: 'Eyebrow, heading and subtitle for the Jewelry Blog section on home page',    icon: 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 12h6' },
       { key: 'newsletter',        page: 'home',   label: 'Newsletter Section',    desc: 'Heading, subtitle and 3 perk bullet points for the email signup section',   icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
       { key: 'faq',               page: 'home',   label: 'FAQ Section',           desc: 'Frequently asked questions — categories, questions and answers',            icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
     ],
@@ -134,15 +145,34 @@ const DEFAULTS = {
     ],
   },
   gifting: {
-    heading: 'Gift what lasts beyond the vows.',
-    budgets:   [{ label: '30K', slug: 'gift-below-rs-30k' }, { label: '50K', slug: 'gift-below-rs-50k' }, { label: '100K', slug: 'gift-below-rs-100k' }],
-    occasions: [
-      { title: 'GIFTS FOR WIFE',      slug: 'gifts-for-wife' },
-      { title: 'ANNIVERSARY GIFTS',   slug: 'anniversary-gifts' },
-      { title: 'BIRTHDAY GIFTS',      slug: 'birthday-gifts' },
-      { title: 'ENGAGEMENT GIFTS',    slug: 'engagement-gifts' },
-      { title: 'GIFTS FOR HER',       slug: 'gifts-for-her' },
+    heading:  'Gift what lasts beyond the vows.',
+    subtitle: 'Timeless jewelry for every occasion',
+    budgets: [
+      { label: '30K',  slug: 'gift-below-rs-30k',  image: '' },
+      { label: '50K',  slug: 'gift-below-rs-50k',  image: '' },
+      { label: '100K', slug: 'gift-below-rs-100k', image: '' },
     ],
+    occasions: [
+      { title: 'GIFTS FOR WIFE',    slug: 'gifts-for-wife',    image: '' },
+      { title: 'ANNIVERSARY GIFTS', slug: 'anniversary-gifts', image: '' },
+      { title: 'BIRTHDAY GIFTS',    slug: 'birthday-gifts',    image: '' },
+      { title: 'ENGAGEMENT GIFTS',  slug: 'engagement-gifts',  image: '' },
+      { title: 'GIFTS FOR HER',     slug: 'gifts-for-her',     image: '' },
+    ],
+  },
+  visit_stores: {
+    title: 'VISIT OUR STORES',
+    subtitle: 'Experience Jewelry in Person',
+    stores: [
+      { name: 'Luminary Jewels — Bandra', city: 'Mumbai', image: '' },
+      { name: 'Luminary Jewels — Koregaon Park', city: 'Pune', image: '' },
+      { name: 'Luminary Jewels — Indiranagar', city: 'Bangalore', image: '' },
+    ],
+  },
+  blog_section: {
+    eyebrow: 'JEWELRY BLOG',
+    title: 'Where Craft Inspires Conversation',
+    subtitle: 'Expert guides, style inspiration, and jewelry stories',
   },
   newsletter: {
     eyebrow: 'Stay Updated',
@@ -179,6 +209,30 @@ const DEFAULTS = {
         { q: 'Where are your stores located?', a: 'We have experience centres across major cities. Use the Store Nearby button in the header.' },
         { q: 'Do I need an appointment to visit?', a: 'Walk-ins are always welcome. Booking an appointment ensures dedicated advisor time.' },
       ]},
+    ],
+  },
+  lifestyle_lookbook: {
+    panels: [
+      {
+        eyebrow: 'BRIDAL & FESTIVE',
+        heading: 'Crafted for\nYour Moments',
+        sub: 'Timeless bridal jewelry — woven with tradition, worn with grace.',
+        image: '',
+        link: '/collections/bridal',
+        accent: '#C9A84C',
+        bg: '#faf7f4',
+        align: 'left',
+      },
+      {
+        eyebrow: 'EVERYDAY LUXURY',
+        heading: 'Wear It Every\nDay, Forever',
+        sub: 'Light. Delicate. Perfectly you — from dawn meetings to candlelit dinners.',
+        image: '',
+        link: '/collections/daily-wear',
+        accent: '#B76E79',
+        bg: '#f5ede4',
+        align: 'right',
+      },
     ],
   },
   footer_brand:   { brandName: 'Luxury Jewelry', tagline: 'Luxury. Joy. Comfort.', about: 'Premium lab-grown diamond and gold jewelry for every occasion.', email: 'care@luxuryjewelry.com', phone: '+91 9004436052', copyright: '© 2026 Luxury Jewelry. All Rights Reserved.' },
@@ -497,6 +551,49 @@ function DealsEditor({ form, set }) {
   );
 }
 
+function VisitStoresEditor({ form, set }) {
+  const stores = form.stores || [];
+  const update = (i, field, value) => set('stores', stores.map((s, j) => j === i ? { ...s, [field]: value } : s));
+  const add    = () => set('stores', [...stores, { name: '', city: '', image: '' }]);
+  const remove = (i) => set('stores', stores.filter((_, j) => j !== i));
+
+  return (
+    <div className="space-y-5">
+      <div><label className="label-luxury mb-1 block">Section Heading</label>
+        <input className="input-luxury" value={form.title || ''} onChange={(e) => set('title', e.target.value)} placeholder="VISIT OUR STORES" /></div>
+      <div><label className="label-luxury mb-1 block">Subtitle</label>
+        <input className="input-luxury" value={form.subtitle || ''} onChange={(e) => set('subtitle', e.target.value)} placeholder="Experience Jewelry in Person" /></div>
+
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <label className="label-luxury">Store Slides</label>
+          <button type="button" onClick={add} className="text-xs text-primary hover:underline">+ Add Store</button>
+        </div>
+        <div className="space-y-4">
+          {stores.map((store, i) => (
+            <div key={i} className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-500">Slide {i + 1}</span>
+                <button type="button" onClick={() => remove(i)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
+              </div>
+              <ImageUpload value={store.image} onChange={(url) => update(i, 'image', url)} label="Store Photo" />
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="label-luxury mb-1 block">Store Name (shown on slide)</label>
+                  <input className="input-luxury text-sm" value={store.name} onChange={(e) => update(i, 'name', e.target.value)} placeholder="e.g. Luminary Jewels — Bandra" /></div>
+                <div><label className="label-luxury mb-1 block">City</label>
+                  <input className="input-luxury text-sm" value={store.city} onChange={(e) => update(i, 'city', e.target.value)} placeholder="e.g. Mumbai" /></div>
+              </div>
+            </div>
+          ))}
+          {stores.length === 0 && (
+            <p className="text-xs text-gray-400 text-center py-4">No stores added yet. Click "+ Add Store".</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DiamondCutsEditor({ form, set }) {
   const cuts = form.cuts || [];
 
@@ -657,38 +754,63 @@ function ServicesEditor({ form, set }) {
 function GiftingEditor({ form, set }) {
   const budgets   = form.budgets?.length   ? form.budgets   : DEFAULTS.gifting.budgets;
   const occasions = form.occasions?.length ? form.occasions : DEFAULTS.gifting.occasions;
-  const setBudget   = (i, f, v) => set('budgets',   budgets.map((b, j) =>   j === i ? { ...b, [f]: v } : b));
+  const setBudget   = (i, f, v) => set('budgets',   budgets.map((b, j)   => j === i ? { ...b, [f]: v } : b));
   const setOccasion = (i, f, v) => set('occasions', occasions.map((o, j) => j === i ? { ...o, [f]: v } : o));
-  const addOcc = () => set('occasions', [...occasions, { title: '', slug: '' }]);
+  const addOcc    = () => set('occasions', [...occasions, { title: '', slug: '', image: '' }]);
   const removeOcc = (i) => occasions.length > 1 && set('occasions', occasions.filter((_, j) => j !== i));
   return (
-    <div className="space-y-4">
-      <div><label className="label-luxury mb-1 block">Main Heading Text</label>
+    <div className="space-y-5">
+      {/* Section text */}
+      <div><label className="label-luxury mb-1 block">Main Heading</label>
         <input className="input-luxury" value={form.heading || ''} onChange={(e) => set('heading', e.target.value)} placeholder="Gift what lasts beyond the vows." /></div>
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider pt-1">Budget Cards (3)</p>
-      <div className="space-y-2">
-        {budgets.map((b, i) => (
-          <div key={i} className="grid grid-cols-2 gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-            <div><label className="label-luxury mb-1 block">Label (e.g. 30K)</label>
-              <input className="input-luxury" value={b.label} onChange={(e) => setBudget(i, 'label', e.target.value)} /></div>
-            <div><label className="label-luxury mb-1 block">Category Slug</label>
-              <input className="input-luxury" value={b.slug} onChange={(e) => setBudget(i, 'slug', e.target.value)} /></div>
-          </div>
-        ))}
+      <div><label className="label-luxury mb-1 block">Subtitle</label>
+        <input className="input-luxury" value={form.subtitle || ''} onChange={(e) => set('subtitle', e.target.value)} placeholder="Timeless jewelry for every occasion" /></div>
+
+      {/* Budget cards */}
+      <div>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Gift Budget Cards</p>
+        <div className="space-y-4">
+          {budgets.map((b, i) => (
+            <div key={i} className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
+              <p className="text-xs font-semibold text-gray-400">Card {i + 1}</p>
+              <ImageUpload value={b.image || ''} onChange={(url) => setBudget(i, 'image', url)} label="Card Image (gift/wrapping photo)" />
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="label-luxury mb-1 block">Label (e.g. 30K)</label>
+                  <input className="input-luxury" value={b.label} onChange={(e) => setBudget(i, 'label', e.target.value)} /></div>
+                <div><label className="label-luxury mb-1 block">Collection Slug</label>
+                  <input className="input-luxury" value={b.slug} onChange={(e) => setBudget(i, 'slug', e.target.value)} /></div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider pt-1">Occasion Slides</p>
-      <div className="space-y-2">
-        {occasions.map((o, i) => (
-          <div key={i} className="flex gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 items-end">
-            <div className="flex-1"><label className="label-luxury mb-1 block">Title</label>
-              <input className="input-luxury" value={o.title} onChange={(e) => setOccasion(i, 'title', e.target.value)} /></div>
-            <div className="flex-1"><label className="label-luxury mb-1 block">Slug</label>
-              <input className="input-luxury" value={o.slug} onChange={(e) => setOccasion(i, 'slug', e.target.value)} /></div>
-            <button onClick={() => removeOcc(i)} className="p-2 mb-0.5 text-red-400 hover:text-red-600 flex-shrink-0"><Ic d="M6 18L18 6M6 6l12 12" /></button>
-          </div>
-        ))}
+
+      {/* Occasion slides */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Occasion Slides</p>
+          <button onClick={addOcc} className="text-xs text-primary hover:underline">+ Add Slide</button>
+        </div>
+        <div className="space-y-4">
+          {occasions.map((o, i) => (
+            <div key={i} className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-400">Slide {i + 1}</span>
+                {occasions.length > 1 && (
+                  <button onClick={() => removeOcc(i)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
+                )}
+              </div>
+              <ImageUpload value={o.image || ''} onChange={(url) => setOccasion(i, 'image', url)} label="Occasion Photo" />
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="label-luxury mb-1 block">Title</label>
+                  <input className="input-luxury" value={o.title} onChange={(e) => setOccasion(i, 'title', e.target.value)} placeholder="GIFTS FOR WIFE" /></div>
+                <div><label className="label-luxury mb-1 block">Collection Slug</label>
+                  <input className="input-luxury" value={o.slug} onChange={(e) => setOccasion(i, 'slug', e.target.value)} placeholder="gifts-for-wife" /></div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-      <button onClick={addOcc} className="w-full py-2.5 rounded-xl border-2 border-dashed border-gray-200 text-xs text-gray-500 hover:border-primary hover:text-primary transition-colors">+ Add Occasion</button>
     </div>
   );
 }
@@ -870,6 +992,57 @@ function FooterPaymentEditor({ form, set }) {
   );
 }
 
+function LifestyleLookbookEditor({ form, set }) {
+  const panels = form.panels?.length ? form.panels : DEFAULTS.lifestyle_lookbook.panels;
+  const setPanel = (i, field, val) =>
+    set('panels', panels.map((p, j) => (j === i ? { ...p, [field]: val } : p)));
+
+  const PANEL_LABELS = ['Panel 1 — Left/Top', 'Panel 2 — Right/Bottom'];
+
+  return (
+    <div className="space-y-6">
+      <p className="text-xs text-gray-500 leading-relaxed">
+        Two full-width lifestyle panels shown one after the other on the home page — each with a model photo, heading, and subtext.
+      </p>
+      {panels.map((panel, i) => (
+        <div key={i} className="border border-gray-200 rounded-xl p-4 space-y-3">
+          <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider">{PANEL_LABELS[i]}</p>
+          <div>
+            <label className="label-luxury">Model / Lifestyle Image</label>
+            <ImageUpload value={panel.image || ''} onChange={(url) => setPanel(i, 'image', url)} label="Model Photo" />
+          </div>
+          <div>
+            <label className="label-luxury">Eyebrow (small label above heading)</label>
+            <input className="input-luxury w-full" value={panel.eyebrow || ''} onChange={(e) => setPanel(i, 'eyebrow', e.target.value)} placeholder="e.g. BRIDAL & FESTIVE" />
+          </div>
+          <div>
+            <label className="label-luxury">Heading (use \n for line break)</label>
+            <input className="input-luxury w-full" value={panel.heading || ''} onChange={(e) => setPanel(i, 'heading', e.target.value)} placeholder="e.g. Crafted for\nYour Moments" />
+          </div>
+          <div>
+            <label className="label-luxury">Subtext</label>
+            <textarea className="input-luxury w-full" rows={2} value={panel.sub || ''} onChange={(e) => setPanel(i, 'sub', e.target.value)} placeholder="Short description under the heading" />
+          </div>
+          <div>
+            <label className="label-luxury">Link URL (e.g. /collections/bridal)</label>
+            <input className="input-luxury w-full" value={panel.link || ''} onChange={(e) => setPanel(i, 'link', e.target.value)} placeholder="/collections/bridal" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label-luxury">Accent Color</label>
+              <input type="color" className="h-10 w-full rounded-lg border border-gray-200 cursor-pointer" value={panel.accent || '#C9A84C'} onChange={(e) => setPanel(i, 'accent', e.target.value)} />
+            </div>
+            <div>
+              <label className="label-luxury">Background Color</label>
+              <input type="color" className="h-10 w-full rounded-lg border border-gray-200 cursor-pointer" value={panel.bg || '#faf7f4'} onChange={(e) => setPanel(i, 'bg', e.target.value)} />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Edit Modal ────────────────────────────────────────────────────────────────
 function EditModal({ sectionKey, sectionPage, data, banners, onClose, onSave, onBannersChange, saving }) {
   const allSections = GROUPS.flatMap((g) => g.sections);
@@ -887,8 +1060,11 @@ function EditModal({ sectionKey, sectionPage, data, banners, onClose, onSave, on
       case 'why_choose':        return <WhyChooseEditor form={form} set={set} />;
       case 'services':          return <ServicesEditor form={form} set={set} />;
       case 'gifting':           return <GiftingEditor form={form} set={set} />;
+      case 'blog_section':      return <SimpleEditor form={form} set={set} showEyebrow />;
       case 'newsletter':        return <NewsletterEditor form={form} set={set} />;
       case 'faq':               return <FAQEditor form={form} set={set} />;
+      case 'lifestyle_lookbook': return <LifestyleLookbookEditor form={form} set={set} />;
+      case 'visit_stores':      return <VisitStoresEditor form={form} set={set} />;
       case 'diamond_cuts':      return <DiamondCutsEditor form={form} set={set} />;
       case 'footer_brand':      return <FooterBrandEditor form={form} set={set} />;
       case 'footer_social':     return <FooterSocialEditor form={form} set={set} />;

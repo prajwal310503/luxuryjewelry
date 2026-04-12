@@ -33,9 +33,9 @@ function getFileUrl(file) {
   if (!file) return null;
   // Cloudinary storage: file.path is the https:// URL
   if (file.path && file.path.startsWith('http')) return file.path;
-  // Local disk storage: construct URL using server base
+  // Local disk storage: absolute URL pointing directly to backend
   if (file.filename) {
-    const base = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+    const base = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 8000}`;
     return `${base}/uploads/${file.filename}`;
   }
   return null;
@@ -77,4 +77,11 @@ const uploadAvatar = makeDynamic({
   transformation: [{ width: 400, height: 400, crop: 'fill', quality: 'auto' }],
 });
 
-module.exports = { cloudinary, uploadProduct, uploadBanner, uploadAvatar, isCloudinaryConfigured, getFileUrl };
+// Always-local multer for site images (served from /uploads directly, never Cloudinary)
+const uploadSiteImage = {
+  single: (field) => (req, res, next) => {
+    multer({ storage: localDiskStorage }).single(field)(req, res, next);
+  },
+};
+
+module.exports = { cloudinary, uploadProduct, uploadBanner, uploadAvatar, uploadSiteImage, isCloudinaryConfigured, getFileUrl };

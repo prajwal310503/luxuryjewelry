@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import useAuthStore from '../../store/authStore';
 
-const inputCls = 'w-full h-11 border border-gray-200 rounded-xl text-sm text-gray-800 pl-10 pr-4 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-gray-400 bg-gray-50/60';
+const inputCls = 'input-luxury w-full h-11 pl-10 pr-4 text-sm text-gray-800 placeholder:text-gray-400';
 
 const IconInput = ({ icon, rightEl, ...props }) => (
   <div className="relative">
@@ -108,7 +108,7 @@ export default function RegisterPage() {
           required minLength={6}
           placeholder="Password (min. 6 chars)"
           icon={ICONS.lock}
-          className="w-full h-11 border border-gray-200 rounded-xl text-sm text-gray-800 pl-10 pr-11 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-gray-400 bg-gray-50/60"
+          className="input-luxury w-full h-11 pl-10 pr-11 text-sm text-gray-800 placeholder:text-gray-400"
           rightEl={
             <button type="button" onClick={() => setShowPass(!showPass)}
               className="text-gray-400 hover:text-gray-600 transition-colors">

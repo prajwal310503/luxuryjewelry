@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { productAPI } from '../../services/api';
+import Select from '../../components/ui/Select';
 
 const STATUS_BADGE = {
   approved: 'badge-success',
@@ -70,10 +71,11 @@ export default function VendorProducts() {
           onChange={(e) => setSearchParams({ status: statusFilter, search: e.target.value, page: 1 })}
           className="input-luxury flex-1 min-w-48 h-10 py-2"
         />
-        <select
+        <Select
           value={statusFilter}
           onChange={(e) => setSearchParams({ status: e.target.value, search, page: 1 })}
-          className="input-luxury h-10 py-2 w-44"
+          compact
+          className="w-44"
         >
           <option value="">All Status</option>
           <option value="draft">Draft</option>
@@ -81,7 +83,7 @@ export default function VendorProducts() {
           <option value="approved">Approved</option>
           <option value="rejected">Rejected</option>
           <option value="archived">Archived</option>
-        </select>
+        </Select>
       </div>
 
       {/* Table */}

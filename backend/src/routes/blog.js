@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
 const { protect, authorize } = require('../middleware/auth');
-const memUpload = multer({ storage: multer.memoryStorage() });
+const { uploadProduct } = require('../config/cloudinary');
 const {
   getBlogs,
   getBlogBySlug,
@@ -15,8 +14,8 @@ const {
 
 // Admin routes first
 router.get('/admin/all',       protect, authorize('admin'), adminGetBlogs);
-router.post('/admin',          protect, authorize('admin'), memUpload.single('image'), adminCreateBlog);
-router.put('/admin/:id',       protect, authorize('admin'), memUpload.single('image'), adminUpdateBlog);
+router.post('/admin',          protect, authorize('admin'), uploadProduct.single('image'), adminCreateBlog);
+router.put('/admin/:id',       protect, authorize('admin'), uploadProduct.single('image'), adminUpdateBlog);
 router.delete('/admin/:id',    protect, authorize('admin'), adminDeleteBlog);
 router.put('/admin/:id/toggle', protect, authorize('admin'), adminToggleBlog);
 

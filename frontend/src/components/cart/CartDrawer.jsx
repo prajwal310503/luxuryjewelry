@@ -1,11 +1,23 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import useCartStore from '../../store/cartStore';
+import useAuthStore from '../../store/authStore';
 
 const formatPrice = (price) => `₹${price.toLocaleString('en-IN')}`;
 
 export default function CartDrawer() {
   const { items, isOpen, closeCart, removeItem, updateQuantity, getSubtotal, getShipping, getTotal } = useCartStore();
+  const { token } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleCheckout = () => {
+    closeCart();
+    if (!token) {
+      navigate('/login', { state: { from: { pathname: '/checkout' } } });
+    } else {
+      navigate('/checkout');
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -137,13 +149,12 @@ export default function CartDrawer() {
                     <span className="price-tag">{formatPrice(getTotal())}</span>
                   </div>
                 </div>
-                <Link
-                  to="/checkout"
-                  onClick={closeCart}
+                <button
+                  onClick={handleCheckout}
                   className="btn-primary w-full justify-center text-sm"
                 >
-                  Proceed to Checkout
-                </Link>
+                  {token ? 'Proceed to Checkout' : 'Login to Checkout'}
+                </button>
                 <button
                   onClick={closeCart}
                   className="w-full text-center text-sm text-gray-500 hover:text-primary transition-colors py-1"

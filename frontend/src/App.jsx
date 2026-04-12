@@ -39,6 +39,9 @@ const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'));
 // Admin Pages
 const AdminDashboard = lazy(() => import('./admin/pages/Dashboard'));
 const AdminProducts = lazy(() => import('./admin/pages/Products'));
+const AdminProductImages = lazy(() => import('./admin/pages/ProductImages'));
+const AdminCategoryImages = lazy(() => import('./admin/pages/CategoryImages'));
+const AdminSiteImages = lazy(() => import('./admin/pages/SiteImages'));
 const AdminCategories = lazy(() => import('./admin/pages/Categories'));
 const AdminCMSBuilder = lazy(() => import('./admin/pages/CMSBuilder'));
 const AdminVendors = lazy(() => import('./admin/pages/Vendors'));
@@ -87,7 +90,7 @@ export default function App() {
           <Route
             path="/checkout"
             element={
-              <ProtectedRoute roles={['customer']}>
+              <ProtectedRoute>
                 <CheckoutPage />
               </ProtectedRoute>
             }
@@ -139,9 +142,12 @@ export default function App() {
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="products" element={<AdminProducts />} />
+          <Route path="products/images" element={<AdminProductImages />} />
           <Route path="products/add" element={<AdminAddProduct />} />
           <Route path="products/edit/:id" element={<AdminAddProduct />} />
           <Route path="categories" element={<AdminCategories />} />
+          <Route path="categories/images" element={<AdminCategoryImages />} />
+          <Route path="site-images" element={<AdminSiteImages />} />
           <Route path="cms" element={<AdminCMSBuilder />} />
           <Route path="vendors" element={<AdminVendors />} />
           <Route path="orders" element={<AdminOrders />} />

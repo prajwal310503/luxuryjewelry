@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { categoryAPI } from '../../services/api';
+import Select from '../../components/ui/Select';
 
 const EMPTY = { name: '', description: '', parent: '', sortOrder: 0, isFeatured: false };
 
@@ -234,10 +235,10 @@ export default function AdminCategories() {
               {/* Parent */}
               <div>
                 <label className="label-luxury">Parent Category</label>
-                <select value={form.parent} onChange={(e) => setForm({ ...form, parent: e.target.value })} className="input-luxury">
+                <Select value={form.parent} onChange={(e) => setForm({ ...form, parent: e.target.value })} placeholder="— Root Level —">
                   <option value="">— Root Level —</option>
                   {rootCategories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-                </select>
+                </Select>
               </div>
 
               {/* Description */}
