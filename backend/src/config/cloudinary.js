@@ -77,11 +77,11 @@ const uploadAvatar = makeDynamic({
   transformation: [{ width: 400, height: 400, crop: 'fill', quality: 'auto' }],
 });
 
-// Always-local multer for site images (served from /uploads directly, never Cloudinary)
-const uploadSiteImage = {
-  single: (field) => (req, res, next) => {
-    multer({ storage: localDiskStorage }).single(field)(req, res, next);
-  },
-};
+// Site images — use Cloudinary when configured, local disk as fallback
+const uploadSiteImage = makeDynamic({
+  folder: 'luxury_jewelry/site',
+  allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'svg'],
+  transformation: [{ quality: 'auto' }],
+});
 
 module.exports = { cloudinary, uploadProduct, uploadBanner, uploadAvatar, uploadSiteImage, isCloudinaryConfigured, getFileUrl };
