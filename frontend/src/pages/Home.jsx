@@ -675,32 +675,28 @@ const WHY_CHOOSE_FALLBACK = [
     title: 'FAST & SECURE SHIPPING',
     subtitle: 'Your Excitement, Our Priority',
     link: '#',
-    image: 'http://localhost:8000/uploads/promo-shipping.jpg',
-    unsplash: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=900&h=400&fit=crop&q=80&auto=format',
+    image: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=900&h=400&fit=crop&q=80&auto=format',
     bg: 'linear-gradient(145deg, #1c1c2e 0%, #2d2d44 100%)',
   },
   {
     title: 'VAULT OF DREAMS',
     subtitle: 'Complete 9, Unlock the Shine',
     link: '#',
-    image: 'http://localhost:8000/uploads/promo-ring.jpg',
-    unsplash: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=900&h=400&fit=crop&q=80&auto=format',
+    image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=900&h=400&fit=crop&q=80&auto=format',
     bg: 'linear-gradient(145deg, #0d1117 0%, #1a1a2e 100%)',
   },
   {
     title: 'VIRTUAL CONSULTATION',
     subtitle: 'See it, Love it, Buy it',
     link: '#',
-    image: 'http://localhost:8000/uploads/promo-consultation.jpg',
-    unsplash: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=900&h=400&fit=crop&q=80&auto=format',
+    image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=900&h=400&fit=crop&q=80&auto=format',
     bg: 'linear-gradient(145deg, #1a2744 0%, #0d1b2a 100%)',
   },
   {
     title: 'BESPOKE DESIGNS',
     subtitle: 'Handcrafted to Perfection',
     link: '#',
-    image: 'http://localhost:8000/uploads/promo-bespoke.webp',
-    unsplash: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=900&h=400&fit=crop&q=80&auto=format',
+    image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=900&h=400&fit=crop&q=80&auto=format',
     bg: 'linear-gradient(145deg, #2c1810 0%, #1a0e08 100%)',
   },
 ];
@@ -1389,7 +1385,7 @@ const LIFESTYLE_CONFIG = [
     eyebrow: 'BRIDAL & FESTIVE',
     heading: 'Crafted for\nYour Moments',
     sub: 'Timeless bridal jewelry — woven with tradition, worn with grace.',
-    modelImage: 'http://localhost:8000/uploads/lifestyle-bridal.jpg',
+    modelImage: 'https://images.unsplash.com/photo-1610992015732-2449b76344bc?w=900&h=1100&fit=crop&q=80&auto=format',
     modelUnsplash: 'https://images.unsplash.com/photo-1610992015732-2449b76344bc?w=900&h=1100&fit=crop&q=80&auto=format',
     modelFallback: 'linear-gradient(145deg,#c9a84c22 0%,#f5e6c0 50%,#faf7f4 100%)',
     align: 'left',
@@ -1405,7 +1401,7 @@ const LIFESTYLE_CONFIG = [
     eyebrow: 'EVERYDAY LUXURY',
     heading: 'Wear It Every\nDay, Forever',
     sub: 'Light. Delicate. Perfectly you — from dawn meetings to candlelit dinners.',
-    modelImage: 'http://localhost:8000/uploads/lifestyle-everyday.jpg',
+    modelImage: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=900&h=1100&fit=crop&q=80&auto=format',
     modelUnsplash: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=900&h=1100&fit=crop&q=80&auto=format',
     modelFallback: 'linear-gradient(145deg,#b76e7922 0%,#f2dde0 50%,#f5ede4 100%)',
     align: 'right',
@@ -1611,39 +1607,14 @@ const STORE_FALLBACKS = [
   { bg: 'linear-gradient(135deg,#1a0e08 0%,#3d2312 60%,#2a180c 100%)', name: 'BOUTIQUE — BANGALORE', city: 'Indiranagar, Bangalore' },
 ];
 
-// Uploadable fallback images from Admin → Site Images → Visit Our Stores
-const STORE_UPLOAD_KEYS = ['store-main', 'store-panel2', 'store-panel3'];
-const BACKEND_BASE = 'http://localhost:8000';
-
 const StoresSection = ({ stores, cmsContent }) => {
-  const [uploadedImages, setUploadedImages] = useState({});
-
-  // Try to resolve uploaded store images
-  useEffect(() => {
-    const EXTS = ['webp', 'jpg', 'png'];
-    STORE_UPLOAD_KEYS.forEach((key) => {
-      const tryExt = (idx) => {
-        if (idx >= EXTS.length) return;
-        const url = `${BACKEND_BASE}/uploads/${key}.${EXTS[idx]}`;
-        const img = new Image();
-        img.onload = () => setUploadedImages((prev) => ({ ...prev, [key]: url }));
-        img.onerror = () => tryExt(idx + 1);
-        img.src = url;
-      };
-      tryExt(0);
-    });
-  }, []);
-
-  // Priority: CMS stores → DB stores → site-image uploads → gradient fallbacks
+  // Priority: CMS stores → DB stores → gradient fallbacks
   const cmsStores = cmsContent?.stores?.filter((s) => s.name || s.image);
   const items = cmsStores?.length
     ? cmsStores
     : stores?.length
     ? stores
-    : STORE_FALLBACKS.map((fb, i) => ({
-        ...fb,
-        image: uploadedImages[STORE_UPLOAD_KEYS[i]] || null,
-      }));
+    : STORE_FALLBACKS;
 
   const total = items.length;
   const [current, setCurrent] = useState(0);
