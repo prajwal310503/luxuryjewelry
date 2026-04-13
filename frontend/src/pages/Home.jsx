@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
-import { cmsAPI, productAPI, categoryAPI, storeAPI, blogAPI } from '../services/api';
+import { cmsAPI, productAPI, categoryAPI, storeAPI, blogAPI, settingsAPI } from '../services/api';
 import ProductCard from '../components/product/ProductCard';
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
@@ -672,6 +672,7 @@ const ServicesSection = ({ cmsContent }) => {
 // ─── WHY CHOOSE US PROMO GRID ─────────────────────────────────────────────────
 const WHY_CHOOSE_FALLBACK = [
   {
+    key: 'promo-shipping',
     title: 'FAST & SECURE SHIPPING',
     subtitle: 'Your Excitement, Our Priority',
     link: '#',
@@ -679,6 +680,7 @@ const WHY_CHOOSE_FALLBACK = [
     bg: 'linear-gradient(145deg, #1c1c2e 0%, #2d2d44 100%)',
   },
   {
+    key: 'promo-ring',
     title: 'VAULT OF DREAMS',
     subtitle: 'Complete 9, Unlock the Shine',
     link: '#',
@@ -686,6 +688,7 @@ const WHY_CHOOSE_FALLBACK = [
     bg: 'linear-gradient(145deg, #0d1117 0%, #1a1a2e 100%)',
   },
   {
+    key: 'promo-consultation',
     title: 'VIRTUAL CONSULTATION',
     subtitle: 'See it, Love it, Buy it',
     link: '#',
@@ -693,6 +696,7 @@ const WHY_CHOOSE_FALLBACK = [
     bg: 'linear-gradient(145deg, #1a2744 0%, #0d1b2a 100%)',
   },
   {
+    key: 'promo-bespoke',
     title: 'BESPOKE DESIGNS',
     subtitle: 'Handcrafted to Perfection',
     link: '#',
@@ -701,10 +705,15 @@ const WHY_CHOOSE_FALLBACK = [
   },
 ];
 
-const WhyChooseSection = ({ cmsContent }) => {
+const WhyChooseSection = ({ cmsContent, siteImages = {} }) => {
   const heading  = cmsContent?.title    || 'WHY CHOOSE OUR JEWELRY?';
   const subtitle = cmsContent?.subtitle || 'Custom designs, Video consults, Fast delivery';
-  const items    = cmsContent?.items?.length ? cmsContent.items : WHY_CHOOSE_FALLBACK;
+  const baseItems = cmsContent?.items?.length ? cmsContent.items : WHY_CHOOSE_FALLBACK;
+  // Overlay admin-uploaded site images on top of defaults
+  const items = baseItems.map((item) => ({
+    ...item,
+    image: siteImages[item.key] || siteImages[item.key?.replace('promo-', '')] || item.image,
+  }));
 
   return (
     <section className="py-16 bg-white">
@@ -1382,6 +1391,7 @@ const DiamondCutsSection = ({ cmsContent }) => {
 const LIFESTYLE_CONFIG = [
   {
     id: 1,
+    key: 'lifestyle-bridal',
     eyebrow: 'BRIDAL & FESTIVE',
     heading: 'Crafted for\nYour Moments',
     sub: 'Timeless bridal jewelry — woven with tradition, worn with grace.',
@@ -1398,6 +1408,7 @@ const LIFESTYLE_CONFIG = [
   },
   {
     id: 2,
+    key: 'lifestyle-everyday',
     eyebrow: 'EVERYDAY LUXURY',
     heading: 'Wear It Every\nDay, Forever',
     sub: 'Light. Delicate. Perfectly you — from dawn meetings to candlelit dinners.',
@@ -1455,8 +1466,8 @@ const ShopChip = ({ product, label, delay = 0 }) => {
   );
 };
 
-const LifestyleLookbookSection = ({ panel1Products = [], panel2Products = [], fallbackProducts = [], cmsContent }) => {
-  // Merge CMS overrides into LIFESTYLE_CONFIG (text + image)
+const LifestyleLookbookSection = ({ panel1Products = [], panel2Products = [], fallbackProducts = [], cmsContent, siteImages = {} }) => {
+  // Merge CMS overrides + admin-uploaded site images into LIFESTYLE_CONFIG
   const panels = LIFESTYLE_CONFIG.map((cfg, i) => {
     const cms = cmsContent?.panels?.[i] || {};
     return {
@@ -1467,7 +1478,7 @@ const LifestyleLookbookSection = ({ panel1Products = [], panel2Products = [], fa
       link:          cms.link    || cfg.link,
       accent:        cms.accent  || cfg.accent,
       bg:            cms.bg      || cfg.bg,
-      modelImage:    cms.image   || cfg.modelImage,
+      modelImage:    siteImages[cfg.key] || cms.image || cfg.modelImage,
       modelUnsplash: cfg.modelUnsplash,
     };
   });
@@ -2167,10 +2178,11 @@ export default function Home() {
   const [stores, setStores] = useState([]);
   const [blogs, setBlogs] = useState([]);
   const [cmsSections, setCmsSections] = useState({});
+  const [siteImages, setSiteImages] = useState({});
 
   useEffect(() => {
     const load = async () => {
-      const [bannersRes, categoriesRes, featuredRes, dealsRes, sectionsRes, storesRes, blogsRes, ls1Res, ls2Res] = await Promise.allSettled([
+      const [bannersRes, categoriesRes, featuredRes, dealsRes, sectionsRes, storesRes, blogsRes, ls1Res, ls2Res, siteImagesRes] = await Promise.allSettled([
         cmsAPI.getBanners('hero'),
         categoryAPI.getAll({ parent: 'null' }),
         productAPI.getAll({ limit: 60, isFeatured: true, sort: 'rating' }),
@@ -2180,7 +2192,11 @@ export default function Home() {
         blogAPI.getAll({ featured: 'true', limit: 4 }),
         productAPI.getAll({ limit: 4, isLifestyle1: true }),
         productAPI.getAll({ limit: 4, isLifestyle2: true }),
+        fetch(`${import.meta.env.VITE_API_URL || '/api'}/settings/site-images`).then((r) => r.json()),
       ]);
+      if (siteImagesRes.status === 'fulfilled' && siteImagesRes.value?.success) {
+        setSiteImages(siteImagesRes.value.data || {});
+      }
       if (bannersRes.status === 'fulfilled') setBanners(bannersRes.value.data.data || []);
       if (categoriesRes.status === 'fulfilled') setCategories(categoriesRes.value.data.data || []);
       const featured = featuredRes.status === 'fulfilled' ? (featuredRes.value.data.data || []) : [];
@@ -2224,12 +2240,13 @@ export default function Home() {
       <TrustBar cmsContent={cmsSections.trust_bar} />
       <CategoryGrid categories={categories} cmsContent={cmsSections.category_grid} />
       <DealsSection products={dealProducts} cmsContent={cmsSections.deals} />
-      <WhyChooseSection cmsContent={cmsSections.why_choose} />
+      <WhyChooseSection cmsContent={cmsSections.why_choose} siteImages={siteImages} />
       <LifestyleLookbookSection
         panel1Products={lifestyle1Products}
         panel2Products={lifestyle2Products}
         fallbackProducts={featuredProducts}
         cmsContent={cmsSections.lifestyle_lookbook}
+        siteImages={siteImages}
       />
       <FeaturedProducts
         products={featuredProducts}

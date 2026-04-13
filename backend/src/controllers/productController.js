@@ -497,38 +497,26 @@ exports.adminUploadPromoBanner = async (req, res, next) => {
 // @access  Admin
 exports.adminUploadSiteImage = async (req, res, next) => {
   try {
-    const nodePath = require('path');
-    const fs       = require('fs');
-
     const file = req.file;
     if (!file) return sendError(res, 400, 'No file uploaded');
 
-    // Accept filename from query string (reliable) or body (fallback)
-    const targetName = req.query.filename || req.body.filename;
-    if (!targetName || !/^[\w\-]+\.(jpg|jpeg|png|webp|svg)$/i.test(targetName)) {
-      // Clean up the uploaded temp file
-      try { fs.unlinkSync(file.path); } catch (_) {}
-      return sendError(res, 400, 'Invalid filename');
-    }
+    // key = stable identifier e.g. 'lifestyle-bridal', 'promo-ring'
+    const key = (req.query.key || req.body.key || '').replace(/[^a-z0-9\-]/gi, '');
+    if (!key) return sendError(res, 400, 'Missing key parameter');
 
-    const uploadsDir = nodePath.join(__dirname, '../../../uploads');
+    const { getFileUrl } = require('../config/cloudinary');
+    const url = getFileUrl(file);
+    if (!url) return sendError(res, 500, 'Upload failed — could not get file URL');
 
-    // Use the uploaded file's actual extension so Content-Type stays correct
-    const uploadedExt = nodePath.extname(file.originalname || file.filename).toLowerCase() || '.jpg';
-    const baseName    = targetName.replace(/\.[^.]+$/, ''); // strip extension from target
-    const finalName   = baseName + uploadedExt;             // e.g. diamond-cut-round.webp
-    const dest        = nodePath.join(uploadsDir, finalName);
+    // Persist URL in Settings so frontend can retrieve it
+    const Settings = require('../models/Settings');
+    await Settings.findOneAndUpdate(
+      { group: 'siteImages' },
+      { $set: { [`data.${key}`]: url } },
+      { upsert: true, new: true }
+    );
 
-    // Remove any previously saved files with the same base but different extension
-    ['jpg','jpeg','png','webp','svg'].forEach((ext) => {
-      const old = nodePath.join(uploadsDir, `${baseName}.${ext}`);
-      if (old !== dest && fs.existsSync(old)) try { fs.unlinkSync(old); } catch (_) {}
-    });
-
-    fs.renameSync(file.path, dest);
-
-    const base = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 8000}`;
-    sendSuccess(res, 200, 'Site image updated', { url: `${base}/uploads/${finalName}` });
+    sendSuccess(res, 200, 'Site image updated', { url });
   } catch (error) {
     next(error);
   }
