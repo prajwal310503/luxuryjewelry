@@ -25,6 +25,52 @@ const settingsRoutes = require('./routes/settings');
 
 const app = express();
 
+// ── Sanitise localhost URLs from every API response ───────────────────────────
+// Images uploaded locally (before Cloudinary was configured) have URLs like
+// http://localhost:8000/uploads/foo.jpg stored in the DB.
+// This middleware intercepts res.json() and replaces them with Unsplash
+// fallbacks so the live site never requests a localhost resource.
+const LOCAL_URL_RE = /http:\/\/localhost:\d+\/uploads\/[^"'\s,)>]+/g;
+const FALLBACK_IMG = 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=600&fit=crop&q=80&auto=format';
+
+const FILENAME_FALLBACKS = [
+  ['promo-shipping',     'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&h=600&fit=crop&q=80&auto=format'],
+  ['promo-ring',         'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=800&h=600&fit=crop&q=80&auto=format'],
+  ['promo-consultation', 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&h=600&fit=crop&q=80&auto=format'],
+  ['promo-bespoke',      'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=600&fit=crop&q=80&auto=format'],
+  ['store-main',         'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&h=800&fit=crop&q=80&auto=format'],
+  ['store-panel2',       'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=800&h=600&fit=crop&q=80&auto=format'],
+  ['store-panel3',       'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=800&h=600&fit=crop&q=80&auto=format'],
+  ['lifestyle-everyday', 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=1200&h=800&fit=crop&q=80&auto=format'],
+  ['lifestyle-bridal',   'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=1200&h=800&fit=crop&q=80&auto=format'],
+  ['banner',             'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=1920&h=800&fit=crop&q=80&auto=format'],
+  ['hero',               'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=1920&h=1080&fit=crop&q=80&auto=format'],
+];
+
+function sanitiseLocalhostUrls(jsonStr) {
+  return jsonStr.replace(LOCAL_URL_RE, (match) => {
+    const filename = match.split('/uploads/')[1].replace(/\.[^.]+$/, '');
+    for (const [hint, url] of FILENAME_FALLBACKS) {
+      if (filename.includes(hint)) return url;
+    }
+    return FALLBACK_IMG;
+  });
+}
+
+app.use((req, res, next) => {
+  const _json = res.json.bind(res);
+  res.json = (body) => {
+    try {
+      const raw = JSON.stringify(body);
+      if (raw.includes('localhost')) {
+        return _json(JSON.parse(sanitiseLocalhostUrls(raw)));
+      }
+    } catch (_) { /* never break the response */ }
+    return _json(body);
+  };
+  next();
+});
+
 // Security headers
 app.use(helmet());
 
