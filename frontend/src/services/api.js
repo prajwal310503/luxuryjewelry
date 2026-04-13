@@ -19,9 +19,46 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// ── Sanitise localhost URLs that were saved before Cloudinary was configured ──
+const LOCAL_URL_RE = /http:\/\/localhost:\d+\/uploads\/[^"'\s]+/g;
+const FALLBACK_MAP = [
+  ['promo-shipping',     'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&h=600&fit=crop&q=80&auto=format'],
+  ['promo-ring',         'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=800&h=600&fit=crop&q=80&auto=format'],
+  ['promo-consultation', 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&h=600&fit=crop&q=80&auto=format'],
+  ['promo-bespoke',      'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=600&fit=crop&q=80&auto=format'],
+  ['store-main',         'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&h=800&fit=crop&q=80&auto=format'],
+  ['store-panel2',       'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=800&h=600&fit=crop&q=80&auto=format'],
+  ['store-panel3',       'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=800&h=600&fit=crop&q=80&auto=format'],
+  ['lifestyle-everyday', 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=1200&h=800&fit=crop&q=80&auto=format'],
+  ['lifestyle-bridal',   'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=1200&h=800&fit=crop&q=80&auto=format'],
+  ['banner',             'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=1920&h=800&fit=crop&q=80&auto=format'],
+  ['hero',               'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=1920&h=1080&fit=crop&q=80&auto=format'],
+];
+const GENERIC_FALLBACK = 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=600&fit=crop&q=80&auto=format';
+
+function sanitiseResponse(data) {
+  try {
+    const raw = JSON.stringify(data);
+    if (!raw.includes('localhost')) return data;
+    const cleaned = raw.replace(LOCAL_URL_RE, (match) => {
+      const filename = match.split('/uploads/')[1]?.replace(/\.[^.]+$/, '') || '';
+      for (const [hint, url] of FALLBACK_MAP) {
+        if (filename.includes(hint)) return url;
+      }
+      return GENERIC_FALLBACK;
+    });
+    return JSON.parse(cleaned);
+  } catch (_) {
+    return data;
+  }
+}
+
 // Response interceptor — handle errors globally
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    response.data = sanitiseResponse(response.data);
+    return response;
+  },
   (error) => {
     const message = error.response?.data?.message || 'Something went wrong';
 
