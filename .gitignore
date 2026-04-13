@@ -37,13 +37,8 @@ blueprint.md
 # Build zip artifacts
 frontend/dist.zip
 
-# Seed utility scripts (keep in local only)
-backend/src/seedBlogs.js
-backend/src/seedProducts.js
+# Seed utility scripts (keep local only — one-time DB scripts)
 backend/src/utils/downloadImages.js
 backend/src/utils/fixImageUrls.js
-backend/src/utils/seedCategoryImages.js
-backend/src/utils/seedContent.js
-backend/src/utils/seedProducts.js
 backend/src/utils/updateImages.js
 backend/src/utils/uploadProductImages.js

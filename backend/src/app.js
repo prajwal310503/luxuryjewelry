@@ -28,17 +28,25 @@ const app = express();
 // Security headers
 app.use(helmet());
 
-// CORS — allow localhost in dev + deployed frontend URL
+// CORS — allow localhost in dev + deployed frontend URL(s)
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
+// Also allow any *.vercel.app subdomain (Vercel preview deployments)
+function isOriginAllowed(origin) {
+  if (!origin) return true; // server-to-server / curl
+  if (allowedOrigins.includes(origin)) return true;
+  if (/^https:\/\/[a-z0-9-]+(\.vercel\.app)$/.test(origin)) return true;
+  return false;
+}
+
 app.use(
   cors({
     origin: (origin, cb) => {
-      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      if (isOriginAllowed(origin)) return cb(null, true);
       cb(new Error('Not allowed by CORS'));
     },
     credentials: true,

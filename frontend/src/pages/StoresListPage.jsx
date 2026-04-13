@@ -70,10 +70,26 @@ export default function StoresListPage() {
                 >
                   {/* Image */}
                   <div className="relative overflow-hidden" style={{ aspectRatio: '16/9' }}>
-                    {store.image
-                      ? <img src={store.image} alt={store.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      : <div className="w-full h-full" style={{ background: 'linear-gradient(135deg,#1c1209 0%,#3a2010 100%)' }} />
-                    }
+                    {store.image ? (
+                      <img
+                        src={store.image}
+                        alt={store.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      className="w-full h-full flex items-end p-5"
+                      style={{
+                        display: store.image ? 'none' : 'flex',
+                        background: 'linear-gradient(135deg,#1c1209 0%,#3a2010 100%)',
+                      }}
+                    >
+                      <span className="text-white/40 text-xs font-semibold uppercase tracking-widest">{store.name}</span>
+                    </div>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
 
                     {/* Open badge */}
