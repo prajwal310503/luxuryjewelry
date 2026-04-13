@@ -799,16 +799,16 @@ const WhyChooseSection = ({ cmsContent, siteImages = {} }) => {
 };
 
 // ─── DIAMOND CUTS SECTION ─────────────────────────────────────────────────────
-const BACKEND = 'http://localhost:8000';
+// No image URLs — SVG shapes render by default; admin can override per-cut via CMS
 const DIAMOND_CUTS_DATA = [
-  { name: 'ROUND',    slug: 'round',    image: `${BACKEND}/uploads/diamond-cut-round.jpg`    },
-  { name: 'OVAL',     slug: 'oval',     image: `${BACKEND}/uploads/diamond-cut-oval.jpg`     },
-  { name: 'CUSHION',  slug: 'cushion',  image: `${BACKEND}/uploads/diamond-cut-cushion.jpg`  },
-  { name: 'PRINCESS', slug: 'princess', image: `${BACKEND}/uploads/diamond-cut-princess.jpg` },
-  { name: 'EMERALD',  slug: 'emerald',  image: `${BACKEND}/uploads/diamond-cut-emerald.jpg`  },
-  { name: 'PEAR',     slug: 'pear',     image: `${BACKEND}/uploads/diamond-cut-pear.jpg`     },
-  { name: 'MARQUISE', slug: 'marquise', image: `${BACKEND}/uploads/diamond-cut-marquise.jpg` },
-  { name: 'HEART',    slug: 'heart',    image: `${BACKEND}/uploads/diamond-cut-heart.jpg`    },
+  { name: 'ROUND',    slug: 'round',    image: null },
+  { name: 'OVAL',     slug: 'oval',     image: null },
+  { name: 'CUSHION',  slug: 'cushion',  image: null },
+  { name: 'PRINCESS', slug: 'princess', image: null },
+  { name: 'EMERALD',  slug: 'emerald',  image: null },
+  { name: 'PEAR',     slug: 'pear',     image: null },
+  { name: 'MARQUISE', slug: 'marquise', image: null },
+  { name: 'HEART',    slug: 'heart',    image: null },
 ];
 
 const DiamondShapeSVG = ({ shape }) => {
@@ -1299,35 +1299,22 @@ const GiftingSection = ({ cmsContent }) => {
   );
 };
 
-// Diamond cut card with image + SVG fallback on error
+// Diamond cut card — uses Cloudinary image if provided via CMS, otherwise SVG shape
 const DiamondCutCard = ({ cut, slug }) => {
-  const isDirectUrl = cut.image && (cut.image.startsWith('http') && !cut.image.includes('/uploads/diamond-cut-'));
-  // For CMS direct URLs (Cloudinary etc): try once, fallback to SVG
-  // For local uploads: try webp → jpg → png
-  const EXTS = ['webp', 'jpg', 'png'];
-  const baseUrl = (!isDirectUrl && cut.image) ? cut.image.replace(/\.[^.]+$/, '') : null;
-  const [extIdx, setExtIdx] = useState(0);
   const [imgFailed, setImgFailed] = useState(false);
-
-  const imgSrc = isDirectUrl ? cut.image : (baseUrl ? `${baseUrl}.${EXTS[extIdx]}` : null);
-  const showImg = !!(imgSrc && !imgFailed);
-
-  const handleError = () => {
-    if (!isDirectUrl && extIdx < EXTS.length - 1) {
-      setExtIdx((i) => i + 1);
-    } else {
-      setImgFailed(true);
-    }
-  };
+  // Only treat as a usable image if it's a real external URL (Cloudinary / Unsplash)
+  const imgSrc = cut.image && cut.image.startsWith('http') && !cut.image.includes('localhost')
+    ? cut.image
+    : null;
 
   return (
     <div className="relative w-[90px] h-[90px] sm:w-full sm:aspect-square flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-      {showImg ? (
+      {imgSrc && !imgFailed ? (
         <img
           src={imgSrc}
           alt={cut.name}
           className="w-full h-full object-contain drop-shadow-md"
-          onError={handleError}
+          onError={() => setImgFailed(true)}
         />
       ) : (
         <DiamondShapeSVG shape={slug} />
