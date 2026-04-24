@@ -31,7 +31,7 @@ export default function AccountPage() {
 
   return (
     <>
-      <Helmet><title>My Account | Luxury Jewelry</title></Helmet>
+      <Helmet><title>My Account | VK Jewellers</title></Helmet>
       <div className="container-luxury py-10">
         <h1 className="font-heading text-3xl font-bold mb-8">My Account</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

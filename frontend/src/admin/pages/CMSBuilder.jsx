@@ -235,11 +235,11 @@ const DEFAULTS = {
       },
     ],
   },
-  footer_brand:   { brandName: 'Luxury Jewelry', tagline: 'Luxury. Joy. Comfort.', about: 'Premium lab-grown diamond and gold jewelry for every occasion.', email: 'care@luxuryjewelry.com', phone: '+91 9004436052', copyright: '© 2026 Luxury Jewelry. All Rights Reserved.' },
+  footer_brand:   { brandName: 'VK Jewellers', tagline: 'Luxury. Joy. Comfort.', about: 'Premium lab-grown diamond and gold jewelry for every occasion.', email: 'care@luxuryjewelry.com', phone: '+91 9004436052', copyright: '© 2026 VK Jewellers. All Rights Reserved.' },
   footer_social:  { instagram: '#', facebook: '#', youtube: '#', pinterest: '#', linkedin: '#' },
   footer_links: {
     columns: [
-      { heading: 'About Royalbutterfly', links: [{ label: 'About Our Company', to: '/about' }, { label: 'Terms & Conditions', to: '/terms' }, { label: 'Privacy Policy', to: '/privacy' }, { label: 'Shipping Policy', to: '/shipping' }] },
+      { heading: 'About VK Jewellers', links: [{ label: 'About Our Company', to: '/about' }, { label: 'Terms & Conditions', to: '/terms' }, { label: 'Privacy Policy', to: '/privacy' }, { label: 'Shipping Policy', to: '/shipping' }] },
       { heading: 'Jewelry Guide', links: [{ label: 'Diamond Education', to: '/guides/diamonds' }, { label: 'Metal Education', to: '/guides/metals' }, { label: 'Size Guide', to: '/guides/size' }, { label: 'Jewelry Care Tips', to: '/guides/care' }] },
       { heading: 'Why Choose Us', links: [{ label: '15 Days Return', to: '/policies/return' }, { label: 'Lifetime Exchange', to: '/policies/exchange' }, { label: 'Old Gold Exchange', to: '/old-gold' }, { label: "FAQ's", to: '/faq' }] },
       { heading: 'Sell With Us', links: [{ label: 'Become a Vendor', to: '/register?role=vendor' }, { label: 'Vendor Guidelines', to: '/vendor-guidelines' }, { label: 'Commission Structure', to: '/commissions' }] },
@@ -903,7 +903,7 @@ function FooterBrandEditor({ form, set }) {
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div><label className="label-luxury mb-1 block">Brand Name</label>
-          <input className="input-luxury" value={form.brandName || ''} onChange={(e) => set('brandName', e.target.value)} placeholder="Luxury Jewelry" /></div>
+          <input className="input-luxury" value={form.brandName || ''} onChange={(e) => set('brandName', e.target.value)} placeholder="VK Jewellers" /></div>
         <div><label className="label-luxury mb-1 block">Tagline</label>
           <input className="input-luxury" value={form.tagline || ''} onChange={(e) => set('tagline', e.target.value)} placeholder="Luxury. Joy. Comfort." /></div>
       </div>
@@ -916,7 +916,7 @@ function FooterBrandEditor({ form, set }) {
           <input className="input-luxury" value={form.phone || ''} onChange={(e) => set('phone', e.target.value)} placeholder="+91 9000000000" /></div>
       </div>
       <div><label className="label-luxury mb-1 block">Copyright Text</label>
-        <input className="input-luxury" value={form.copyright || ''} onChange={(e) => set('copyright', e.target.value)} placeholder="© 2026 Luxury Jewelry. All Rights Reserved." /></div>
+        <input className="input-luxury" value={form.copyright || ''} onChange={(e) => set('copyright', e.target.value)} placeholder="© 2026 VK Jewellers. All Rights Reserved." /></div>
     </div>
   );
 }

@@ -22,7 +22,7 @@ export default function SearchPage() {
 
   return (
     <>
-      <Helmet><title>Search: {query} | Luxury Jewelry</title></Helmet>
+      <Helmet><title>Search: {query} | VK Jewellers</title></Helmet>
       <div className="container-luxury py-10">
         <h1 className="font-heading text-2xl font-bold mb-2">Search Results for "{query}"</h1>
         <p className="text-gray-400 text-sm mb-8">{total} products found</p>

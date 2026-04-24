@@ -7,7 +7,7 @@ export default function WishlistPage() {
   const { items, clearWishlist } = useWishlistStore();
   return (
     <>
-      <Helmet><title>My Wishlist | Luxury Jewelry</title></Helmet>
+      <Helmet><title>My Wishlist | VK Jewellers</title></Helmet>
       <div className="container-luxury py-10">
         <div className="flex items-center justify-between mb-8">
           <h1 className="font-heading text-3xl font-bold">My Wishlist ({items.length})</h1>

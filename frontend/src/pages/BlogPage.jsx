@@ -18,7 +18,7 @@ export default function BlogPage() {
   return (
     <>
       <Helmet>
-        <title>Jewelry Blog — Luxury Jewelry</title>
+        <title>Jewelry Blog — VK Jewellers</title>
         <meta name="description" content="Explore jewelry guides, trends, and education from our experts." />
       </Helmet>
 

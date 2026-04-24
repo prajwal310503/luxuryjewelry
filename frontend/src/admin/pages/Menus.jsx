@@ -567,7 +567,7 @@ export default function AdminMenus() {
       {selectedMenu && (
         <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-[12px] text-amber-700 leading-relaxed">
           <strong>Tip:</strong> Set item type to <strong>Mega</strong> to show a full-width dropdown with columns on hover.
-          Use <strong>Shop By Style / Shape / Material / Price</strong> as column headings to match the Royalbutterfly layout.
+          Use <strong>Shop By Style / Shape / Material / Price</strong> as column headings to match the VK Jewellers layout.
           Add a featured image URL from Cloudinary to show a featured product panel on the right.
         </div>
       )}

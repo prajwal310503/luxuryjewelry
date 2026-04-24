@@ -15,7 +15,7 @@ export default function VendorStorePage() {
 
   return (
     <>
-      <Helmet><title>Vendor Store | Luxury Jewelry</title></Helmet>
+      <Helmet><title>Vendor Store | VK Jewellers</title></Helmet>
       <div className="bg-luxury-gradient py-10">
         <div className="container-luxury">
           <h1 className="font-heading text-3xl font-bold">Vendor Store</h1>

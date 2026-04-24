@@ -149,7 +149,7 @@ export default function CheckoutPage() {
 
   return (
     <>
-      <Helmet><title>Checkout | Luxury Jewelry</title></Helmet>
+      <Helmet><title>Checkout | VK Jewellers</title></Helmet>
 
       <div className="container-luxury py-10">
         {/* Stepper */}

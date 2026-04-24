@@ -14,7 +14,7 @@ export default function OrderSuccessPage() {
 
   return (
     <>
-      <Helmet><title>Order Confirmed | Luxury Jewelry</title></Helmet>
+      <Helmet><title>Order Confirmed | VK Jewellers</title></Helmet>
       <div className="container-luxury py-20 text-center">
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200, delay: 0.2 }} className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
           <svg className="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

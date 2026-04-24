@@ -288,7 +288,7 @@ async function seedProducts() {
     let vendorUser = await User.findOne({ role: 'vendor' });
     if (!vendorUser) {
       vendorUser = await User.create({
-        name: 'ONSK Jewelry',
+        name: 'VK Jewellers',
         email: process.env.VENDOR || 'vendor@onsкjewelry.com',
         password: process.env.PASSWORD || 'Vendor@123456',
         role: 'vendor',
@@ -305,7 +305,7 @@ async function seedProducts() {
     if (!vendor) {
       vendor = await Vendor.create({
         user: vendorUser._id,
-        storeName: 'ONSK Jewelry',
+        storeName: 'VK Jewellers',
         storeSlug: 'onsk-jewelry',
         storeDescription: 'Premium gold and diamond jewelry crafted with love.',
         businessEmail: vendorUser.email,

@@ -18,8 +18,8 @@ export default function StoresListPage() {
   return (
     <>
       <Helmet>
-        <title>Store Locations — Luxury Jewelry</title>
-        <meta name="description" content="Find a luxury jewelry store near you. Visit us for an in-person experience." />
+        <title>Store Locations — VK Jewellers</title>
+        <meta name="description" content="Find a vk jewellers store near you. Visit us for an in-person experience." />
       </Helmet>
 
       {/* Header */}

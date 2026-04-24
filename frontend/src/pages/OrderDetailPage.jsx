@@ -17,7 +17,7 @@ export default function OrderDetailPage() {
 
   return (
     <>
-      <Helmet><title>Order #{order.orderNumber} | Luxury Jewelry</title></Helmet>
+      <Helmet><title>Order #{order.orderNumber} | VK Jewellers</title></Helmet>
       <div className="container-luxury py-10">
         <div className="flex items-center gap-4 mb-8">
           <Link to="/orders" className="text-primary hover:underline text-sm">← My Orders</Link>

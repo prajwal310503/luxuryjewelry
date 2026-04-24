@@ -2219,7 +2219,7 @@ export default function Home() {
   return (
     <>
       <Helmet>
-        <title>Luxury Jewelry — Premium Diamond & Gold Jewelry Marketplace</title>
+        <title>VK Jewellers — Premium Diamond & Gold Jewelry</title>
         <meta name="description" content="Discover premium lab-grown diamond jewelry, gold rings, earrings, necklaces and more." />
       </Helmet>
 

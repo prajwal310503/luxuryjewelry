@@ -344,7 +344,7 @@ export default function CategoryPage() {
   return (
     <>
       <Helmet>
-        <title>{category?.name || 'Collections'} | Luxury Jewelry</title>
+        <title>{category?.name || 'Collections'} | VK Jewellers</title>
         <meta name="description" content={category?.seo?.metaDescription || `Shop ${category?.name || 'jewelry'} collection`} />
       </Helmet>
 

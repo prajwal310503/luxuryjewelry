@@ -139,7 +139,7 @@ export default function ProductPage() {
   return (
     <>
       <Helmet>
-        <title>{product.title} | Luxury Jewelry</title>
+        <title>{product.title} | VK Jewellers</title>
         <meta name="description" content={product.shortDescription || product.seo?.metaDescription || product.title} />
       </Helmet>
 

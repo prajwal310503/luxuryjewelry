@@ -30,11 +30,11 @@ const sendWelcomeEmail = async (user, verificationUrl) => {
   const html = `
     <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background: #5a413f; padding: 30px; text-align: center;">
-        <h1 style="color: white; font-family: 'Playfair Display', serif; margin: 0;">Luxury Jewelry</h1>
+        <h1 style="color: white; font-family: 'Playfair Display', serif; margin: 0;">VK Jewellers</h1>
       </div>
       <div style="padding: 40px 30px;">
         <h2>Welcome, ${user.name}!</h2>
-        <p>Thank you for joining Luxury Jewelry Marketplace.</p>
+        <p>Thank you for joining VK Jewellers Marketplace.</p>
         <p>Please verify your email address by clicking the button below:</p>
         <a href="${verificationUrl}" style="display: inline-block; background: #5a413f; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; margin: 20px 0;">
           Verify Email
@@ -43,14 +43,14 @@ const sendWelcomeEmail = async (user, verificationUrl) => {
       </div>
     </div>
   `;
-  return sendEmail({ to: user.email, subject: 'Welcome to Luxury Jewelry — Verify Your Email', html });
+  return sendEmail({ to: user.email, subject: 'Welcome to VK Jewellers — Verify Your Email', html });
 };
 
 const sendPasswordResetEmail = async (user, resetUrl) => {
   const html = `
     <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background: #5a413f; padding: 30px; text-align: center;">
-        <h1 style="color: white; font-family: 'Playfair Display', serif; margin: 0;">Luxury Jewelry</h1>
+        <h1 style="color: white; font-family: 'Playfair Display', serif; margin: 0;">VK Jewellers</h1>
       </div>
       <div style="padding: 40px 30px;">
         <h2>Reset Your Password</h2>
@@ -62,7 +62,7 @@ const sendPasswordResetEmail = async (user, resetUrl) => {
       </div>
     </div>
   `;
-  return sendEmail({ to: user.email, subject: 'Luxury Jewelry — Password Reset Request', html });
+  return sendEmail({ to: user.email, subject: 'VK Jewellers — Password Reset Request', html });
 };
 
 const sendOrderConfirmationEmail = async (user, order) => {
@@ -81,7 +81,7 @@ const sendOrderConfirmationEmail = async (user, order) => {
   const html = `
     <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background: #5a413f; padding: 30px; text-align: center;">
-        <h1 style="color: white; font-family: 'Playfair Display', serif; margin: 0;">Luxury Jewelry</h1>
+        <h1 style="color: white; font-family: 'Playfair Display', serif; margin: 0;">VK Jewellers</h1>
       </div>
       <div style="padding: 40px 30px;">
         <h2>Order Confirmed!</h2>

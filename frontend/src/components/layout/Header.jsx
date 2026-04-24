@@ -553,7 +553,7 @@ const PRICE_COL = {
 
 // ─── Nav fallback data ────────────────────────────────────────────────────────
 const NAV_FALLBACK = [
-  { label: 'Royalbutterfly Express', url: '/collections/express', type: 'link' },
+  { label: 'VK Express', url: '/collections/express', type: 'link' },
 
   /* ── FAVORITES ──────────────────────────────────────────────────────── */
   {
@@ -942,7 +942,7 @@ export default function Header() {
                   className="logo-script block text-[1.9rem] font-bold text-primary leading-none"
                   style={{ fontStyle: 'italic' }}
                 >
-                  Royalbutterfly
+                  VK Jewellers
                 </span>
                 <span
                   className="block text-[7px] text-primary/50 uppercase mt-[2px]"
@@ -1163,7 +1163,7 @@ export default function Header() {
               }}
             >
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <span className="logo-script text-xl font-bold text-primary">Royalbutterfly</span>
+                <span className="logo-script text-xl font-bold text-primary">VK Jewellers</span>
                 <button onClick={() => setMobileOpen(false)} className="p-1 text-gray-500">
                   <CloseIcon />
                 </button>

@@ -151,7 +151,7 @@ export default function AuthLayout() {
             </div>
 
             <p className="text-center text-[11px] text-gray-400 mt-3">
-              © 2026 Luxury Jewelry. All rights reserved.
+              © 2026 VK Jewellers. All rights reserved.
             </p>
           </div>
         </div>

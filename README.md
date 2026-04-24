@@ -1,4 +1,4 @@
-# ONSK Jewelry — Luxury Multi-Vendor Jewelry Marketplace
+# VK Jewellers — Premium Diamond & Gold Jewelry Marketplace
 
 <!-- credentials are kept in backend/.env which is gitignored -->
 
@@ -18,13 +18,13 @@ A full-stack luxury jewelry e-commerce platform with admin dashboard, vendor das
 
 > To change admin password — login → Account, or change role/status of any user from **Admin → Users & Roles** page.
 
-### Vendor — ONSK Jewelry
+### Vendor — VK Jewellers
 | Field      | Value                         |
 |------------|-------------------------------|
 | URL        | `http://localhost:5173/login` |
 | Email      | `prajwalmulik31@gmail.com`    |
 | Password   | `Prajwal@31`                  |
-| Store Name | ONSK Jewelry                  |
+| Store Name | VK Jewellers                  |
 | Access     | Vendor dashboard              |
 
 ---

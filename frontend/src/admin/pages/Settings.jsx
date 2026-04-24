@@ -98,7 +98,7 @@ const GROUPS = [
     description: 'Store-wide settings — name, currency, contact info.',
     docsUrl: null,
     fields: [
-      { name: 'store_name',    label: 'Store Name',    type: 'text',  placeholder: 'Luxury Jewelry' },
+      { name: 'store_name',    label: 'Store Name',    type: 'text',  placeholder: 'VK Jewellers' },
       { name: 'currency',      label: 'Currency Code', type: 'text',  placeholder: 'INR', hint: 'ISO 4217 — e.g. INR, USD, EUR' },
       { name: 'currency_symbol', label: 'Currency Symbol', type: 'text', placeholder: '₹' },
       { name: 'support_email', label: 'Support Email', type: 'email', placeholder: 'support@yourstore.com' },

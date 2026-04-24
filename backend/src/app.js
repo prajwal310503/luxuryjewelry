@@ -141,7 +141,7 @@ app.use('/uploads', (req, res, next) => {
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'Luxury Jewelry API is running', timestamp: new Date().toISOString() });
+  res.json({ success: true, message: 'VK Jewellers API is running', timestamp: new Date().toISOString() });
 });
 
 // Routes

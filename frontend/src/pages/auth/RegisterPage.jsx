@@ -63,7 +63,7 @@ export default function RegisterPage() {
         </div>
         <div>
           <h2 className="font-heading text-[1.35rem] font-bold text-gray-900 leading-tight">Create Account</h2>
-          <p className="text-xs text-gray-400">Join the Luxury Jewelry community.</p>
+          <p className="text-xs text-gray-400">Join the VK Jewellers community.</p>
         </div>
       </div>
 

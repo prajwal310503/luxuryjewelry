@@ -23,7 +23,7 @@ export default function OrdersPage() {
 
   return (
     <>
-      <Helmet><title>My Orders | Luxury Jewelry</title></Helmet>
+      <Helmet><title>My Orders | VK Jewellers</title></Helmet>
       <div className="container-luxury py-10">
         <h1 className="font-heading text-3xl font-bold mb-8">My Orders</h1>
         {loading ? (

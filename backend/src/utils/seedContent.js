@@ -22,7 +22,7 @@ const BLOG_POSTS = [
     imageTitle: 'Choosing the Perfect Ring',
     isPublished: true,
     isFeatured:  true,
-    author:     'Luxury Jewelry Editorial',
+    author:     'VK Jewellers Editorial',
     publishedAt: new Date('2026-01-10'),
   },
   {
@@ -35,7 +35,7 @@ const BLOG_POSTS = [
     imageTitle: 'Diamond Quality: The 4 Cs',
     isPublished: true,
     isFeatured:  false,
-    author:     'Luxury Jewelry Editorial',
+    author:     'VK Jewellers Editorial',
     publishedAt: new Date('2026-01-18'),
   },
   {
@@ -48,7 +48,7 @@ const BLOG_POSTS = [
     imageTitle: '18KT vs 22KT Gold Guide',
     isPublished: true,
     isFeatured:  false,
-    author:     'Luxury Jewelry Editorial',
+    author:     'VK Jewellers Editorial',
     publishedAt: new Date('2026-01-25'),
   },
   {
@@ -61,7 +61,7 @@ const BLOG_POSTS = [
     imageTitle: 'Bridal Jewelry Trends 2026',
     isPublished: true,
     isFeatured:  true,
-    author:     'Luxury Jewelry Editorial',
+    author:     'VK Jewellers Editorial',
     publishedAt: new Date('2026-02-01'),
   },
   {
@@ -74,7 +74,7 @@ const BLOG_POSTS = [
     imageTitle: 'Diamond Jewelry Care at Home',
     isPublished: true,
     isFeatured:  false,
-    author:     'Luxury Jewelry Editorial',
+    author:     'VK Jewellers Editorial',
     publishedAt: new Date('2026-02-10'),
   },
   {
@@ -87,7 +87,7 @@ const BLOG_POSTS = [
     imageTitle: 'Layering Gold Necklaces',
     isPublished: true,
     isFeatured:  false,
-    author:     'Luxury Jewelry Editorial',
+    author:     'VK Jewellers Editorial',
     publishedAt: new Date('2026-02-20'),
   },
   {
@@ -100,7 +100,7 @@ const BLOG_POSTS = [
     imageTitle: 'Pearl Jewelry Buying Guide',
     isPublished: true,
     isFeatured:  false,
-    author:     'Luxury Jewelry Editorial',
+    author:     'VK Jewellers Editorial',
     publishedAt: new Date('2026-03-01'),
   },
   {
@@ -113,7 +113,7 @@ const BLOG_POSTS = [
     imageTitle: 'Modern Mangalsutra Designs',
     isPublished: true,
     isFeatured:  false,
-    author:     'Luxury Jewelry Editorial',
+    author:     'VK Jewellers Editorial',
     publishedAt: new Date('2026-03-10'),
   },
 ];

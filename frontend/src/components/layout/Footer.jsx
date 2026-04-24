@@ -32,16 +32,16 @@ const SOCIAL_ICONS = {
 };
 
 const DEFAULT_BRAND = {
-  brandName: 'Luxury Jewelry',
+  brandName: 'VK Jewellers',
   tagline: 'Luxury. Joy. Comfort.',
   about: 'Premium lab-grown diamond and gold jewelry for every occasion.',
   email: 'care@luxuryjewelry.com',
   phone: '+91 9004436052',
-  copyright: '© 2026 Luxury Jewelry. All Rights Reserved.',
+  copyright: '© 2026 VK Jewellers. All Rights Reserved.',
 };
 const DEFAULT_SOCIAL  = { instagram: '#', facebook: '#', youtube: '#', pinterest: '#', linkedin: '#' };
 const DEFAULT_COLUMNS = [
-  { heading: 'About Royalbutterfly',  links: [{ label: 'About Our Company', to: '/about' }, { label: 'Terms & Conditions', to: '/terms' }, { label: 'Privacy Policy', to: '/privacy' }, { label: 'Shipping Policy', to: '/shipping' }] },
+  { heading: 'About VK Jewellers',  links: [{ label: 'About Our Company', to: '/about' }, { label: 'Terms & Conditions', to: '/terms' }, { label: 'Privacy Policy', to: '/privacy' }, { label: 'Shipping Policy', to: '/shipping' }] },
   { heading: 'Jewelry Guide', links: [{ label: 'Diamond Education', to: '/guides/diamonds' }, { label: 'Metal Education', to: '/guides/metals' }, { label: 'Size Guide', to: '/guides/size' }, { label: 'Jewelry Care Tips', to: '/guides/care' }] },
   { heading: 'Why Choose Us', links: [{ label: '15 Days Return', to: '/policies/return' }, { label: 'Lifetime Exchange', to: '/policies/exchange' }, { label: 'Old Gold Exchange', to: '/old-gold' }, { label: "FAQ's", to: '/faq' }] },
   { heading: 'Sell With Us',  links: [{ label: 'Become a Vendor', to: '/register?role=vendor' }, { label: 'Vendor Guidelines', to: '/vendor-guidelines' }, { label: 'Commission Structure', to: '/commissions' }] },
