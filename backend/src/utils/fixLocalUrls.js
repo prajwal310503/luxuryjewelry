@@ -80,8 +80,8 @@ async function run() {
   const client = new MongoClient(MONGO_URI);
   await client.connect();
 
-  // Extract DB name from URI, default to 'luxuryjewelry'
-  const dbName = MONGO_URI.split('/').pop().split('?')[0] || 'luxuryjewelry';
+  // Extract DB name from URI, default to 'vkjewellers'
+  const dbName = MONGO_URI.split('/').pop().split('?')[0] || 'vkjewellers';
   const db = client.db(dbName);
 
   console.log(`\n🔧 Connected to: ${dbName}`);

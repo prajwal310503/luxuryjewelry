@@ -235,7 +235,7 @@ const DEFAULTS = {
       },
     ],
   },
-  footer_brand:   { brandName: 'VK Jewellers', tagline: 'Luxury. Joy. Comfort.', about: 'Premium lab-grown diamond and gold jewelry for every occasion.', email: 'care@luxuryjewelry.com', phone: '+91 9004436052', copyright: '© 2026 VK Jewellers. All Rights Reserved.' },
+  footer_brand:   { brandName: 'VK Jewellers', tagline: 'Luxury. Joy. Comfort.', about: 'Premium lab-grown diamond and gold jewelry for every occasion.', email: 'care@vkjewellers.com', phone: '+91 9004436052', copyright: '© 2026 VK Jewellers. All Rights Reserved.' },
   footer_social:  { instagram: '#', facebook: '#', youtube: '#', pinterest: '#', linkedin: '#' },
   footer_links: {
     columns: [

@@ -306,7 +306,7 @@ async function seedProducts() {
       vendor = await Vendor.create({
         user: vendorUser._id,
         storeName: 'VK Jewellers',
-        storeSlug: 'onsk-jewelry',
+        storeSlug: 'vk-jewellers',
         storeDescription: 'Premium gold and diamond jewelry crafted with love.',
         businessEmail: vendorUser.email,
         status: 'approved',

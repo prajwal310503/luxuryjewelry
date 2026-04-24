@@ -266,7 +266,7 @@ async function seedDatabase() {
     if (!admin) {
       admin = await User.create({
         name: 'Platform Admin',
-        email: process.env.ADMIN_EMAIL || 'admin@luxuryjewelry.com',
+        email: process.env.ADMIN_EMAIL || 'admin@vkjewellers.com',
         password: process.env.ADMIN_PASSWORD || 'Admin@123456',
         role: 'admin',
         isEmailVerified: true,

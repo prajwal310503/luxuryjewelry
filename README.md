@@ -2,7 +2,7 @@
 
 <!-- credentials are kept in backend/.env which is gitignored -->
 
-A full-stack luxury jewelry e-commerce platform with admin dashboard, vendor dashboard, and storefront.
+A full-stack premium jewelry e-commerce platform with admin dashboard, vendor dashboard, and storefront.
 
 ---
 
@@ -12,7 +12,7 @@ A full-stack luxury jewelry e-commerce platform with admin dashboard, vendor das
 | Field    | Value                         |
 |----------|-------------------------------|
 | URL      | `http://localhost:5173/login` |
-| Email    | `admin@luxuryjewelry.com`     |
+| Email    | `admin@vkjewellers.com`     |
 | Password | `admin@123`                   |
 | Access   | Full admin panel              |
 
@@ -101,15 +101,15 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_EMAIL=your_email@gmail.com
 SMTP_PASSWORD=your_app_password
-FROM_EMAIL=noreply@luxuryjewelry.com
-FROM_NAME=Luxury Jewelry
+FROM_EMAIL=noreply@vkjewellers.com
+FROM_NAME=VK Jewellers
 
 RAZORPAY_KEY_ID=your_razorpay_key_id
 RAZORPAY_KEY_SECRET=your_razorpay_key_secret
 
 FRONTEND_URL=http://localhost:5173
 
-ADMIN_EMAIL=admin@luxuryjewelry.com
+ADMIN_EMAIL=admin@vkjewellers.com
 ADMIN_PASSWORD=your_admin_password
 ```
 

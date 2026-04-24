@@ -35,7 +35,7 @@ const DEFAULT_BRAND = {
   brandName: 'VK Jewellers',
   tagline: 'Luxury. Joy. Comfort.',
   about: 'Premium lab-grown diamond and gold jewelry for every occasion.',
-  email: 'care@luxuryjewelry.com',
+  email: 'care@vkjewellers.com',
   phone: '+91 9004436052',
   copyright: '© 2026 VK Jewellers. All Rights Reserved.',
 };
