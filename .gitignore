@@ -4,10 +4,13 @@ node_modules/
 .pnp.js
 
 # Environment variables (NEVER commit these)
-.env
-.env.local
-.env.production
-.env.*.local
+backend/.env
+backend/.env.local
+backend/.env.production
+backend/.env.*.local
+# Frontend .env only has public API URL — committed intentionally
+frontend/.env.local
+frontend/.env.*.local
 
 # Build outputs
 dist/
