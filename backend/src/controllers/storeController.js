@@ -91,32 +91,3 @@ exports.adminToggleStore = async (req, res) => {
   }
 };
 
-// ── Vendor ───────────────────────────────────────────────────────────────────
-exports.vendorGetStore = async (req, res) => {
-  try {
-    const store = await Store.findOne({ vendor: req.user.id });
-    res.json({ success: true, data: store || null });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-exports.vendorUpsertStore = async (req, res) => {
-  try {
-    const body = { ...req.body, vendor: req.user.id };
-    if (req.file) body.image = getFileUrl(req.file);
-    if (!body.slug && body.name) body.slug = slugify(body.name);
-    if (body.facilities) body.facilities = parseArray(body.facilities);
-    if (body.services)   body.services   = parseArray(body.services);
-
-    let store = await Store.findOne({ vendor: req.user.id });
-    if (store) {
-      store = await Store.findByIdAndUpdate(store._id, body, { new: true });
-    } else {
-      store = await Store.create(body);
-    }
-    res.json({ success: true, data: store });
-  } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
-  }
-};

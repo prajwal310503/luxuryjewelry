@@ -242,7 +242,7 @@ const DEFAULTS = {
       { heading: 'About VK Jewellers', links: [{ label: 'About Our Company', to: '/about' }, { label: 'Terms & Conditions', to: '/terms' }, { label: 'Privacy Policy', to: '/privacy' }, { label: 'Shipping Policy', to: '/shipping' }] },
       { heading: 'Jewelry Guide', links: [{ label: 'Diamond Education', to: '/guides/diamonds' }, { label: 'Metal Education', to: '/guides/metals' }, { label: 'Size Guide', to: '/guides/size' }, { label: 'Jewelry Care Tips', to: '/guides/care' }] },
       { heading: 'Why Choose Us', links: [{ label: '15 Days Return', to: '/policies/return' }, { label: 'Lifetime Exchange', to: '/policies/exchange' }, { label: 'Old Gold Exchange', to: '/old-gold' }, { label: "FAQ's", to: '/faq' }] },
-      { heading: 'Sell With Us', links: [{ label: 'Become a Vendor', to: '/register?role=vendor' }, { label: 'Vendor Guidelines', to: '/vendor-guidelines' }, { label: 'Commission Structure', to: '/commissions' }] },
+      { heading: 'For Retailers', links: [{ label: 'Retailer Registration', to: '/register' }, { label: 'Request a Quote', to: '/account' }, { label: 'Bulk Orders', to: '/contact' }] },
     ],
   },
   footer_payment: { methods: ['Visa', 'Mastercard', 'UPI', 'Razorpay', 'GPay', 'Paytm'] },

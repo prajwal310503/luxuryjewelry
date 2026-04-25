@@ -34,7 +34,6 @@ const DimensionsSchema = new mongoose.Schema({
 
 const ProductSchema = new mongoose.Schema(
   {
-    vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor', required: true },
     title: { type: String, required: true, trim: true, maxlength: 300 },
     slug: { type: String, unique: true, lowercase: true },
     sku: { type: String, unique: true, sparse: true },
@@ -154,7 +153,7 @@ const ProductSchema = new mongoose.Schema(
 
 ProductSchema.index({ title: 'text', shortDescription: 'text', description: 'text' });
 ProductSchema.index({ category: 1, status: 1, isActive: 1 });
-ProductSchema.index({ vendor: 1, status: 1 });
+ProductSchema.index({ status: 1, isActive: 1 });
 ProductSchema.index({ price: 1 });
 ProductSchema.index({ rating: -1 });
 ProductSchema.index({ createdAt: -1 });

@@ -17,11 +17,11 @@ const attributeRoutes = require('./routes/attributes');
 const orderRoutes = require('./routes/orders');
 const cmsRoutes = require('./routes/cms');
 const adminRoutes = require('./routes/admin');
-const reviewRoutes = require('./routes/reviews');
-const vendorRoutes = require('./routes/vendor');
-const storeRoutes = require('./routes/stores');
+const reviewRoutes   = require('./routes/reviews');
+const storeRoutes    = require('./routes/stores');
 const blogRoutes     = require('./routes/blog');
 const settingsRoutes = require('./routes/settings');
+const quoteRoutes    = require('./routes/quotes');
 
 const app = express();
 
@@ -153,10 +153,10 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/cms', cmsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/reviews', reviewRoutes);
-app.use('/api/vendor', vendorRoutes);
 app.use('/api/stores', storeRoutes);
 app.use('/api/blog',     blogRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/quotes',   quoteRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

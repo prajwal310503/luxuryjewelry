@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { cmsAPI } from '../../services/api';
+import vkLogo from '../../assets/vklogo.png';
 
 // ─── Social Icons ──────────────────────────────────────────────────────────────
 const SOCIAL_ICONS = {
@@ -32,19 +33,22 @@ const SOCIAL_ICONS = {
 };
 
 const DEFAULT_BRAND = {
-  brandName: 'VK Jewellers',
-  tagline: 'Luxury. Joy. Comfort.',
-  about: 'Premium lab-grown diamond and gold jewelry for every occasion.',
-  email: 'care@vkjewellers.com',
-  phone: '+91 9004436052',
-  copyright: '© 2026 VK Jewellers. All Rights Reserved.',
+  brandName:   'VK Jewellers',
+  legalName:   'SHRI VENKATESHWARA ENTERPRISES',
+  tagline:     'Luxury. Joy. Comfort.',
+  about:       'Premium lab-grown diamond and gold jewelry for every occasion.',
+  email:       'care@vkjewellers.com',
+  phone:       '+91 9004436052',
+  gst:         '27AFCPR0683K1Z4',
+  address:     'Gala No-D 24, R S No 657, Y P Powar Nagar,\nKolhapur Udyam Co Op Society,\nKolhapur – 416008, Maharashtra',
+  copyright:   '© 2026 VK Jewellers. All Rights Reserved.',
 };
 const DEFAULT_SOCIAL  = { instagram: '#', facebook: '#', youtube: '#', pinterest: '#', linkedin: '#' };
 const DEFAULT_COLUMNS = [
   { heading: 'About VK Jewellers',  links: [{ label: 'About Our Company', to: '/about' }, { label: 'Terms & Conditions', to: '/terms' }, { label: 'Privacy Policy', to: '/privacy' }, { label: 'Shipping Policy', to: '/shipping' }] },
   { heading: 'Jewelry Guide', links: [{ label: 'Diamond Education', to: '/guides/diamonds' }, { label: 'Metal Education', to: '/guides/metals' }, { label: 'Size Guide', to: '/guides/size' }, { label: 'Jewelry Care Tips', to: '/guides/care' }] },
   { heading: 'Why Choose Us', links: [{ label: '15 Days Return', to: '/policies/return' }, { label: 'Lifetime Exchange', to: '/policies/exchange' }, { label: 'Old Gold Exchange', to: '/old-gold' }, { label: "FAQ's", to: '/faq' }] },
-  { heading: 'Sell With Us',  links: [{ label: 'Become a Vendor', to: '/register?role=vendor' }, { label: 'Vendor Guidelines', to: '/vendor-guidelines' }, { label: 'Commission Structure', to: '/commissions' }] },
+  { heading: 'For Retailers', links: [{ label: 'Retailer Registration', to: '/register' }, { label: 'Request a Quote', to: '/account' }, { label: 'Bulk Orders', to: '/contact' }] },
 ];
 const DEFAULT_PAYMENT = ['Visa', 'Mastercard', 'UPI', 'Razorpay', 'GPay', 'Paytm'];
 
@@ -75,23 +79,57 @@ export default function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-10">
 
           {/* Brand Column */}
-          <div className="col-span-2 md:col-span-1">
-            <Link to="/" className="block mb-4">
-              <div className="font-heading text-2xl font-bold text-white tracking-tight">
-                <span className="block text-xs font-body font-medium text-gray-400 tracking-[0.3em] uppercase leading-tight">
-                  {brand.tagline?.split('.')[0] || 'Luxury'}
-                </span>
-                <span>{brand.brandName?.split(' ')[0] || 'Jewelry'}</span>
-              </div>
+          <div className="col-span-2 md:col-span-1 space-y-5">
+            <Link to="/" className="block">
+              <img src={vkLogo} alt="VK Jewellers" className="h-20 w-auto object-contain" />
             </Link>
-            <p className="text-sm leading-relaxed mb-3 text-gray-500">{brand.tagline}</p>
-            <p className="text-sm leading-relaxed mb-6 text-gray-500">{brand.about}</p>
-            {brand.email && <p className="text-sm text-gray-500">{brand.email}</p>}
-            {brand.phone && <p className="text-sm text-gray-500">{brand.phone}</p>}
+
+            <div>
+              <p className="text-white text-xs font-semibold uppercase tracking-widest mb-0.5">{brand.legalName}</p>
+              <p className="text-sm text-gray-500">{brand.tagline}</p>
+              <p className="text-xs text-gray-600 mt-1 leading-relaxed">{brand.about}</p>
+            </div>
+
+            {/* Address */}
+            {brand.address && (
+              <div>
+                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Registered Address</p>
+                <p className="text-xs text-gray-500 leading-relaxed whitespace-pre-line">{brand.address}</p>
+              </div>
+            )}
+
+            {/* Contact */}
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Contact</p>
+              {brand.email && (
+                <a href={`mailto:${brand.email}`} className="flex items-center gap-2 text-xs text-gray-500 hover:text-gold transition-colors">
+                  <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  {brand.email}
+                </a>
+              )}
+              {brand.phone && (
+                <a href={`tel:${brand.phone}`} className="flex items-center gap-2 text-xs text-gray-500 hover:text-gold transition-colors">
+                  <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  {brand.phone}
+                </a>
+              )}
+            </div>
+
+            {/* GST */}
+            {brand.gst && (
+              <div className="inline-flex items-center gap-2 px-2.5 py-1.5 bg-gray-800 rounded-lg border border-gray-700">
+                <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">GST</span>
+                <span className="text-xs font-mono text-gray-300 tracking-wider">{brand.gst}</span>
+              </div>
+            )}
 
             {/* Social links */}
             {activeSocials.length > 0 && (
-              <div className="flex gap-3 mt-4">
+              <div className="flex gap-3">
                 {activeSocials.map(([key, url]) => (
                   <a
                     key={key}
@@ -127,15 +165,24 @@ export default function Footer() {
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-gray-800 py-6">
-        <div className="container-luxury flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-gray-600">{brand.copyright}</p>
-          <div className="flex items-center gap-2 flex-wrap justify-center">
-            {payment.map((method) => (
-              <span key={method} className="px-2 py-1 bg-gray-800 rounded text-xs text-gray-400 font-medium">
-                {method}
-              </span>
-            ))}
+      <div className="border-t border-gray-800 py-5">
+        <div className="container-luxury space-y-3">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+            <div className="text-center md:text-left">
+              <p className="text-xs text-gray-600">{brand.copyright}</p>
+              {brand.legalName && (
+                <p className="text-[11px] text-gray-700 mt-0.5">
+                  {brand.legalName}{brand.gst && <span className="ml-2">· GSTIN: <span className="font-mono tracking-wider">{brand.gst}</span></span>}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 flex-wrap justify-center">
+              {payment.map((method) => (
+                <span key={method} className="px-2 py-1 bg-gray-800 rounded text-xs text-gray-400 font-medium">
+                  {method}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </div>

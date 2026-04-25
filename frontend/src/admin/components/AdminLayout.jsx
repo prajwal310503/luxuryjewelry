@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../../store/authStore';
+import vkLogo from '../../assets/vklogo.png';
 
 const I = ({ d, d2 }) => (
   <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
@@ -10,21 +11,20 @@ const I = ({ d, d2 }) => (
   </svg>
 );
 
-const NAV = [
-  { to: '/admin/dashboard',         label: 'Dashboard',       icon: <I d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /> },
-  { to: '/admin/products',           label: 'Products',        icon: <I d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 10V11" /> },
-  { to: '/admin/products/images',    label: 'Product Images',  icon: <I d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /> },
-  { to: '/admin/categories/images',  label: 'Category Images', icon: <I d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /> },
-  { to: '/admin/site-images',        label: 'Site Images',     icon: <I d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" d2="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /> },
-  { to: '/admin/categories',         label: 'Categories',      icon: <I d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a2 2 0 014-4z" /> },
-  { to: '/admin/orders',             label: 'Orders',          icon: <I d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /> },
-  { to: '/admin/customers',          label: 'Customers',       icon: <I d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /> },
-  { to: '/admin/users',              label: 'Users & Roles',   icon: <I d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /> },
-  { to: '/admin/vendors',            label: 'Vendors',         icon: <I d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" d2="M9 22V12h6v10" /> },
-  { to: '/admin/cms',                label: 'Home Page',       icon: <I d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /> },
-  { to: '/admin/blog',               label: 'Blog Posts',      icon: <I d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 12h6" /> },
-  { to: '/admin/attributes',         label: 'Attributes',      icon: <I d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a2 2 0 014-4z" /> },
-  { to: '/admin/settings',           label: 'Settings',        icon: <I d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" d2="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /> },
+// Nav items — roles/permission fields control visibility per user
+const ALL_NAV = [
+  { to: '/admin/dashboard',         label: 'Dashboard',      roles: ['admin'],                               icon: <I d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /> },
+  { to: '/admin/products',          label: 'Products',       roles: ['admin'],                               icon: <I d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 10V11" /> },
+  { to: '/admin/site-images',       label: 'Site Images',    roles: ['admin'],                               icon: <I d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" d2="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /> },
+  { to: '/admin/categories',        label: 'Categories',     roles: ['admin'],                               icon: <I d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a2 2 0 014-4z" /> },
+  { to: '/admin/orders',            label: 'Orders',         roles: ['admin', 'child_admin'], permission: 'orders', icon: <I d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /> },
+  { to: '/admin/quotes',            label: 'Quotes',         roles: ['admin', 'child_admin'], permission: 'quotes', icon: <I d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /> },
+  { to: '/admin/customers',         label: 'Retailers',      roles: ['admin'],                               icon: <I d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /> },
+  { to: '/admin/users',             label: 'Users & Roles',  roles: ['admin'],                               icon: <I d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /> },
+  { to: '/admin/cms',               label: 'Home Page',      roles: ['admin'],                               icon: <I d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /> },
+  { to: '/admin/blog',              label: 'Blog Posts',     roles: ['admin'],                               icon: <I d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 12h6" /> },
+  { to: '/admin/attributes',        label: 'Attributes',     roles: ['admin'],                               icon: <I d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a2 2 0 014-4z" /> },
+  { to: '/admin/settings',          label: 'Settings',       roles: ['admin'],                               icon: <I d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" d2="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /> },
 ];
 
 const LogoutIcon = () => (
@@ -54,19 +54,9 @@ function SidebarContent({ collapsed, onClose, user, onLogout }) {
         className="h-16 flex items-center px-4 gap-3 flex-shrink-0"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.5)' }}
       >
-        <div
-          className="w-9 h-9 flex items-center justify-center flex-shrink-0"
-          style={{
-            background: 'linear-gradient(135deg,#5a413f,#7a5a57)',
-            borderRadius: '12px',
-            boxShadow: '0 4px 12px rgba(90,65,63,0.30), inset 0 1px 0 rgba(255,255,255,0.20)',
-          }}
-        >
-          <span className="text-white font-bold text-sm">L</span>
-        </div>
+        <img src={vkLogo} alt="VK Jewellers" className="h-16 w-auto object-contain flex-shrink-0" />
         {!collapsed && (
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] text-gray-400 font-semibold tracking-widest uppercase">Luxury</p>
             <p className="text-sm font-bold text-gray-800 leading-tight">Admin Panel</p>
           </div>
         )}
@@ -81,9 +71,15 @@ function SidebarContent({ collapsed, onClose, user, onLogout }) {
         )}
       </div>
 
-      {/* Nav */}
+      {/* Nav — filtered by role/permissions */}
       <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5">
-        {NAV.map(({ to, icon, label }) => (
+        {ALL_NAV.filter(({ roles, permission }) => {
+          if (!roles.includes(user?.role)) return false;
+          if (permission && user?.role === 'child_admin') {
+            return (user?.permissions || []).includes(permission);
+          }
+          return true;
+        }).map(({ to, icon, label }) => (
           <NavLink
             key={to}
             to={to}

@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, requirePermission } = require('../middleware/auth');
 const {
   getDashboard,
   getUsers,
+  createUser,
   toggleUserStatus,
   changeUserRole,
-  getVendors,
-  updateVendorStatus,
+  updateUserPermissions,
   getReviews,
   updateReviewStatus,
 } = require('../controllers/adminController');
@@ -33,36 +33,44 @@ const {
 const { uploadProduct, uploadSiteImage } = require('../config/cloudinary');
 
 const adminAuth = [protect, authorize('admin')];
+// Routes accessible by both admin and child_admin (permission checked per-route)
+const staffAuth = [protect, authorize('admin', 'child_admin')];
 
+// Dashboard — admin only
 router.get('/dashboard', ...adminAuth, getDashboard);
 
-router.get('/users', ...adminAuth, getUsers);
-router.put('/users/:id/role', ...adminAuth, changeUserRole);
-router.put('/users/:id/toggle', ...adminAuth, toggleUserStatus);
+// User management — admin only
+router.get('/users',                    ...adminAuth, getUsers);
+router.post('/users',                   ...adminAuth, createUser);
+router.put('/users/:id/role',           ...adminAuth, changeUserRole);
+router.put('/users/:id/permissions',    ...adminAuth, updateUserPermissions);
+router.put('/users/:id/toggle',         ...adminAuth, toggleUserStatus);
 
-router.get('/vendors', ...adminAuth, getVendors);
-router.put('/vendors/:id/status', ...adminAuth, updateVendorStatus);
+// Products — admin only
+router.get('/products',                             ...adminAuth, adminGetProducts);
+router.get('/products/:id',                         ...adminAuth, adminGetProductById);
+router.post('/products',                            ...adminAuth, adminCreateProduct);
+router.put('/products/:id',                         ...adminAuth, adminUpdateProduct);
+router.delete('/products/:id',                      ...adminAuth, adminDeleteProduct);
+router.put('/products/:id/status',                  ...adminAuth, adminUpdateProductStatus);
+router.put('/products/:id/featured',                ...adminAuth, adminToggleFeatured);
+router.put('/products/:id/bestseller',              ...adminAuth, adminToggleBestSeller);
+router.put('/products/:id/newarrival',              ...adminAuth, adminToggleNewArrival);
+router.put('/products/:id/lifestyle1',              ...adminAuth, adminToggleLifestyle1);
+router.put('/products/:id/lifestyle2',              ...adminAuth, adminToggleLifestyle2);
+router.post('/products/:id/images',                 ...adminAuth, uploadProduct.array('images', 10), adminUploadProductImages);
+router.delete('/products/:id/images/:imageIndex',   ...adminAuth, adminRemoveProductImage);
 
-router.get('/products', ...adminAuth, adminGetProducts);
-router.get('/products/:id', ...adminAuth, adminGetProductById);
-router.post('/products', ...adminAuth, adminCreateProduct);
-router.put('/products/:id', ...adminAuth, adminUpdateProduct);
-router.delete('/products/:id', ...adminAuth, adminDeleteProduct);
-router.put('/products/:id/status', ...adminAuth, adminUpdateProductStatus);
-router.put('/products/:id/featured', ...adminAuth, adminToggleFeatured);
-router.put('/products/:id/bestseller',  ...adminAuth, adminToggleBestSeller);
-router.put('/products/:id/newarrival',  ...adminAuth, adminToggleNewArrival);
-router.put('/products/:id/lifestyle1',  ...adminAuth, adminToggleLifestyle1);
-router.put('/products/:id/lifestyle2',  ...adminAuth, adminToggleLifestyle2);
-router.post('/products/:id/images', ...adminAuth, uploadProduct.array('images', 10), adminUploadProductImages);
-router.delete('/products/:id/images/:imageIndex', ...adminAuth, adminRemoveProductImage);
+// Uploads — admin only
+router.post('/upload/package-images',   ...adminAuth, uploadProduct.array('images', 10), adminUploadPackageImages);
+router.post('/upload/promo-banner',     ...adminAuth, uploadProduct.single('image'), adminUploadPromoBanner);
+router.post('/upload/cert-image',       ...adminAuth, uploadProduct.single('image'), adminUploadCertImage);
+router.post('/upload/site-image',       ...adminAuth, uploadSiteImage.single('image'), adminUploadSiteImage);
 
-router.post('/upload/package-images', ...adminAuth, uploadProduct.array('images', 10), adminUploadPackageImages);
-router.post('/upload/promo-banner', ...adminAuth, uploadProduct.single('image'), adminUploadPromoBanner);
-router.post('/upload/cert-image', ...adminAuth, uploadProduct.single('image'), adminUploadCertImage);
-router.post('/upload/site-image', ...adminAuth, uploadSiteImage.single('image'), adminUploadSiteImage);
+// Orders — admin + child_admin with 'orders' permission (order routes live in /orders)
 
-router.get('/reviews', ...adminAuth, getReviews);
+// Reviews — admin only
+router.get('/reviews',          ...adminAuth, getReviews);
 router.put('/reviews/:id/status', ...adminAuth, updateReviewStatus);
 
 module.exports = router;

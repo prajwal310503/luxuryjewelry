@@ -1,5 +1,6 @@
 import { Outlet, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import vkLogo from '../../assets/vklogo.png';
 
 const STARS = Array.from({ length: 5 });
 
@@ -32,14 +33,8 @@ export default function AuthLayout() {
         <div className="relative z-10 flex flex-col h-full px-11 pt-10 pb-8 xl:px-14 xl:pt-12 xl:pb-10">
 
           {/* Logo — fixed at top */}
-          <Link to="/" className="inline-flex items-center gap-3 flex-shrink-0 group mb-auto">
-            <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center group-hover:bg-white/15 transition-colors">
-              <span className="font-heading font-bold text-gold text-base">L</span>
-            </div>
-            <div>
-              <p className="text-[9px] text-white/45 uppercase tracking-[0.4em] leading-none mb-1">Luxury</p>
-              <p className="font-heading text-[17px] font-bold leading-none">Jewelry</p>
-            </div>
+          <Link to="/" className="inline-flex items-center flex-shrink-0 group mb-auto">
+            <img src={vkLogo} alt="VK Jewellers" className="h-20 w-auto object-contain" />
           </Link>
 
           {/* Main content — centered in remaining space */}

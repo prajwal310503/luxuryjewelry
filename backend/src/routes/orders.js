@@ -1,25 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, requirePermission } = require('../middleware/auth');
 const {
   createOrder,
   getMyOrders,
   getOrder,
   adminGetOrders,
   adminUpdateOrderStatus,
-  vendorGetOrders,
 } = require('../controllers/orderController');
 
-// Customer (allow any authenticated user to place orders)
+// Retailer / any authenticated user
 router.post('/', protect, createOrder);
 router.get('/my', protect, getMyOrders);
 router.get('/:id', protect, getOrder);
 
-// Admin
-router.get('/admin/all', protect, authorize('admin'), adminGetOrders);
-router.put('/admin/:id/status', protect, authorize('admin'), adminUpdateOrderStatus);
-
-// Vendor
-router.get('/vendor/all', protect, authorize('vendor'), vendorGetOrders);
+// Admin + child_admin with 'orders' permission
+router.get('/admin/all',        protect, requirePermission('orders'), adminGetOrders);
+router.put('/admin/:id/status', protect, requirePermission('orders'), adminUpdateOrderStatus);
 
 module.exports = router;

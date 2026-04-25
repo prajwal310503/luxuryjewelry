@@ -1,6 +1,5 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
-const Vendor = require('../models/Vendor');
 const Coupon = require('../models/Coupon');
 const { sendSuccess, sendError, sendPaginated } = require('../utils/response');
 const { sendOrderConfirmationEmail } = require('../services/emailService');
@@ -19,7 +18,7 @@ exports.createOrder = async (req, res, next) => {
     const orderItems = [];
 
     for (const item of items) {
-      const product = await Product.findById(item.product).populate('vendor');
+      const product = await Product.findById(item.product);
       if (!product || product.status !== 'approved' || !product.isActive) {
         return sendError(res, 400, `Product ${item.product} is not available`);
       }
@@ -29,11 +28,9 @@ exports.createOrder = async (req, res, next) => {
 
       const price = product.discountedPrice;
       const itemSubtotal = price * item.quantity;
-      const commissionRate = product.vendor?.commissionRate || 10;
 
       orderItems.push({
         product: product._id,
-        vendor: product.vendor._id,
         title: product.title,
         image: product.images[0]?.url || '',
         sku: product.sku,
@@ -42,8 +39,6 @@ exports.createOrder = async (req, res, next) => {
         quantity: item.quantity,
         discount: product.discount,
         subtotal: itemSubtotal,
-        vendorCommission: (itemSubtotal * (100 - commissionRate)) / 100,
-        platformFee: (itemSubtotal * commissionRate) / 100,
       });
 
       subtotal += itemSubtotal;
@@ -136,25 +131,17 @@ exports.getMyOrders = async (req, res, next) => {
 
 // @desc    Get single order
 // @route   GET /api/orders/:id
-// @access  Customer/Admin/Vendor
+// @access  Customer/Admin
 exports.getOrder = async (req, res, next) => {
   try {
     const order = await Order.findById(req.params.id)
       .populate('customer', 'name email phone')
-      .populate('items.product', 'title images slug')
-      .populate('items.vendor', 'storeName storeSlug');
+      .populate('items.product', 'title images slug');
 
     if (!order) return sendError(res, 404, 'Order not found');
 
-    // Check authorization
-    if (req.user.role === 'customer' && order.customer._id.toString() !== req.user.id) {
+    if (req.user.role === 'retailer' && order.customer._id.toString() !== req.user.id) {
       return sendError(res, 403, 'Not authorized');
-    }
-
-    if (req.user.role === 'vendor') {
-      const vendor = await Vendor.findOne({ user: req.user.id });
-      const hasItem = order.items.some((item) => item.vendor.toString() === vendor?._id.toString());
-      if (!hasItem) return sendError(res, 403, 'Not authorized');
     }
 
     sendSuccess(res, 200, 'Order fetched', order);
@@ -182,7 +169,7 @@ exports.adminGetOrders = async (req, res, next) => {
       .sort('-createdAt')
       .skip(skip)
       .limit(limit)
-      .select('orderNumber customer total status payment createdAt items');
+      .select('orderNumber customer total status payment createdAt items source quoteId');
 
     sendPaginated(res, orders, page, limit, total);
   } catch (error) {
@@ -212,30 +199,3 @@ exports.adminUpdateOrderStatus = async (req, res, next) => {
   }
 };
 
-// @desc    Vendor: Get vendor orders
-// @route   GET /api/vendor/orders
-// @access  Vendor
-exports.vendorGetOrders = async (req, res, next) => {
-  try {
-    const vendor = await Vendor.findOne({ user: req.user.id });
-    if (!vendor) return sendError(res, 403, 'Vendor profile not found');
-
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const skip = (page - 1) * limit;
-
-    const filter = { 'items.vendor': vendor._id };
-    if (req.query.status) filter['items.itemStatus'] = req.query.status;
-
-    const total = await Order.countDocuments(filter);
-    const orders = await Order.find(filter)
-      .populate('customer', 'name email phone')
-      .sort('-createdAt')
-      .skip(skip)
-      .limit(limit);
-
-    sendPaginated(res, orders, page, limit, total);
-  } catch (error) {
-    next(error);
-  }
-};

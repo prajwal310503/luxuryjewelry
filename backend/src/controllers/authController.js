@@ -1,6 +1,5 @@
 const crypto = require('crypto');
 const User = require('../models/User');
-const Vendor = require('../models/Vendor');
 const { sendTokenResponse } = require('../utils/generateToken');
 const { sendSuccess, sendError } = require('../utils/response');
 const { sendWelcomeEmail, sendPasswordResetEmail } = require('../services/emailService');
@@ -17,18 +16,7 @@ exports.register = async (req, res, next) => {
       return sendError(res, 400, 'Email already registered');
     }
 
-    // Only allow customer or vendor registration via public API
-    const allowedRoles = ['customer', 'vendor'];
-    const userRole = allowedRoles.includes(role) ? role : 'customer';
-
-    const user = await User.create({ name, email, password, phone, role: userRole });
-
-    // If registering as vendor, create vendor profile
-    if (userRole === 'vendor') {
-      const { storeName } = req.body;
-      if (!storeName) return sendError(res, 400, 'Store name is required for vendor registration');
-      await Vendor.create({ user: user._id, storeName });
-    }
+    const user = await User.create({ name, email, password, phone, role: 'retailer' });
 
     // Send verification email
     try {
@@ -95,12 +83,7 @@ exports.getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id).populate('wishlist', 'title images price');
 
-    let vendorProfile = null;
-    if (user.role === 'vendor') {
-      vendorProfile = await Vendor.findOne({ user: user._id });
-    }
-
-    sendSuccess(res, 200, 'User profile fetched', { user, vendorProfile });
+    sendSuccess(res, 200, 'User profile fetched', { user });
   } catch (error) {
     next(error);
   }

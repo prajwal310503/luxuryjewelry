@@ -95,7 +95,6 @@ export const productAPI = {
   update: (id, data) => api.put(`/products/${id}`, data),
   delete: (id) => api.delete(`/products/${id}`),
   uploadImages: (id, formData) => api.post(`/products/${id}/images`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  getVendorProducts: (params) => api.get('/products/vendor/my', { params }),
   // Admin
   adminGetAll: (params) => api.get('/admin/products', { params }),
   adminGetById: (id) => api.get(`/admin/products/${id}`),
@@ -140,7 +139,6 @@ export const orderAPI = {
   getById: (id) => api.get(`/orders/${id}`),
   adminGetAll: (params) => api.get('/orders/admin/all', { params }),
   adminUpdateStatus: (id, data) => api.put(`/orders/admin/${id}/status`, data),
-  vendorGetAll: (params) => api.get('/orders/vendor/all', { params }),
 };
 
 // ==================== CMS ====================
@@ -183,10 +181,10 @@ export const cmsAPI = {
 export const adminAPI = {
   getDashboard: () => api.get('/admin/dashboard'),
   getUsers: (params) => api.get('/admin/users', { params }),
+  createUser: (data) => api.post('/admin/users', data),
   changeUserRole: (id, role) => api.put(`/admin/users/${id}/role`, { role }),
+  updateUserPermissions: (id, permissions) => api.put(`/admin/users/${id}/permissions`, { permissions }),
   toggleUser: (id) => api.put(`/admin/users/${id}/toggle`),
-  getVendors: (params) => api.get('/admin/vendors', { params }),
-  updateVendorStatus: (id, data) => api.put(`/admin/vendors/${id}/status`, data),
   getReviews: (params) => api.get('/admin/reviews', { params }),
   updateReviewStatus: (id, data) => api.put(`/admin/reviews/${id}/status`, data),
   uploadPackageImages: (formData) => api.post('/admin/upload/package-images', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
@@ -195,17 +193,20 @@ export const adminAPI = {
   uploadCertImage: (formData) => api.post('/admin/upload/cert-image', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
 };
 
-// ==================== VENDOR ====================
-export const vendorAPI = {
-  getDashboard: () => api.get('/vendor/dashboard'),
-};
-
 // ==================== REVIEWS ====================
 export const reviewAPI = {
   getProductReviews: (productId, params) => api.get(`/reviews/product/${productId}`, { params }),
   create: (data) => api.post('/reviews', data),
   update: (id, data) => api.put(`/reviews/${id}`, data),
   delete: (id) => api.delete(`/reviews/${id}`),
+};
+
+// ==================== QUOTES ====================
+export const quoteAPI = {
+  create:       (data)         => api.post('/quotes', data),
+  getMyQuotes:  (params)       => api.get('/quotes/my', { params }),
+  adminGetAll:  (params)       => api.get('/quotes/admin/all', { params }),
+  adminUpdate:  (id, data)     => api.put(`/quotes/admin/${id}`, data),
 };
 
 // ==================== STORES ====================
@@ -222,11 +223,6 @@ export const storeAPI = {
   }),
   adminDelete: (id) => api.delete(`/stores/admin/${id}`),
   adminToggle: (id) => api.put(`/stores/admin/${id}/toggle`),
-  // Vendor
-  vendorGetStore: () => api.get('/stores/vendor/my'),
-  vendorUpsert: (data) => api.post('/stores/vendor/my', data, {
-    headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {},
-  }),
 };
 
 // ==================== BLOG ====================

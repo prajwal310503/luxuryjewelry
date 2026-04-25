@@ -16,6 +16,9 @@ const AddressSchema = new mongoose.Schema({
   isDefault: { type: Boolean, default: false },
 });
 
+// Permissions available for child_admin role
+const PERMISSIONS = ['orders', 'quotes', 'products', 'blog', 'cms', 'categories'];
+
 const UserSchema = new mongoose.Schema(
   {
     name: { type: String, required: [true, 'Name is required'], trim: true, maxlength: 100 },
@@ -28,7 +31,16 @@ const UserSchema = new mongoose.Schema(
     },
     phone: { type: String, match: [/^[0-9]{10}$/, 'Invalid phone number'] },
     password: { type: String, required: [true, 'Password is required'], minlength: 6, select: false },
-    role: { type: String, enum: ['customer', 'vendor', 'admin'], default: 'customer' },
+    role: {
+      type: String,
+      enum: ['admin', 'child_admin', 'retailer'],
+      default: 'retailer',
+    },
+    // Granular access granted by admin to child_admin users
+    permissions: {
+      type: [{ type: String, enum: PERMISSIONS }],
+      default: [],
+    },
     avatar: { type: String, default: '' },
     avatarPublicId: { type: String, default: '' },
     addresses: [AddressSchema],
@@ -73,3 +85,4 @@ UserSchema.methods.getEmailVerificationToken = function () {
 };
 
 module.exports = mongoose.model('User', UserSchema);
+module.exports.PERMISSIONS = PERMISSIONS;

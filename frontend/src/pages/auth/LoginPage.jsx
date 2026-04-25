@@ -30,8 +30,11 @@ export default function LoginPage() {
         navigate(from);
       } else if (user.role === 'admin') {
         navigate('/admin/dashboard');
-      } else if (user.role === 'vendor') {
-        navigate('/vendor/dashboard');
+      } else if (user.role === 'child_admin') {
+        const perms = user.permissions || [];
+        if (perms.includes('orders')) navigate('/admin/orders');
+        else if (perms.includes('quotes')) navigate('/admin/quotes');
+        else navigate('/');
       } else {
         navigate('/');
       }

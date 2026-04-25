@@ -8,7 +8,6 @@ const useAuthStore = create(
     (set, get) => ({
       user: null,
       token: null,
-      vendorProfile: null,
       loading: false,
 
       login: async (credentials) => {
@@ -46,14 +45,14 @@ const useAuthStore = create(
           await authAPI.logout();
         } catch (_) {}
         localStorage.removeItem('token');
-        set({ user: null, token: null, vendorProfile: null });
+        set({ user: null, token: null });
         toast.success('Logged out successfully');
       },
 
       fetchMe: async () => {
         try {
           const { data } = await authAPI.getMe();
-          set({ user: data.data.user, vendorProfile: data.data.vendorProfile });
+          set({ user: data.data.user || data.data });
         } catch (_) {
           get().logout();
         }
@@ -61,8 +60,14 @@ const useAuthStore = create(
 
       isAuthenticated: () => !!get().token,
       isAdmin: () => get().user?.role === 'admin',
-      isVendor: () => get().user?.role === 'vendor',
-      isCustomer: () => get().user?.role === 'customer',
+      isChildAdmin: () => get().user?.role === 'child_admin',
+      isRetailer: () => get().user?.role === 'retailer',
+      hasPermission: (perm) => {
+        const u = get().user;
+        if (!u) return false;
+        if (u.role === 'admin') return true;
+        return (u.permissions || []).includes(perm);
+      },
     }),
     {
       name: 'luxury-auth',

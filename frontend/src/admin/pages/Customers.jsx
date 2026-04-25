@@ -26,7 +26,7 @@ export default function AdminCustomers() {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await adminAPI.getUsers({ page, limit: 20, role: 'customer', search });
+      const { data } = await adminAPI.getUsers({ page, limit: 20, role: 'retailer', search });
       setUsers(data.data || []);
       setMeta(data.meta || {});
     } catch (_) {} finally { setLoading(false); }

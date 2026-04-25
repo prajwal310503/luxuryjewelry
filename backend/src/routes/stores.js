@@ -10,8 +10,6 @@ const {
   adminUpdateStore,
   adminDeleteStore,
   adminToggleStore,
-  vendorGetStore,
-  vendorUpsertStore,
 } = require('../controllers/storeController');
 
 // ── Admin (defined first to avoid conflict with /:slug) ──────────────────────
@@ -20,10 +18,6 @@ router.post('/admin',        protect, authorize('admin'), uploadBanner.single('i
 router.put('/admin/:id',     protect, authorize('admin'), uploadBanner.single('image'), adminUpdateStore);
 router.delete('/admin/:id',  protect, authorize('admin'), adminDeleteStore);
 router.put('/admin/:id/toggle', protect, authorize('admin'), adminToggleStore);
-
-// ── Vendor ───────────────────────────────────────────────────────────────────
-router.get('/vendor/my',  protect, authorize('vendor'), vendorGetStore);
-router.post('/vendor/my', protect, authorize('vendor'), uploadBanner.single('image'), vendorUpsertStore);
 
 // ── Public ───────────────────────────────────────────────────────────────────
 router.get('/',        getStores);

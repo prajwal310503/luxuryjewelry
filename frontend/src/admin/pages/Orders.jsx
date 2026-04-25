@@ -109,7 +109,12 @@ export default function AdminOrders() {
                 <tr><td colSpan={8} className="text-center py-12 text-gray-300">No orders found</td></tr>
               ) : orders.map((order) => (
                 <tr key={order._id} className="hover:bg-gray-50/50">
-                  <td className="px-5 py-4 text-sm font-medium text-primary">#{order.orderNumber}</td>
+                  <td className="px-5 py-4">
+                    <p className="text-sm font-medium text-primary">#{order.orderNumber}</p>
+                    {order.source === 'quote' && (
+                      <span className="text-[10px] bg-blue-50 text-blue-500 px-1.5 py-0.5 rounded font-medium">From Quote</span>
+                    )}
+                  </td>
                   <td className="px-5 py-4">
                     <p className="text-sm text-gray-800">{order.customer?.name}</p>
                     <p className="text-xs text-gray-400">{order.customer?.email}</p>

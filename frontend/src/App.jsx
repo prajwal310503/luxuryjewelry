@@ -6,7 +6,6 @@ import PageLoader from './components/ui/PageLoader';
 // Layouts
 import StorefrontLayout from './components/layout/StorefrontLayout';
 import AdminLayout from './admin/components/AdminLayout';
-import VendorLayout from './vendor/components/VendorLayout';
 import AuthLayout from './components/layout/AuthLayout';
 
 // Auth Guard
@@ -24,11 +23,12 @@ const OrdersPage = lazy(() => import('./pages/OrdersPage'));
 const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage'));
 const WishlistPage = lazy(() => import('./pages/WishlistPage'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
-const VendorStorePage = lazy(() => import('./pages/VendorStorePage'));
 const StorePage = lazy(() => import('./pages/StorePage'));
 const StoresListPage = lazy(() => import('./pages/StoresListPage'));
 const BlogPage = lazy(() => import('./pages/BlogPage'));
 const BlogDetailPage = lazy(() => import('./pages/BlogDetailPage'));
+const QuoteRequestPage = lazy(() => import('./pages/QuoteRequestPage'));
+const MyQuotesPage = lazy(() => import('./pages/MyQuotesPage'));
 
 // Auth Pages
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
@@ -44,7 +44,6 @@ const AdminCategoryImages = lazy(() => import('./admin/pages/CategoryImages'));
 const AdminSiteImages = lazy(() => import('./admin/pages/SiteImages'));
 const AdminCategories = lazy(() => import('./admin/pages/Categories'));
 const AdminCMSBuilder = lazy(() => import('./admin/pages/CMSBuilder'));
-const AdminVendors = lazy(() => import('./admin/pages/Vendors'));
 const AdminAddProduct = lazy(() => import('./admin/pages/AddProduct'));
 const AdminOrders = lazy(() => import('./admin/pages/Orders'));
 const AdminCustomers = lazy(() => import('./admin/pages/Customers'));
@@ -56,14 +55,8 @@ const AdminMenus = lazy(() => import('./admin/pages/Menus'));
 const AdminStores = lazy(() => import('./admin/pages/Stores'));
 const AdminSettings = lazy(() => import('./admin/pages/Settings'));
 const AdminUsers = lazy(() => import('./admin/pages/Users'));
+const AdminQuotes = lazy(() => import('./admin/pages/Quotes'));
 
-// Vendor Pages
-const VendorDashboard = lazy(() => import('./vendor/pages/Dashboard'));
-const VendorProducts = lazy(() => import('./vendor/pages/Products'));
-const VendorOrders = lazy(() => import('./vendor/pages/Orders'));
-const VendorStoreProfile = lazy(() => import('./vendor/pages/StoreProfile'));
-const VendorAddProduct = lazy(() => import('./vendor/pages/AddProduct'));
-const VendorEditProduct = lazy(() => import('./vendor/pages/EditProduct'));
 
 export default function App() {
   const { fetchMe, token } = useAuthStore();
@@ -82,7 +75,6 @@ export default function App() {
           <Route path="/products/:slug" element={<ProductPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/search" element={<SearchPage />} />
-          <Route path="/vendors/:slug" element={<VendorStorePage />} />
           <Route path="/stores" element={<StoresListPage />} />
           <Route path="/stores/:slug" element={<StorePage />} />
           <Route path="/blog" element={<BlogPage />} />
@@ -121,6 +113,22 @@ export default function App() {
             }
           />
           <Route path="/order-success/:id" element={<OrderSuccessPage />} />
+          <Route
+            path="/quotes/request"
+            element={
+              <ProtectedRoute roles={['retailer']}>
+                <QuoteRequestPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-quotes"
+            element={
+              <ProtectedRoute roles={['retailer']}>
+                <MyQuotesPage />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         {/* Auth */}
@@ -131,54 +139,38 @@ export default function App() {
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         </Route>
 
-        {/* Admin */}
+        {/* Admin + Child Admin */}
         <Route
           path="/admin"
           element={
-            <ProtectedRoute roles={['admin']}>
+            <ProtectedRoute roles={['admin', 'child_admin']}>
               <AdminLayout />
             </ProtectedRoute>
           }
         >
+          {/* Admin-only pages */}
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="products" element={<AdminProducts />} />
-          <Route path="products/images" element={<AdminProductImages />} />
-          <Route path="products/add" element={<AdminAddProduct />} />
-          <Route path="products/edit/:id" element={<AdminAddProduct />} />
-          <Route path="categories" element={<AdminCategories />} />
-          <Route path="categories/images" element={<AdminCategoryImages />} />
-          <Route path="site-images" element={<AdminSiteImages />} />
-          <Route path="cms" element={<AdminCMSBuilder />} />
-          <Route path="vendors" element={<AdminVendors />} />
-          <Route path="orders" element={<AdminOrders />} />
-          <Route path="users" element={<AdminUsers />} />
-          <Route path="customers" element={<AdminCustomers />} />
-          <Route path="reviews" element={<AdminReviews />} />
-          <Route path="attributes" element={<AdminAttributes />} />
-          <Route path="banners" element={<AdminBanners />} />
-          <Route path="blog" element={<AdminBlog />} />
-          <Route path="menus" element={<AdminMenus />} />
-          <Route path="stores" element={<AdminStores />} />
-          <Route path="settings" element={<AdminSettings />} />
-        </Route>
-
-        {/* Vendor */}
-        <Route
-          path="/vendor"
-          element={
-            <ProtectedRoute roles={['vendor']}>
-              <VendorLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Navigate to="/vendor/dashboard" replace />} />
-          <Route path="dashboard" element={<VendorDashboard />} />
-          <Route path="products" element={<VendorProducts />} />
-          <Route path="products/add" element={<VendorAddProduct />} />
-          <Route path="products/edit/:id" element={<VendorEditProduct />} />
-          <Route path="orders" element={<VendorOrders />} />
-          <Route path="store" element={<VendorStoreProfile />} />
+          <Route path="dashboard"           element={<ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="products"            element={<ProtectedRoute roles={['admin']}><AdminProducts /></ProtectedRoute>} />
+          <Route path="products/images"     element={<ProtectedRoute roles={['admin']}><AdminProductImages /></ProtectedRoute>} />
+          <Route path="products/add"        element={<ProtectedRoute roles={['admin']}><AdminAddProduct /></ProtectedRoute>} />
+          <Route path="products/edit/:id"   element={<ProtectedRoute roles={['admin']}><AdminAddProduct /></ProtectedRoute>} />
+          <Route path="categories"          element={<ProtectedRoute roles={['admin']}><AdminCategories /></ProtectedRoute>} />
+          <Route path="categories/images"   element={<ProtectedRoute roles={['admin']}><AdminCategoryImages /></ProtectedRoute>} />
+          <Route path="site-images"         element={<ProtectedRoute roles={['admin']}><AdminSiteImages /></ProtectedRoute>} />
+          <Route path="cms"                 element={<ProtectedRoute roles={['admin']}><AdminCMSBuilder /></ProtectedRoute>} />
+          <Route path="users"               element={<ProtectedRoute roles={['admin']}><AdminUsers /></ProtectedRoute>} />
+          <Route path="customers"           element={<ProtectedRoute roles={['admin']}><AdminCustomers /></ProtectedRoute>} />
+          <Route path="reviews"             element={<ProtectedRoute roles={['admin']}><AdminReviews /></ProtectedRoute>} />
+          <Route path="attributes"          element={<ProtectedRoute roles={['admin']}><AdminAttributes /></ProtectedRoute>} />
+          <Route path="banners"             element={<ProtectedRoute roles={['admin']}><AdminBanners /></ProtectedRoute>} />
+          <Route path="blog"                element={<ProtectedRoute roles={['admin']}><AdminBlog /></ProtectedRoute>} />
+          <Route path="menus"               element={<ProtectedRoute roles={['admin']}><AdminMenus /></ProtectedRoute>} />
+          <Route path="stores"              element={<ProtectedRoute roles={['admin']}><AdminStores /></ProtectedRoute>} />
+          <Route path="settings"            element={<ProtectedRoute roles={['admin']}><AdminSettings /></ProtectedRoute>} />
+          {/* Shared: admin + child_admin with permissions */}
+          <Route path="orders"  element={<ProtectedRoute roles={['admin', 'child_admin']} permission="orders"><AdminOrders /></ProtectedRoute>} />
+          <Route path="quotes"  element={<ProtectedRoute roles={['admin', 'child_admin']} permission="quotes"><AdminQuotes /></ProtectedRoute>} />
         </Route>
 
         {/* 404 */}

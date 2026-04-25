@@ -1,5 +1,4 @@
 const User = require('../models/User');
-const Vendor = require('../models/Vendor');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
 const Review = require('../models/Review');
@@ -16,22 +15,18 @@ exports.getDashboard = async (req, res, next) => {
 
     const [
       totalUsers,
-      totalVendors,
       totalProducts,
       totalOrders,
       pendingProducts,
-      pendingVendors,
       recentOrders,
       totalRevenue,
       monthlyRevenue,
       weeklyOrders,
     ] = await Promise.all([
-      User.countDocuments({ role: 'customer' }),
-      Vendor.countDocuments({ status: 'approved' }),
+      User.countDocuments({ role: 'retailer' }),
       Product.countDocuments({ status: 'approved', isActive: true }),
       Order.countDocuments(),
       Product.countDocuments({ status: 'pending' }),
-      Vendor.countDocuments({ status: 'pending' }),
       Order.find().sort('-createdAt').limit(10).populate('customer', 'name email'),
       Order.aggregate([
         { $match: { 'payment.status': 'paid' } },
@@ -65,11 +60,9 @@ exports.getDashboard = async (req, res, next) => {
     sendSuccess(res, 200, 'Dashboard data fetched', {
       stats: {
         totalUsers,
-        totalVendors,
         totalProducts,
         totalOrders,
         pendingProducts,
-        pendingVendors,
         weeklyOrders,
         totalRevenue: totalRevenue[0]?.total || 0,
         monthlyRevenue: monthlyRevenue[0]?.total || 0,
@@ -115,22 +108,73 @@ exports.getUsers = async (req, res, next) => {
   }
 };
 
+// @desc    Admin: Create a new user (any role)
+// @route   POST /api/admin/users
+// @access  Admin
+exports.createUser = async (req, res, next) => {
+  try {
+    const { name, email, password, phone, role, permissions } = req.body;
+    if (!name || !email || !password) return sendError(res, 400, 'Name, email and password are required');
+
+    const validRoles = ['admin', 'child_admin', 'retailer'];
+    if (role && !validRoles.includes(role)) return sendError(res, 400, 'Invalid role');
+
+    const exists = await User.findOne({ email });
+    if (exists) return sendError(res, 400, 'Email already registered');
+
+    const user = await User.create({
+      name,
+      email,
+      password,
+      phone: phone || undefined,
+      role: role || 'retailer',
+      permissions: role === 'child_admin' ? (permissions || []) : [],
+    });
+
+    const userObj = user.toObject();
+    delete userObj.password;
+    sendSuccess(res, 201, 'User created', userObj);
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Admin: Change user role
 // @route   PUT /api/admin/users/:id/role
 // @access  Admin
 exports.changeUserRole = async (req, res, next) => {
   try {
     const { role } = req.body;
-    if (!['admin', 'vendor', 'customer'].includes(role)) return sendError(res, 400, 'Invalid role');
+    if (!['admin', 'child_admin', 'retailer'].includes(role)) return sendError(res, 400, 'Invalid role');
 
     const user = await User.findById(req.params.id);
     if (!user) return sendError(res, 404, 'User not found');
     if (String(user._id) === String(req.user.id)) return sendError(res, 400, 'Cannot change your own role');
 
     user.role = role;
+    if (role !== 'child_admin') user.permissions = [];
     await user.save({ validateBeforeSave: false });
 
-    sendSuccess(res, 200, `Role changed to ${role}`, { role: user.role });
+    sendSuccess(res, 200, `Role changed to ${role}`, { role: user.role, permissions: user.permissions });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Admin: Update child_admin permissions
+// @route   PUT /api/admin/users/:id/permissions
+// @access  Admin
+exports.updateUserPermissions = async (req, res, next) => {
+  try {
+    const { permissions } = req.body;
+    const user = await User.findById(req.params.id);
+    if (!user) return sendError(res, 404, 'User not found');
+    if (user.role !== 'child_admin') return sendError(res, 400, 'Permissions only apply to child_admin users');
+
+    user.permissions = Array.isArray(permissions) ? permissions : [];
+    await user.save({ validateBeforeSave: false });
+
+    sendSuccess(res, 200, 'Permissions updated', { permissions: user.permissions });
   } catch (error) {
     next(error);
   }
@@ -149,58 +193,6 @@ exports.toggleUserStatus = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     sendSuccess(res, 200, `User ${user.isActive ? 'activated' : 'deactivated'}`, { isActive: user.isActive });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Admin: Get all vendors
-// @route   GET /api/admin/vendors
-// @access  Admin
-exports.getVendors = async (req, res, next) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const skip = (page - 1) * limit;
-
-    const filter = {};
-    if (req.query.status) filter.status = req.query.status;
-    if (req.query.search) filter.storeName = new RegExp(req.query.search, 'i');
-
-    const total = await Vendor.countDocuments(filter);
-    const vendors = await Vendor.find(filter)
-      .populate('user', 'name email phone createdAt')
-      .skip(skip)
-      .limit(limit)
-      .sort('-createdAt');
-
-    sendPaginated(res, vendors, page, limit, total);
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Admin: Approve/reject vendor
-// @route   PUT /api/admin/vendors/:id/status
-// @access  Admin
-exports.updateVendorStatus = async (req, res, next) => {
-  try {
-    const { status, rejectionReason } = req.body;
-    const allowed = ['approved', 'suspended', 'rejected'];
-    if (!allowed.includes(status)) return sendError(res, 400, 'Invalid status');
-
-    const update = { status };
-    if (status === 'approved') {
-      update.approvedAt = Date.now();
-      update.approvedBy = req.user.id;
-      update.isVerified = true;
-    }
-    if (status === 'rejected') update.rejectionReason = rejectionReason;
-
-    const vendor = await Vendor.findByIdAndUpdate(req.params.id, update, { new: true }).populate('user', 'name email');
-    if (!vendor) return sendError(res, 404, 'Vendor not found');
-
-    sendSuccess(res, 200, `Vendor ${status}`, vendor);
   } catch (error) {
     next(error);
   }

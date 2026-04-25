@@ -4,38 +4,6 @@ import toast from 'react-hot-toast';
 import { productAPI, categoryAPI, attributeAPI, adminAPI } from '../../services/api';
 import Select from '../../components/ui/Select';
 
-
-const SEGMENTS = ['New Arrival', 'Best Seller', 'Trending', 'Customer Choice', 'Deal of Day', 'Deal of Week', 'Exclusive', 'Limited', 'In Stock', 'Fast Delivery'];
-const OCCASIONS = ['Womens Day', 'Mothers Day', 'Valentine', 'Engagement', 'Wedding', 'Anniversary', 'Proposal', 'Birthday', 'Festival', 'Daily Wear', 'Office Wear', 'Party Wear'];
-const COLLECTION_STYLES = ['Nature', 'Geometric', 'Cultural', 'Luxury', 'Minimal', 'Playful', 'Seasonal'];
-const THEMES = ['Peacock', 'Spiritual', 'Traditional', 'Floral', 'Cluster', 'Heart', 'Leaf', 'Butterfly', 'Galaxy', 'Art'];
-const PERSONAS = ['Minimalist', 'Classic', 'Fashionable', 'Quirky', 'Contemporary', 'Designer'];
-const WEARING_TYPES = ['Daily', 'Office', 'Party'];
-const GIFT_TAGS = ['Birthday', 'Wedding', 'Mother', 'Husband', 'Father', 'Friends', 'Baby'];
-const MEENA_COLORS = ['Blue', 'Brown', 'Gray', 'Green', 'Maroon', 'Orange', 'Pink', 'Purple', 'Red', 'White', 'Yellow'];
-
-const MultiSelect = ({ label, options, value, onChange }) => (
-  <div>
-    <label className="label-luxury">{label}</label>
-    <div className="flex flex-wrap gap-2 mt-1">
-      {options.map((opt) => (
-        <button
-          key={opt}
-          type="button"
-          onClick={() => onChange(value.includes(opt) ? value.filter((v) => v !== opt) : [...value, opt])}
-          className={`px-3 py-1 text-xs rounded-full border transition-all ${
-            value.includes(opt)
-              ? 'bg-primary text-white border-primary'
-              : 'bg-white text-gray-600 border-gray-200 hover:border-primary hover:text-primary'
-          }`}
-        >
-          {opt}
-        </button>
-      ))}
-    </div>
-  </div>
-);
-
 const SectionTitle = ({ children }) => (
   <h3 className="font-heading font-semibold text-gray-800 text-sm uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">
     {children}
@@ -44,26 +12,21 @@ const SectionTitle = ({ children }) => (
 
 export default function AdminAddProduct() {
   const navigate = useNavigate();
-  const { id } = useParams(); // present when editing
+  const { id } = useParams();
   const isEdit = !!id;
 
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadingPackage, setUploadingPackage] = useState(false);
-  const [uploadingPromo, setUploadingPromo] = useState(false);
-  const [uploadingCert, setUploadingCert] = useState(null); // index of cert being uploaded
   const [loading, setLoading] = useState(isEdit);
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
   const [attributes, setAttributes] = useState([]);
-  const [vendors, setVendors] = useState([]);
   const [currentImages, setCurrentImages] = useState([]);
-  const [pendingImageFiles, setPendingImageFiles] = useState([]); // [{file, previewUrl}, undefined] indexed by slot
+  const [pendingImageFiles, setPendingImageFiles] = useState([]);
   const [updating, setUpdating] = useState(false);
   const [productId, setProductId] = useState(id || null);
 
   const [form, setForm] = useState({
-    vendor: '',
     title: '',
     sku: '',
     shortDescription: '',
@@ -71,49 +34,34 @@ export default function AdminAddProduct() {
     category: '',
     subcategory: '',
     price: '',
-    comparePrice: '',
     costPrice: '',
     discount: 0,
     stock: 0,
     weight: '',
+    length: '',
+    color: '',
+    metalColor: '',
     isFeatured: false,
     isNewArrival: false,
     isBestSeller: false,
-    segments: [],
-    occasions: [],
-    collectionStyles: [],
-    themes: [],
-    productPersonas: [],
-    wearingTypes: [],
     giftTags: [],
-    meenaColors: [],
+    wearingTypes: [],
     attributes: [],
     seoTitle: '',
     seoDescription: '',
     status: 'approved',
-    priceBreakup: {
-      metalType: '', grossWeight: '', netWeight: '', metalRate: '', metalAmount: '',
-      diamondPieces: '', diamondCarat: '', diamondClarity: '', diamondCut: '', diamondColor: '',
-      diamondAmount: '', diamondOriginalAmount: '', diamondDiscountPct: '',
-      makingCharges: '', makingChargesOriginal: '', makingChargesDiscountPct: '', gstPct: 3,
-    },
-    certifications: [],
-    packageImages: [],
-    promoBannerImage: '',
   });
 
   useEffect(() => {
     const fetches = [
       categoryAPI.getAll({ parent: 'null', limit: 100 }),
       attributeAPI.getAll({ limit: 100 }),
-      adminAPI.getVendors({ limit: 100, status: 'approved' }),
     ];
     if (isEdit) fetches.push(productAPI.adminGetById(id));
 
-    Promise.all(fetches).then(([catRes, attrRes, vendorRes, prodRes]) => {
+    Promise.all(fetches).then(([catRes, attrRes, prodRes]) => {
       setCategories(catRes.data.data || []);
       setAttributes(attrRes.data.data || []);
-      setVendors(vendorRes.data.data || []);
 
       if (isEdit && prodRes) {
         const p = prodRes.data.data;
@@ -121,7 +69,6 @@ export default function AdminAddProduct() {
           setCurrentImages(p.images || []);
           setProductId(p._id);
           setForm({
-            vendor: p.vendor?._id || p.vendor || '',
             title: p.title || '',
             sku: p.sku || '',
             shortDescription: p.shortDescription || '',
@@ -129,48 +76,22 @@ export default function AdminAddProduct() {
             category: p.category?._id || p.category || '',
             subcategory: p.subcategory?._id || p.subcategory || '',
             price: p.price || '',
-            comparePrice: p.comparePrice || '',
             costPrice: p.costPrice || '',
             discount: p.discount || 0,
             stock: p.stock || 0,
             weight: p.weight || '',
+            length: p.length || '',
+            color: p.color || '',
+            metalColor: p.metalColor || '',
             isFeatured: p.isFeatured || false,
             isNewArrival: p.isNewArrival || false,
             isBestSeller: p.isBestSeller || false,
-            segments: p.segments || [],
-            occasions: p.occasions || [],
-            collectionStyles: p.collectionStyles || [],
-            themes: p.themes || [],
-            productPersonas: p.productPersonas || [],
-            wearingTypes: p.wearingTypes || [],
             giftTags: p.giftTags || [],
-            meenaColors: p.meenaColors || [],
+            wearingTypes: p.wearingTypes || [],
             attributes: p.attributes?.map((a) => ({ attribute: a.attribute?._id || a.attribute, customValue: a.customValue || '' })) || [],
             seoTitle: p.seo?.metaTitle || '',
             seoDescription: p.seo?.metaDescription || '',
             status: p.status || 'approved',
-            priceBreakup: {
-              metalType: p.priceBreakup?.metalType || '',
-              grossWeight: p.priceBreakup?.grossWeight ?? '',
-              netWeight: p.priceBreakup?.netWeight ?? '',
-              metalRate: p.priceBreakup?.metalRate ?? '',
-              metalAmount: p.priceBreakup?.metalAmount ?? '',
-              diamondPieces: p.priceBreakup?.diamondPieces ?? '',
-              diamondCarat: p.priceBreakup?.diamondCarat ?? '',
-              diamondClarity: p.priceBreakup?.diamondClarity || '',
-              diamondCut: p.priceBreakup?.diamondCut || '',
-              diamondColor: p.priceBreakup?.diamondColor || '',
-              diamondAmount: p.priceBreakup?.diamondAmount ?? '',
-              diamondOriginalAmount: p.priceBreakup?.diamondOriginalAmount ?? '',
-              diamondDiscountPct: p.priceBreakup?.diamondDiscountPct ?? '',
-              makingCharges: p.priceBreakup?.makingCharges ?? '',
-              makingChargesOriginal: p.priceBreakup?.makingChargesOriginal ?? '',
-              makingChargesDiscountPct: p.priceBreakup?.makingChargesDiscountPct ?? '',
-              gstPct: p.priceBreakup?.gstPct ?? 3,
-            },
-            certifications: p.certifications || [],
-            packageImages: p.packageImages || [],
-            promoBannerImage: p.promoBannerImage || '',
           });
         }
       }
@@ -190,10 +111,6 @@ export default function AdminAddProduct() {
   }, [form.category]);
 
   const set = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
-  const setPb = (field, value) => setForm((prev) => ({ ...prev, priceBreakup: { ...prev.priceBreakup, [field]: value } }));
-  const addCert = () => setForm((prev) => ({ ...prev, certifications: [...prev.certifications, { lab: '', certNumber: '', certImage: '' }] }));
-  const setCert = (i, f, v) => setForm((prev) => ({ ...prev, certifications: prev.certifications.map((c, j) => j === i ? { ...c, [f]: v } : c) }));
-  const removeCert = (i) => setForm((prev) => ({ ...prev, certifications: prev.certifications.filter((_, j) => j !== i) }));
 
   const handleAttributeValue = (attrId, value) => {
     setForm((prev) => {
@@ -206,7 +123,6 @@ export default function AdminAddProduct() {
   };
 
   const buildPayload = () => ({
-    vendor: form.vendor,
     title: form.title.trim(),
     sku: form.sku.trim() || undefined,
     shortDescription: form.shortDescription,
@@ -214,86 +130,24 @@ export default function AdminAddProduct() {
     category: form.category,
     subcategory: form.subcategory || undefined,
     price: parseFloat(form.price),
-    comparePrice: form.comparePrice ? parseFloat(form.comparePrice) : undefined,
     costPrice: form.costPrice ? parseFloat(form.costPrice) : undefined,
     discount: parseInt(form.discount) || 0,
     stock: parseInt(form.stock) || 0,
     weight: form.weight ? parseFloat(form.weight) : undefined,
+    length: form.length || undefined,
+    color: form.color || undefined,
+    metalColor: form.metalColor || undefined,
     isFeatured: form.isFeatured,
     isNewArrival: form.isNewArrival,
     isBestSeller: form.isBestSeller,
-    segments: form.segments,
-    occasions: form.occasions,
-    collectionStyles: form.collectionStyles,
-    themes: form.themes,
-    productPersonas: form.productPersonas,
-    wearingTypes: form.wearingTypes,
     giftTags: form.giftTags,
+    wearingTypes: form.wearingTypes,
     attributes: form.attributes.filter((a) => a.customValue),
-    priceBreakup: {
-      metalType: form.priceBreakup.metalType || undefined,
-      grossWeight: form.priceBreakup.grossWeight !== '' ? parseFloat(form.priceBreakup.grossWeight) : undefined,
-      netWeight: form.priceBreakup.netWeight !== '' ? parseFloat(form.priceBreakup.netWeight) : undefined,
-      metalRate: form.priceBreakup.metalRate !== '' ? parseFloat(form.priceBreakup.metalRate) : undefined,
-      metalAmount: form.priceBreakup.metalAmount !== '' ? parseFloat(form.priceBreakup.metalAmount) : undefined,
-      diamondPieces: form.priceBreakup.diamondPieces !== '' ? parseInt(form.priceBreakup.diamondPieces) : undefined,
-      diamondCarat: form.priceBreakup.diamondCarat !== '' ? parseFloat(form.priceBreakup.diamondCarat) : undefined,
-      diamondClarity: form.priceBreakup.diamondClarity || undefined,
-      diamondCut: form.priceBreakup.diamondCut || undefined,
-      diamondColor: form.priceBreakup.diamondColor || undefined,
-      diamondAmount: form.priceBreakup.diamondAmount !== '' ? parseFloat(form.priceBreakup.diamondAmount) : undefined,
-      diamondOriginalAmount: form.priceBreakup.diamondOriginalAmount !== '' ? parseFloat(form.priceBreakup.diamondOriginalAmount) : undefined,
-      diamondDiscountPct: form.priceBreakup.diamondDiscountPct !== '' ? parseFloat(form.priceBreakup.diamondDiscountPct) : undefined,
-      makingCharges: form.priceBreakup.makingCharges !== '' ? parseFloat(form.priceBreakup.makingCharges) : undefined,
-      makingChargesOriginal: form.priceBreakup.makingChargesOriginal !== '' ? parseFloat(form.priceBreakup.makingChargesOriginal) : undefined,
-      makingChargesDiscountPct: form.priceBreakup.makingChargesDiscountPct !== '' ? parseFloat(form.priceBreakup.makingChargesDiscountPct) : undefined,
-      gstPct: form.priceBreakup.gstPct !== '' ? parseFloat(form.priceBreakup.gstPct) : 3,
-    },
-    certifications: form.certifications.filter((c) => c.lab || c.certNumber),
-    packageImages: form.packageImages,
-    promoBannerImage: form.promoBannerImage || undefined,
     seo: { metaTitle: form.seoTitle || form.title, metaDescription: form.seoDescription },
     status: form.status,
   });
 
-  const handlePackageImageUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-    setUploadingPackage(true);
-    try {
-      const formData = new FormData();
-      files.forEach((f) => formData.append('images', f));
-      const { data } = await adminAPI.uploadPackageImages(formData);
-      set('packageImages', [...form.packageImages, ...(data.data || [])]);
-      toast.success('Package images uploaded');
-    } catch {
-      toast.error('Upload failed');
-    } finally {
-      setUploadingPackage(false);
-      e.target.value = '';
-    }
-  };
-
-  const handlePromoBannerUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploadingPromo(true);
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-      const { data } = await adminAPI.uploadPromoBanner(formData);
-      set('promoBannerImage', data.data?.url || '');
-      toast.success('Promo banner uploaded');
-    } catch {
-      toast.error('Upload failed');
-    } finally {
-      setUploadingPromo(false);
-      e.target.value = '';
-    }
-  };
-
   const handleSave = async () => {
-    if (!form.vendor) return toast.error('Select a vendor');
     if (!form.title.trim()) return toast.error('Product title is required');
     if (!form.category) return toast.error('Category is required');
     if (!form.price) return toast.error('Price is required');
@@ -308,7 +162,6 @@ export default function AdminAddProduct() {
         const { data } = await productAPI.adminCreate(payload);
         const newId = data.data._id;
         setProductId(newId);
-        // Upload any pre-selected slot images (slot 0 = main, slot 1 = hover)
         const slots = pendingImageFiles.filter(Boolean);
         if (slots.length > 0) {
           const formData = new FormData();
@@ -332,17 +185,14 @@ export default function AdminAddProduct() {
     }
   };
 
-  // Upload image for a specific slot (0 = main/primary, 1 = hover)
   const handleSlotUpload = async (e, slotIndex) => {
     const file = e.target.files[0];
     if (!file) return;
 
     if (!productId) {
-      // Pre-select mode: store pending previews per slot
       const previewUrl = URL.createObjectURL(file);
       setPendingImageFiles((prev) => {
         const next = [...prev];
-        // revoke old preview for this slot if it exists
         if (next[slotIndex]?.previewUrl) URL.revokeObjectURL(next[slotIndex].previewUrl);
         next[slotIndex] = { file, previewUrl };
         return next;
@@ -351,12 +201,11 @@ export default function AdminAddProduct() {
       return;
     }
 
-    // If slot already has an image, remove it first (replace in-place)
     if (currentImages[slotIndex]) {
       try {
         const { data } = await productAPI.adminRemoveImage(productId, slotIndex);
         setCurrentImages(data.data || []);
-      } catch { /* ignore removal error, proceed with upload */ }
+      } catch { /* ignore */ }
     }
 
     setUploading(true);
@@ -374,7 +223,6 @@ export default function AdminAddProduct() {
     }
   };
 
-  // Remove a specific image slot
   const handleRemoveImage = async (slotIndex) => {
     if (!productId) {
       setPendingImageFiles((prev) => {
@@ -395,49 +243,6 @@ export default function AdminAddProduct() {
       toast.error('Remove failed');
     } finally {
       setUpdating(false);
-    }
-  };
-
-  // Legacy multi-upload (kept for backward compat, not used in new UI)
-  const handleImageUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-    if (!productId) {
-      const newPending = files.map((file) => ({ file, previewUrl: URL.createObjectURL(file) }));
-      setPendingImageFiles((prev) => [...prev, ...newPending]);
-      e.target.value = '';
-      return;
-    }
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      files.forEach((f) => formData.append('images', f));
-      const { data } = await adminAPI.uploadProductImages(productId, formData);
-      setCurrentImages(data.data || []);
-      toast.success('Images uploaded');
-    } catch {
-      toast.error('Image upload failed');
-    } finally {
-      setUploading(false);
-      e.target.value = '';
-    }
-  };
-
-  const handleCertImageUpload = async (e, index) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploadingCert(index);
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-      const { data } = await adminAPI.uploadCertImage(formData);
-      setCert(index, 'certImage', data.data?.url || '');
-      toast.success('Certificate image uploaded');
-    } catch {
-      toast.error('Upload failed');
-    } finally {
-      setUploadingCert(null);
-      e.target.value = '';
     }
   };
 
@@ -469,21 +274,6 @@ export default function AdminAddProduct() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-
-          {/* Vendor selector */}
-          <div className="card-luxury p-6">
-            <SectionTitle>Vendor</SectionTitle>
-            <div>
-              <label className="label-luxury">Assign to Vendor *</label>
-              <Select value={form.vendor} onChange={(e) => set('vendor', e.target.value)} placeholder="Select Vendor">
-                <option value="">Select Vendor</option>
-                {vendors.map((v) => (
-                  <option key={v._id} value={v._id}>{v.storeName || v.name || v._id}</option>
-                ))}
-              </Select>
-              <p className="text-2xs text-gray-400 mt-1">Only approved vendors are listed.</p>
-            </div>
-          </div>
 
           {/* Basic Info */}
           <div className="card-luxury p-6">
@@ -535,11 +325,46 @@ export default function AdminAddProduct() {
             <SectionTitle>Pricing &amp; Stock</SectionTitle>
             <div className="grid grid-cols-2 gap-4">
               <div><label className="label-luxury">Selling Price (₹) *</label><input type="number" value={form.price} onChange={(e) => set('price', e.target.value)} min="0" className="input-luxury" /></div>
-              <div><label className="label-luxury">Compare at Price (₹)</label><input type="number" value={form.comparePrice} onChange={(e) => set('comparePrice', e.target.value)} min="0" className="input-luxury" /></div>
               <div><label className="label-luxury">Cost Price (₹)</label><input type="number" value={form.costPrice} onChange={(e) => set('costPrice', e.target.value)} min="0" className="input-luxury" /></div>
               <div><label className="label-luxury">Discount (%)</label><input type="number" value={form.discount} onChange={(e) => set('discount', e.target.value)} min="0" max="100" className="input-luxury" /></div>
               <div><label className="label-luxury">Stock Quantity</label><input type="number" value={form.stock} onChange={(e) => set('stock', e.target.value)} min="0" className="input-luxury" /></div>
               <div><label className="label-luxury">Weight (g)</label><input type="number" value={form.weight} onChange={(e) => set('weight', e.target.value)} min="0" step="0.1" className="input-luxury" /></div>
+            </div>
+          </div>
+
+          {/* Product Details */}
+          <div className="card-luxury p-6">
+            <SectionTitle>Product Details</SectionTitle>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label-luxury">Length</label>
+                <input type="text" value={form.length} onChange={(e) => set('length', e.target.value)} placeholder="e.g. 18 inches" className="input-luxury" />
+              </div>
+              <div>
+                <label className="label-luxury">Color</label>
+                <input type="text" value={form.color} onChange={(e) => set('color', e.target.value)} placeholder="e.g. Red, Green" className="input-luxury" />
+              </div>
+              <div className="col-span-2">
+                <label className="label-luxury">Metal Color</label>
+                <div className="flex gap-3 mt-1">
+                  {['Gold', 'Silver', 'Platinum'].map((mc) => (
+                    <label key={mc} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="metalColor"
+                        value={mc}
+                        checked={form.metalColor === mc}
+                        onChange={() => set('metalColor', mc)}
+                        className="accent-primary"
+                      />
+                      <span className="text-sm text-gray-700">{mc}</span>
+                    </label>
+                  ))}
+                  {form.metalColor && (
+                    <button type="button" onClick={() => set('metalColor', '')} className="text-xs text-gray-400 hover:text-red-400 ml-2">Clear</button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -565,172 +390,23 @@ export default function AdminAddProduct() {
           </div>
 
           {/* Dynamic Attributes */}
-          {attributes.length > 0 && (
-            <div className="card-luxury p-6">
-              <SectionTitle>Product Attributes</SectionTitle>
-              <div className="grid grid-cols-2 gap-4">
-                {attributes.map((attr) => (
-                  <div key={attr._id}>
-                    <label className="label-luxury">{attr.name}</label>
-                    <input type="text" value={form.attributes.find((a) => a.attribute === attr._id)?.customValue || ''} onChange={(e) => handleAttributeValue(attr._id, e.target.value)} placeholder={`Enter ${attr.name}`} className="input-luxury" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Merchandising Tags */}
-          <div className="card-luxury p-6 space-y-5">
-            <SectionTitle>Merchandising Tags</SectionTitle>
-            <MultiSelect label="Segments" options={SEGMENTS} value={form.segments} onChange={(v) => set('segments', v)} />
-            <MultiSelect label="Occasions" options={OCCASIONS} value={form.occasions} onChange={(v) => set('occasions', v)} />
-            <MultiSelect label="Collection Styles" options={COLLECTION_STYLES} value={form.collectionStyles} onChange={(v) => set('collectionStyles', v)} />
-            <MultiSelect label="Themes" options={THEMES} value={form.themes} onChange={(v) => set('themes', v)} />
-            <MultiSelect label="Product Persona" options={PERSONAS} value={form.productPersonas} onChange={(v) => set('productPersonas', v)} />
-            <MultiSelect label="Wearing Type" options={WEARING_TYPES} value={form.wearingTypes} onChange={(v) => set('wearingTypes', v)} />
-            <MultiSelect label="Gift Tags" options={GIFT_TAGS} value={form.giftTags} onChange={(v) => set('giftTags', v)} />
-            <MultiSelect label="Meena Color" options={MEENA_COLORS} value={form.meenaColors} onChange={(v) => set('meenaColors', v)} />
-          </div>
-
-          {/* Price Breakup */}
-          <div className="card-luxury p-6">
-            <SectionTitle>Price Breakup (for product page)</SectionTitle>
-            <p className="text-xs text-gray-400 mb-4">Fill metal &amp; diamond details for the detailed price breakdown on the product page.</p>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="label-luxury">Metal Type</label><input type="text" value={form.priceBreakup.metalType} onChange={(e) => setPb('metalType', e.target.value)} placeholder="e.g. 14KT Yellow Gold" className="input-luxury" /></div>
-                <div><label className="label-luxury">Gross Weight (g)</label><input type="number" value={form.priceBreakup.grossWeight} onChange={(e) => setPb('grossWeight', e.target.value)} placeholder="0.00" step="0.01" min="0" className="input-luxury" /></div>
-                <div><label className="label-luxury">Net Weight (g)</label><input type="number" value={form.priceBreakup.netWeight} onChange={(e) => setPb('netWeight', e.target.value)} placeholder="0.00" step="0.01" min="0" className="input-luxury" /></div>
-                <div><label className="label-luxury">Metal Rate (₹/g)</label><input type="number" value={form.priceBreakup.metalRate} onChange={(e) => setPb('metalRate', e.target.value)} placeholder="0" min="0" className="input-luxury" /></div>
-                <div><label className="label-luxury">Metal Amount (₹)</label><input type="number" value={form.priceBreakup.metalAmount} onChange={(e) => setPb('metalAmount', e.target.value)} placeholder="0" min="0" className="input-luxury" /></div>
-                <div><label className="label-luxury">Making Charges (₹)</label><input type="number" value={form.priceBreakup.makingCharges} onChange={(e) => setPb('makingCharges', e.target.value)} placeholder="0" min="0" className="input-luxury" /></div>
-                <div><label className="label-luxury">Making Original (₹)</label><input type="number" value={form.priceBreakup.makingChargesOriginal} onChange={(e) => setPb('makingChargesOriginal', e.target.value)} placeholder="0" min="0" className="input-luxury" /></div>
-                <div><label className="label-luxury">Making Discount (%)</label><input type="number" value={form.priceBreakup.makingChargesDiscountPct} onChange={(e) => setPb('makingChargesDiscountPct', e.target.value)} placeholder="0" min="0" max="100" className="input-luxury" /></div>
-                <div><label className="label-luxury">GST (%)</label><input type="number" value={form.priceBreakup.gstPct} onChange={(e) => setPb('gstPct', e.target.value)} placeholder="3" min="0" max="100" className="input-luxury" /></div>
-              </div>
-              <p className="text-xs font-medium text-gray-600 uppercase tracking-wider pt-2 border-t border-gray-100">Diamond Details (optional)</p>
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="label-luxury">Diamond Pieces</label><input type="number" value={form.priceBreakup.diamondPieces} onChange={(e) => setPb('diamondPieces', e.target.value)} placeholder="0" min="0" className="input-luxury" /></div>
-                <div><label className="label-luxury">Diamond Carat (ct)</label><input type="number" value={form.priceBreakup.diamondCarat} onChange={(e) => setPb('diamondCarat', e.target.value)} placeholder="0.00" step="0.01" min="0" className="input-luxury" /></div>
-                <div><label className="label-luxury">Clarity</label><input type="text" value={form.priceBreakup.diamondClarity} onChange={(e) => setPb('diamondClarity', e.target.value)} placeholder="e.g. VVS-VS, EF" className="input-luxury" /></div>
-                <div><label className="label-luxury">Cut</label><input type="text" value={form.priceBreakup.diamondCut} onChange={(e) => setPb('diamondCut', e.target.value)} placeholder="e.g. Round" className="input-luxury" /></div>
-                <div><label className="label-luxury">Color</label><input type="text" value={form.priceBreakup.diamondColor} onChange={(e) => setPb('diamondColor', e.target.value)} placeholder="e.g. EF" className="input-luxury" /></div>
-                <div><label className="label-luxury">Diamond Amount (₹)</label><input type="number" value={form.priceBreakup.diamondAmount} onChange={(e) => setPb('diamondAmount', e.target.value)} placeholder="0" min="0" className="input-luxury" /></div>
-                <div><label className="label-luxury">Diamond Original (₹)</label><input type="number" value={form.priceBreakup.diamondOriginalAmount} onChange={(e) => setPb('diamondOriginalAmount', e.target.value)} placeholder="0" min="0" className="input-luxury" /></div>
-                <div><label className="label-luxury">Diamond Discount (%)</label><input type="number" value={form.priceBreakup.diamondDiscountPct} onChange={(e) => setPb('diamondDiscountPct', e.target.value)} placeholder="0" min="0" max="100" className="input-luxury" /></div>
-              </div>
-            </div>
-          </div>
-
-          {/* Certifications */}
-          <div className="card-luxury p-6">
-            <SectionTitle>Certifications</SectionTitle>
-            <div className="space-y-3">
-              {form.certifications.map((cert, i) => (
-                <div key={i} className="p-3 bg-gray-50 rounded-lg space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><label className="label-luxury">Lab</label><input type="text" value={cert.lab} onChange={(e) => setCert(i, 'lab', e.target.value)} placeholder="IGI / GIA / SGL" className="input-luxury" /></div>
-                    <div>
-                      <label className="label-luxury">Cert Number</label>
-                      <div className="flex gap-1">
-                        <input type="text" value={cert.certNumber} onChange={(e) => setCert(i, 'certNumber', e.target.value)} placeholder="Certificate No." className="input-luxury flex-1" />
-                        <button type="button" onClick={() => removeCert(i)} className="text-red-400 hover:text-red-600 px-1 flex-shrink-0">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                      </div>
+          {(() => {
+            const HIDDEN_ATTRS = ['bracelet size', 'ring size', 'gemstone', 'diamond type', 'diamond clarity', 'other metal', 'chain length', 'meena color', 'metal color'];
+            const visibleAttrs = attributes.filter((a) => !HIDDEN_ATTRS.includes(a.name.toLowerCase()));
+            return visibleAttrs.length > 0 ? (
+              <div className="card-luxury p-6">
+                <SectionTitle>Product Attributes</SectionTitle>
+                <div className="grid grid-cols-2 gap-4">
+                  {visibleAttrs.map((attr) => (
+                    <div key={attr._id}>
+                      <label className="label-luxury">{attr.name}</label>
+                      <input type="text" value={form.attributes.find((a) => a.attribute === attr._id)?.customValue || ''} onChange={(e) => handleAttributeValue(attr._id, e.target.value)} placeholder={`Enter ${attr.name}`} className="input-luxury" />
                     </div>
-                  </div>
-                  {/* Cert Image Upload */}
-                  <div>
-                    <label className="label-luxury">Certificate Image</label>
-                    {cert.certImage ? (
-                      <div className="flex items-center gap-3 mt-1">
-                        <img src={cert.certImage} alt="cert" className="w-16 h-16 object-cover rounded-lg border border-gray-200" />
-                        <div className="flex flex-col gap-1">
-                          <label className="cursor-pointer">
-                            <span className="text-xs text-primary hover:underline">Replace image</span>
-                            <input type="file" accept="image/*" onChange={(e) => handleCertImageUpload(e, i)} className="hidden" disabled={uploadingCert === i} />
-                          </label>
-                          <button type="button" onClick={() => setCert(i, 'certImage', '')} className="text-xs text-red-400 hover:text-red-600 text-left">Remove</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <label className="block mt-1">
-                        <div className="flex items-center gap-2 py-2 px-3 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-primary hover:bg-luxury-cream transition-colors">
-                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                          <span className="text-xs text-gray-500">{uploadingCert === i ? 'Uploading...' : 'Upload certificate image'}</span>
-                        </div>
-                        <input type="file" accept="image/*" onChange={(e) => handleCertImageUpload(e, i)} className="hidden" disabled={uploadingCert === i} />
-                      </label>
-                    )}
-                  </div>
+                  ))}
                 </div>
-              ))}
-              <button type="button" onClick={addCert} className="w-full py-2 border border-dashed border-gray-300 rounded-lg text-xs text-gray-500 hover:border-primary hover:text-primary transition-colors">
-                + Add Certification (IGI / GIA / SGL)
-              </button>
-            </div>
-          </div>
-
-          {/* Package & Promo */}
-          <div className="card-luxury p-6">
-            <SectionTitle>Package &amp; Promo Images</SectionTitle>
-            <div className="space-y-5">
-              {/* Package Images */}
-              <div>
-                <label className="label-luxury">Package Images</label>
-                <p className="text-2xs text-gray-400 mb-2">Unboxing / packaging photos shown on product page</p>
-                {form.packageImages.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mb-3">
-                    {form.packageImages.map((url, i) => (
-                      <div key={i} className="relative group aspect-square rounded-lg overflow-hidden bg-luxury-cream border border-gray-100">
-                        <img src={url} alt="" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => set('packageImages', form.packageImages.filter((_, j) => j !== i))}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <label className="block">
-                  <div className="flex items-center justify-center gap-2 py-3 px-4 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-primary hover:bg-luxury-cream transition-colors">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    <span className="text-sm text-gray-500">{uploadingPackage ? 'Uploading...' : 'Click to upload package images'}</span>
-                  </div>
-                  <input type="file" multiple accept="image/*" onChange={handlePackageImageUpload} className="hidden" disabled={uploadingPackage} />
-                </label>
               </div>
-
-              {/* Promo Banner */}
-              <div>
-                <label className="label-luxury">Promo Banner Image</label>
-                <p className="text-2xs text-gray-400 mb-2">Offer banner shown below product details</p>
-                {form.promoBannerImage ? (
-                  <div className="relative group rounded-xl overflow-hidden bg-luxury-cream border border-gray-100 mb-2">
-                    <img src={form.promoBannerImage} alt="" className="w-full h-24 object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => set('promoBannerImage', '')}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                  </div>
-                ) : null}
-                <label className="block">
-                  <div className="flex items-center justify-center gap-2 py-3 px-4 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-primary hover:bg-luxury-cream transition-colors">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    <span className="text-sm text-gray-500">{uploadingPromo ? 'Uploading...' : form.promoBannerImage ? 'Replace promo banner' : 'Click to upload promo banner'}</span>
-                  </div>
-                  <input type="file" accept="image/*" onChange={handlePromoBannerUpload} className="hidden" disabled={uploadingPromo} />
-                </label>
-              </div>
-            </div>
-          </div>
+            ) : null;
+          })()}
 
           {/* SEO */}
           <div className="card-luxury p-6">
@@ -762,25 +438,20 @@ export default function AdminAddProduct() {
 
                 return (
                   <div key={slotIdx} className="flex flex-col gap-2">
-                    {/* Label */}
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-gray-700">{label}</span>
                       <span className="text-[10px] text-gray-400">{hint}</span>
                     </div>
 
-                    {/* Image slot */}
                     <div className="relative group aspect-square rounded-xl overflow-hidden border-2 border-dashed border-gray-200 bg-luxury-cream">
                       {imgUrl ? (
                         <>
                           <img src={imgUrl} alt={label} className="w-full h-full object-cover" />
-                          {/* Overlay on hover */}
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                            {/* Replace */}
                             <label htmlFor={inputId} className="cursor-pointer flex items-center gap-1.5 bg-white/90 text-gray-800 text-[11px] font-semibold px-3 py-1.5 rounded-lg hover:bg-white transition-colors">
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                               Replace
                             </label>
-                            {/* Remove */}
                             <button
                               type="button"
                               onClick={() => handleRemoveImage(slotIdx)}
@@ -791,7 +462,6 @@ export default function AdminAddProduct() {
                               Remove
                             </button>
                           </div>
-                          {/* Pending badge */}
                           {pending && !saved && (
                             <span className="absolute top-2 left-2 text-[9px] font-bold bg-amber-400 text-white px-1.5 py-0.5 rounded-full">PENDING</span>
                           )}
@@ -814,7 +484,6 @@ export default function AdminAddProduct() {
                       />
                     </div>
 
-                    {/* Status text */}
                     {uploading && (
                       <p className="text-[10px] text-amber-600 text-center">Uploading…</p>
                     )}
@@ -839,12 +508,6 @@ export default function AdminAddProduct() {
                   <span className="text-gray-500">Selling Price</span>
                   <span className="font-semibold">₹{parseFloat(form.price || 0).toLocaleString('en-IN')}</span>
                 </div>
-                {form.comparePrice && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Compare at</span>
-                    <span className="line-through text-gray-400">₹{parseFloat(form.comparePrice).toLocaleString('en-IN')}</span>
-                  </div>
-                )}
                 {form.discount > 0 && (
                   <div className="flex justify-between">
                     <span className="text-gray-500">Discount</span>

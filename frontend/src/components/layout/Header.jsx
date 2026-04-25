@@ -6,6 +6,7 @@ import useWishlistStore from '../../store/wishlistStore';
 import useAuthStore from '../../store/authStore';
 import { cmsAPI } from '../../services/api';
 import CartDrawer from '../cart/CartDrawer';
+import vkLogo from '../../assets/vklogo.png';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const SearchIcon = () => (
@@ -934,23 +935,7 @@ export default function Header() {
 
             {/* Logo */}
             <Link to="/" className="flex-shrink-0 group leading-none">
-              <div
-                className="border border-primary/30 px-4 py-2 text-center"
-                style={{ minWidth: 100 }}
-              >
-                <span
-                  className="logo-script block text-[1.9rem] font-bold text-primary leading-none"
-                  style={{ fontStyle: 'italic' }}
-                >
-                  VK Jewellers
-                </span>
-                <span
-                  className="block text-[7px] text-primary/50 uppercase mt-[2px]"
-                  style={{ letterSpacing: '0.44em' }}
-                >
-                  Jewelry
-                </span>
-              </div>
+              <img src={vkLogo} alt="VK Jewellers" className="h-24 w-auto object-contain" />
             </Link>
 
             {/* Search bar */}
@@ -1001,26 +986,32 @@ export default function Header() {
                           <p className="text-[10px] text-gray-400 uppercase tracking-wider">Signed in as</p>
                           <p className="text-sm font-semibold text-gray-800 truncate mt-0.5">{user.name}</p>
                         </div>
-                        {user.role === 'admin' && (
+                        {(user.role === 'admin' || user.role === 'child_admin') && (
                           <Link onClick={() => setAccountOpen(false)} to="/admin/dashboard"
                             className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
                             Admin Panel
-                          </Link>
-                        )}
-                        {user.role === 'vendor' && (
-                          <Link onClick={() => setAccountOpen(false)} to="/vendor/dashboard"
-                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
-                            Vendor Panel
                           </Link>
                         )}
                         <Link onClick={() => setAccountOpen(false)} to="/account"
                           className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
                           My Account
                         </Link>
-                        <Link onClick={() => setAccountOpen(false)} to="/orders"
-                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
-                          My Orders
-                        </Link>
+                        {user.role === 'retailer' && (
+                          <>
+                            <Link onClick={() => setAccountOpen(false)} to="/my-quotes"
+                              className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
+                              My Quotes
+                            </Link>
+                            <Link onClick={() => setAccountOpen(false)} to="/quotes/request"
+                              className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
+                              Request a Quote
+                            </Link>
+                            <Link onClick={() => setAccountOpen(false)} to="/orders"
+                              className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
+                              My Orders
+                            </Link>
+                          </>
+                        )}
                         <div className="border-t border-gray-100 mt-1 pt-1">
                           <button
                             onClick={() => { setAccountOpen(false); logout(); }}
@@ -1163,7 +1154,7 @@ export default function Header() {
               }}
             >
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <span className="logo-script text-xl font-bold text-primary">VK Jewellers</span>
+                <img src={vkLogo} alt="VK Jewellers" className="h-20 w-auto object-contain" />
                 <button onClick={() => setMobileOpen(false)} className="p-1 text-gray-500">
                   <CloseIcon />
                 </button>
@@ -1191,8 +1182,17 @@ export default function Header() {
               {user ? (
                 <div className="border-t border-gray-100 px-5 py-4 space-y-1">
                   <p className="text-[10px] text-gray-400 mb-2 uppercase tracking-wider">Account</p>
+                  {(user.role === 'admin' || user.role === 'child_admin') && (
+                    <Link to="/admin/dashboard" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Admin Panel</Link>
+                  )}
                   <Link to="/account" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">My Account</Link>
-                  <Link to="/orders" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">My Orders</Link>
+                  {user.role === 'retailer' && (
+                    <>
+                      <Link to="/my-quotes" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">My Quotes</Link>
+                      <Link to="/quotes/request" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Request a Quote</Link>
+                      <Link to="/orders" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">My Orders</Link>
+                    </>
+                  )}
                   <button onClick={() => { setMobileOpen(false); logout(); }} className="block text-sm text-red-500 py-1.5 tracking-wide">Sign Out</button>
                 </div>
               ) : (
