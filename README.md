@@ -7,7 +7,7 @@
 | Field    | Value                         |
 |----------|-------------------------------|
 | URL      | `http://localhost:5173/login` |
-| Email    | `admin@vkjewellers.com`       |
+| Email    | `admin@luxuryjewelry.com`     |
 | Password | `admin@123`                   |
 
 ---
@@ -23,7 +23,7 @@
 cd backend
 npm install
 npm run dev
-# Runs on http://localhost:5000
+# Runs on http://localhost:8000
 ```
 
 ### Frontend
@@ -100,7 +100,7 @@ CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 
 FRONTEND_URL=http://localhost:5173
 
-ADMIN_EMAIL=admin@vkjewellers.com
+ADMIN_EMAIL=admin@luxuryjewelry.com
 ADMIN_PASSWORD=admin@123
 ```
 
