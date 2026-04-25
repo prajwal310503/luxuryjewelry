@@ -6,9 +6,19 @@
 
 | Field    | Value                         |
 |----------|-------------------------------|
-| URL      | `http://localhost:5173/login` |
+| URL      | `http://localhost:5173/login` (local) |
 | Email    | `admin@luxuryjewelry.com`     |
 | Password | `admin@123`                   |
+
+---
+
+## Live URLs
+
+| Service  | URL |
+|----------|-----|
+| Backend  | https://vk-jewellers.onrender.com |
+| API      | https://vk-jewellers.onrender.com/api |
+| Frontend | _Deploy on Vercel — see below_ |
 
 ---
 
