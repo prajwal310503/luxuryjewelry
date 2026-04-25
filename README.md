@@ -18,7 +18,7 @@
 |----------|-----|
 | Backend  | https://vk-jewellers.onrender.com |
 | API      | https://vk-jewellers.onrender.com/api |
-| Frontend | _Deploy on Vercel — see below_ |
+| Frontend | https://vk-jewellers-arzb.vercel.app |
 
 ---
 
