@@ -69,9 +69,9 @@ const getYouTubeId = (url) => {
 
 // ─── HERO BANNER — pure image/video slide, zero text overlay ─────────────────
 const FALLBACK_SLIDES = [
-  { image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=1600&h=900&fit=crop&q=80&auto=format' },
-  { image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=1600&h=900&fit=crop&q=80&auto=format' },
-  { image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=1600&h=900&fit=crop&q=80&auto=format' },
+  { bg: 'linear-gradient(135deg, #f5ede4 0%, #ecddd0 50%, #e8d5c4 100%)' },
+  { bg: 'linear-gradient(135deg, #f2e4e1 0%, #ecd6d3 50%, #e5cac6 100%)' },
+  { bg: 'linear-gradient(135deg, #faf7f2 0%, #f0e8df 50%, #e8ddd3 100%)' },
 ];
 
 const HeroBanner = ({ banners }) => {
@@ -95,15 +95,15 @@ const HeroBanner = ({ banners }) => {
 
   const renderSlide = (b, idx) => {
     if (!hasBanners) {
-      const slide = FALLBACK_SLIDES[idx % FALLBACK_SLIDES.length];
       return (
         <div
           key={idx}
           className="absolute inset-0 transition-opacity duration-700"
-          style={{ opacity: idx === current ? 1 : 0 }}
-        >
-          <img src={slide.image} alt="" className="w-full h-full object-cover" />
-        </div>
+          style={{
+            background: FALLBACK_SLIDES[idx % FALLBACK_SLIDES.length].bg,
+            opacity: idx === current ? 1 : 0,
+          }}
+        />
       );
     }
 
