@@ -7,6 +7,7 @@ const {
   getOrder,
   adminGetOrders,
   adminUpdateOrderStatus,
+  adminCreateOrder,
 } = require('../controllers/orderController');
 
 // Retailer / any authenticated user
@@ -15,6 +16,7 @@ router.get('/my', protect, getMyOrders);
 router.get('/:id', protect, getOrder);
 
 // Admin + child_admin with 'orders' permission
+router.post('/admin/create',    protect, requirePermission('orders'), adminCreateOrder);
 router.get('/admin/all',        protect, requirePermission('orders'), adminGetOrders);
 router.put('/admin/:id/status', protect, requirePermission('orders'), adminUpdateOrderStatus);
 

@@ -134,10 +134,11 @@ export const attributeAPI = {
 
 // ==================== ORDERS ====================
 export const orderAPI = {
-  create: (data) => api.post('/orders', data),
-  getMyOrders: (params) => api.get('/orders/my', { params }),
-  getById: (id) => api.get(`/orders/${id}`),
-  adminGetAll: (params) => api.get('/orders/admin/all', { params }),
+  create:            (data)     => api.post('/orders', data),
+  getMyOrders:       (params)   => api.get('/orders/my', { params }),
+  getById:           (id)       => api.get(`/orders/${id}`),
+  adminGetAll:       (params)   => api.get('/orders/admin/all', { params }),
+  adminCreate:       (data)     => api.post('/orders/admin/create', data),
   adminUpdateStatus: (id, data) => api.put(`/orders/admin/${id}/status`, data),
 };
 
@@ -205,10 +206,12 @@ export const reviewAPI = {
 
 // ==================== QUOTES ====================
 export const quoteAPI = {
-  create:       (data)         => api.post('/quotes', data),
-  getMyQuotes:  (params)       => api.get('/quotes/my', { params }),
-  adminGetAll:  (params)       => api.get('/quotes/admin/all', { params }),
-  adminUpdate:  (id, data)     => api.put(`/quotes/admin/${id}`, data),
+  create:          (data)         => api.post('/quotes', data),
+  getById:         (id)           => api.get(`/quotes/${id}`),
+  getMyQuotes:     (params)       => api.get('/quotes/my', { params }),
+  placeOrder:      (id, data)     => api.post(`/quotes/${id}/place-order`, data),
+  adminGetAll:     (params)       => api.get('/quotes/admin/all', { params }),
+  adminUpdate:     (id, data)     => api.put(`/quotes/admin/${id}`, data),
 };
 
 // ==================== STORES ====================
@@ -251,6 +254,14 @@ export const blogAPI = {
   adminUpdate: (id, data) => blogFetch('PUT', `/blog/admin/${id}`, data),
   adminDelete: (id) => api.delete(`/blog/admin/${id}`),
   adminToggle: (id) => api.put(`/blog/admin/${id}/toggle`),
+};
+
+// ==================== PINCODES ====================
+export const pincodeAPI = {
+  check: (pincode) => api.get('/pincodes/check', { params: { pincode } }),
+  adminGetStats: () => api.get('/pincodes/admin/stats'),
+  adminUpload: (formData) => api.post('/pincodes/admin/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  adminClear: () => api.delete('/pincodes/admin/clear'),
 };
 
 // ==================== SETTINGS ====================

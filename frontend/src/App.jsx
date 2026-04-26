@@ -27,8 +27,11 @@ const StorePage = lazy(() => import('./pages/StorePage'));
 const StoresListPage = lazy(() => import('./pages/StoresListPage'));
 const BlogPage = lazy(() => import('./pages/BlogPage'));
 const BlogDetailPage = lazy(() => import('./pages/BlogDetailPage'));
-const QuoteRequestPage = lazy(() => import('./pages/QuoteRequestPage'));
-const MyQuotesPage = lazy(() => import('./pages/MyQuotesPage'));
+const QuoteRequestPage  = lazy(() => import('./pages/QuoteRequestPage'));
+const MyQuotesPage      = lazy(() => import('./pages/MyQuotesPage'));
+const QuoteSuccessPage  = lazy(() => import('./pages/QuoteSuccessPage'));
+const QuotePaymentPage  = lazy(() => import('./pages/QuotePaymentPage'));
+const QuoteDetailPage   = lazy(() => import('./pages/QuoteDetailPage'));
 
 // Auth Pages
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
@@ -113,19 +116,36 @@ export default function App() {
             }
           />
           <Route path="/order-success/:id" element={<OrderSuccessPage />} />
+          <Route path="/quote-success/:id" element={<QuoteSuccessPage />} />
+          <Route
+            path="/my-quotes"
+            element={
+              <ProtectedRoute>
+                <MyQuotesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quotes/:id"
+            element={
+              <ProtectedRoute>
+                <QuoteDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quotes/:id/pay"
+            element={
+              <ProtectedRoute>
+                <QuotePaymentPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/quotes/request"
             element={
               <ProtectedRoute roles={['retailer']}>
                 <QuoteRequestPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/my-quotes"
-            element={
-              <ProtectedRoute roles={['retailer']}>
-                <MyQuotesPage />
               </ProtectedRoute>
             }
           />

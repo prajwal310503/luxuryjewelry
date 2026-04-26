@@ -116,8 +116,11 @@ exports.getMyOrders = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const total = await Order.countDocuments({ customer: req.user.id });
-    const orders = await Order.find({ customer: req.user.id })
+    const filter = { customer: req.user.id };
+    if (req.query.status) filter.status = req.query.status;
+
+    const total = await Order.countDocuments(filter);
+    const orders = await Order.find(filter)
       .sort('-createdAt')
       .skip(skip)
       .limit(limit)
@@ -172,6 +175,67 @@ exports.adminGetOrders = async (req, res, next) => {
       .select('orderNumber customer total status payment createdAt items source quoteId');
 
     sendPaginated(res, orders, page, limit, total);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Admin: Create order for any customer
+// @route   POST /api/orders/admin/create
+// @access  Admin
+exports.adminCreateOrder = async (req, res, next) => {
+  try {
+    const { customerId, items, shippingAddress, paymentMethod = 'cod', notes } = req.body;
+
+    if (!customerId) return sendError(res, 400, 'Customer is required');
+    if (!items || items.length === 0) return sendError(res, 400, 'At least one item is required');
+
+    let subtotal = 0;
+    const orderItems = [];
+
+    for (const item of items) {
+      const qty = parseInt(item.quantity) || 1;
+      let title = item.title || '';
+      let image = item.image || '';
+      let sku   = item.sku   || '';
+      let price = parseFloat(item.price) || 0;
+
+      if (item.product) {
+        const product = await Product.findById(item.product);
+        if (product) {
+          title = title || product.title;
+          image = image || product.images?.[0]?.url || '';
+          sku   = sku   || product.sku || '';
+          price = price || product.discountedPrice || product.price || 0;
+        }
+      }
+
+      if (!title) return sendError(res, 400, 'Product name is required for each item');
+
+      const itemSubtotal = price * qty;
+      orderItems.push({ product: item.product || undefined, title, image, sku, price, quantity: qty, discount: 0, subtotal: itemSubtotal });
+      subtotal += itemSubtotal;
+    }
+
+    const shipping = subtotal >= 5000 ? 0 : 199;
+    const total    = subtotal + shipping;
+
+    const order = await Order.create({
+      customer:       customerId,
+      items:          orderItems,
+      shippingAddress: shippingAddress || {},
+      payment:        { method: paymentMethod, status: 'pending' },
+      subtotal,
+      shippingCost:   shipping,
+      total,
+      notes:          notes || '',
+      source:         'direct',
+      status:         'confirmed',
+      statusHistory:  [{ status: 'confirmed', comment: 'Order created by admin', updatedBy: req.user.id }],
+    });
+
+    const populated = await Order.findById(order._id).populate('customer', 'name email phone');
+    sendSuccess(res, 201, 'Order created successfully', populated);
   } catch (error) {
     next(error);
   }

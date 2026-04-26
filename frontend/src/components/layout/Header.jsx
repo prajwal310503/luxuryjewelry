@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useCartStore from '../../store/cartStore';
 import useWishlistStore from '../../store/wishlistStore';
 import useAuthStore from '../../store/authStore';
 import { cmsAPI } from '../../services/api';
-import CartDrawer from '../cart/CartDrawer';
 import vkLogo from '../../assets/vklogo.png';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -891,6 +891,7 @@ export default function Header() {
   const openCart = useCartStore((s) => s.openCart);
   const menuTimeout = useRef(null);
   const accountRef = useRef(null);
+  const { pathname } = useLocation();
 
   useEffect(() => {
     cmsAPI.getMenu('primary').then(({ data }) => {
@@ -902,13 +903,8 @@ export default function Header() {
     }).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    const handler = (e) => {
-      if (accountRef.current && !accountRef.current.contains(e.target)) setAccountOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
+  useEffect(() => { setAccountOpen(false); setMobileOpen(false); }, [pathname]);
+
 
   const handleMouseEnter = (label) => {
     clearTimeout(menuTimeout.current);
@@ -946,84 +942,103 @@ export default function Header() {
             {/* Right icons */}
             <div className="flex items-center gap-0.5 flex-shrink-0">
 
-              {/* Store Nearby */}
-              <Link
-                to="/stores"
-                className="hidden lg:flex items-center gap-2 px-3.5 py-2 text-gray-600 hover:text-primary transition-colors rounded-lg hover:bg-gray-50"
-              >
-                <StoreIcon />
-                <span className="text-[12px] font-medium tracking-wide whitespace-nowrap">Store Nearby</span>
-              </Link>
-
               {/* Account */}
               {user ? (
-                <div className="relative" ref={accountRef}>
+                <>
                   <button
+                    ref={accountRef}
                     onClick={() => setAccountOpen((o) => !o)}
                     className="p-2.5 text-gray-600 hover:text-primary transition-colors rounded-lg hover:bg-gray-50"
                     aria-label="Account"
                   >
                     <UserIcon />
                   </button>
-                  <AnimatePresence>
-                    {accountOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -6, scale: 0.97 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute right-0 top-full mt-2 w-52 py-1 z-50"
-                        style={{
-                          borderRadius: '18px',
-                          background: 'rgba(255,255,255,0.88)',
-                          backdropFilter: 'blur(20px) saturate(200%)',
-                          WebkitBackdropFilter: 'blur(20px) saturate(200%)',
-                          border: '1px solid rgba(255,255,255,0.65)',
-                          boxShadow: '0 12px 40px rgba(90,65,63,0.12), inset 0 1px 0 rgba(255,255,255,0.9)',
-                        }}
-                      >
-                        <div className="px-4 py-2.5 border-b border-gray-100">
-                          <p className="text-[10px] text-gray-400 uppercase tracking-wider">Signed in as</p>
-                          <p className="text-sm font-semibold text-gray-800 truncate mt-0.5">{user.name}</p>
-                        </div>
-                        {(user.role === 'admin' || user.role === 'child_admin') && (
-                          <Link onClick={() => setAccountOpen(false)} to="/admin/dashboard"
-                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
-                            Admin Panel
-                          </Link>
-                        )}
-                        <Link onClick={() => setAccountOpen(false)} to="/account"
-                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
-                          My Account
-                        </Link>
-                        {user.role === 'retailer' && (
-                          <>
-                            <Link onClick={() => setAccountOpen(false)} to="/my-quotes"
+
+                  {/* Dropdown + backdrop portaled to body — escapes header stacking context */}
+                  {accountOpen && createPortal(
+                    <>
+                      {/* Backdrop */}
+                      <div
+                        className="fixed inset-0"
+                        style={{ zIndex: 9998 }}
+                        onClick={() => setAccountOpen(false)}
+                      />
+                      {/* Dropdown panel — positioned from button's bounding rect */}
+                      <AnimatePresence>
+                        <motion.div
+                          initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                          transition={{ duration: 0.15 }}
+                          style={{
+                            position: 'fixed',
+                            top: (accountRef.current?.getBoundingClientRect().bottom ?? 80) + 8,
+                            right: window.innerWidth - (accountRef.current?.getBoundingClientRect().right ?? 0),
+                            width: '208px',
+                            zIndex: 9999,
+                            borderRadius: '18px',
+                            background: 'rgba(255,255,255,0.97)',
+                            backdropFilter: 'blur(20px) saturate(200%)',
+                            WebkitBackdropFilter: 'blur(20px) saturate(200%)',
+                            border: '1px solid rgba(255,255,255,0.65)',
+                            boxShadow: '0 12px 40px rgba(90,65,63,0.12), inset 0 1px 0 rgba(255,255,255,0.9)',
+                            padding: '4px 0',
+                          }}
+                        >
+                          <div className="px-4 py-2.5 border-b border-gray-100">
+                            <p className="text-[10px] text-gray-400 uppercase tracking-wider">Signed in as</p>
+                            <p className="text-sm font-semibold text-gray-800 truncate mt-0.5">{user.name}</p>
+                          </div>
+                          {(user.role === 'admin' || user.role === 'child_admin') && (
+                            <Link onClick={() => setAccountOpen(false)} to="/admin/dashboard"
                               className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
-                              My Quotes
+                              Admin Panel
                             </Link>
+                          )}
+                          <Link onClick={() => setAccountOpen(false)} to="/account"
+                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
+                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            My Account
+                          </Link>
+                          <Link onClick={() => setAccountOpen(false)} to="/my-quotes"
+                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
+                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Track Quotes
+                          </Link>
+                          <Link onClick={() => setAccountOpen(false)} to="/orders"
+                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
+                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                            </svg>
+                            Track Orders
+                          </Link>
+                          {user.role === 'retailer' && (
                             <Link onClick={() => setAccountOpen(false)} to="/quotes/request"
                               className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
+                              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                              </svg>
                               Request a Quote
                             </Link>
-                            <Link onClick={() => setAccountOpen(false)} to="/orders"
-                              className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
-                              My Orders
-                            </Link>
-                          </>
-                        )}
-                        <div className="border-t border-gray-100 mt-1 pt-1">
-                          <button
-                            onClick={() => { setAccountOpen(false); logout(); }}
-                            className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
-                          >
-                            Sign Out
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                          )}
+                          <div className="border-t border-gray-100 mt-1 pt-1">
+                            <button
+                              onClick={() => { setAccountOpen(false); logout(); }}
+                              className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                            >
+                              Sign Out
+                            </button>
+                          </div>
+                        </motion.div>
+                      </AnimatePresence>
+                    </>,
+                    document.body
+                  )}
+                </>
               ) : (
                 <Link to="/login"
                   className="p-2.5 text-gray-600 hover:text-primary transition-colors rounded-lg hover:bg-gray-50"
@@ -1186,12 +1201,10 @@ export default function Header() {
                     <Link to="/admin/dashboard" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Admin Panel</Link>
                   )}
                   <Link to="/account" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">My Account</Link>
+                  <Link to="/my-quotes" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Track Quotes</Link>
+                  <Link to="/orders" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Track Orders</Link>
                   {user.role === 'retailer' && (
-                    <>
-                      <Link to="/my-quotes" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">My Quotes</Link>
-                      <Link to="/quotes/request" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Request a Quote</Link>
-                      <Link to="/orders" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">My Orders</Link>
-                    </>
+                    <Link to="/quotes/request" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Request a Quote</Link>
                   )}
                   <button onClick={() => { setMobileOpen(false); logout(); }} className="block text-sm text-red-500 py-1.5 tracking-wide">Sign Out</button>
                 </div>
@@ -1207,7 +1220,6 @@ export default function Header() {
         )}
       </AnimatePresence>
 
-      <CartDrawer />
     </>
   );
 }

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Purple background -->
+  <circle cx="32" cy="32" r="31" fill="#3d1260"/>
+
+  <!-- Gold outer ring -->
+  <circle cx="32" cy="32" r="31" fill="none" stroke="#C9A84C" stroke-width="2.5"/>
+  <!-- Gold inner ring -->
+  <circle cx="32" cy="32" r="27" fill="none" stroke="#C9A84C" stroke-width="0.8" opacity="0.45"/>
+
+  <!-- Diamond at top, sitting on the ring -->
+  <g transform="translate(32,5)">
+    <polygon points="0,-6 -7,0 0,4 7,0"  fill="#C9A84C"/>
+    <polygon points="-7,0 0,4 7,0 0,12"  fill="#9a6e20"/>
+    <polygon points="-3,-4 0,-6 3,-4 0,-1" fill="#ffe8a0" opacity="0.9"/>
+  </g>
+
+  <!-- VK in gold serif -->
+  <text
+    x="32" y="44"
+    text-anchor="middle"
+    dominant-baseline="auto"
+    font-family="Georgia,'Times New Roman',serif"
+    font-size="22"
+    font-weight="bold"
+    fill="#C9A84C"
+    letter-spacing="2"
+  >VK</text>
+
+  <!-- Thin decorative arc under text -->
+  <path d="M20,50 Q32,55 44,50" fill="none" stroke="#C9A84C" stroke-width="1" opacity="0.6"/>
+</svg>

@@ -12,38 +12,47 @@ export default function CartDrawer() {
 
   const handleCheckout = () => {
     closeCart();
-    if (!token) {
-      navigate('/login', { state: { from: { pathname: '/checkout' } } });
-    } else {
-      navigate('/checkout');
-    }
+    setTimeout(() => {
+      if (!token) {
+        navigate('/login', { state: { from: { pathname: '/checkout' } } });
+      } else {
+        navigate('/checkout');
+      }
+    }, 50);
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
+    <>
+      {/* Backdrop — separate AnimatePresence so keys are stable */}
+      <AnimatePresence>
+        {isOpen && (
           <motion.div
+            key="cart-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             onClick={closeCart}
-            className="fixed inset-0 bg-black/40 z-50"
+            className="fixed inset-0 bg-black/40 z-[200]"
           />
+        )}
+      </AnimatePresence>
 
-          {/* Drawer */}
+      {/* Drawer — separate AnimatePresence */}
+      <AnimatePresence>
+        {isOpen && (
           <motion.div
+            key="cart-drawer"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'tween', duration: 0.3 }}
-            className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white z-50 flex flex-col shadow-luxury-lg"
+            transition={{ type: 'tween', duration: 0.25 }}
+            className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white z-[201] flex flex-col shadow-luxury-lg"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <h2 className="font-heading text-xl font-semibold text-gray-900">My Cart</h2>
-              <button onClick={closeCart} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+              <button type="button" onClick={closeCart} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -99,6 +108,7 @@ export default function CartDrawer() {
                             <div className="flex items-center gap-2">
                               <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
                                 <button
+                                  type="button"
                                   onClick={() => updateQuantity(item.key, item.quantity - 1)}
                                   className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors text-sm"
                                 >
@@ -106,6 +116,7 @@ export default function CartDrawer() {
                                 </button>
                                 <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
                                 <button
+                                  type="button"
                                   onClick={() => updateQuantity(item.key, item.quantity + 1)}
                                   className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors text-sm"
                                 >
@@ -113,6 +124,7 @@ export default function CartDrawer() {
                                 </button>
                               </div>
                               <button
+                                type="button"
                                 onClick={() => removeItem(item.key)}
                                 className="p-1 text-gray-400 hover:text-red-500 transition-colors"
                               >
@@ -150,12 +162,14 @@ export default function CartDrawer() {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={handleCheckout}
                   className="btn-primary w-full justify-center text-sm"
                 >
                   {token ? 'Proceed to Checkout' : 'Login to Checkout'}
                 </button>
                 <button
+                  type="button"
                   onClick={closeCart}
                   className="w-full text-center text-sm text-gray-500 hover:text-primary transition-colors py-1"
                 >
@@ -164,8 +178,8 @@ export default function CartDrawer() {
               </div>
             )}
           </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

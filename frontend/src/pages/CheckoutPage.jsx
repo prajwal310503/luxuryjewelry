@@ -1,61 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import useCartStore from '../store/cartStore';
 import useAuthStore from '../store/authStore';
-import { orderAPI } from '../services/api';
+import { quoteAPI } from '../services/api';
 
 const formatPrice = (p) => `₹${Math.round(p).toLocaleString('en-IN')}`;
 
-const steps = ['Address', 'Review', 'Payment'];
+const steps = ['Address', 'Review', 'Quote'];
 
 const FIELDS = [
-  { field: 'fullName',     label: 'Full Name',              col: 1, required: true },
-  { field: 'phone',        label: 'Phone Number',           col: 1, required: true },
-  { field: 'addressLine1', label: 'Address Line 1',         col: 2, required: true },
+  { field: 'fullName', label: 'Full Name', col: 1, required: true },
+  { field: 'phone', label: 'Phone Number', col: 1, required: true },
+  { field: 'addressLine1', label: 'Address Line 1', col: 2, required: true },
   { field: 'addressLine2', label: 'Address Line 2 (Optional)', col: 2, required: false },
-  { field: 'city',         label: 'City',                   col: 1, required: true },
-  { field: 'state',        label: 'State',                  col: 1, required: true },
-  { field: 'pincode',      label: 'Pincode',                col: 1, required: true },
-  { field: 'country',      label: 'Country',                col: 1, required: false },
-];
-
-const PAYMENT_METHODS = [
-  {
-    value: 'cod',
-    label: 'Cash on Delivery',
-    desc: 'Pay when your order arrives',
-    badge: 'Most Popular',
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    ),
-  },
-  {
-    value: 'razorpay',
-    label: 'Razorpay',
-    desc: 'UPI, Cards, Net Banking, Wallets',
-    badge: null,
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-      </svg>
-    ),
-  },
-  {
-    value: 'stripe',
-    label: 'Credit / Debit Card',
-    desc: 'Visa, Mastercard, American Express',
-    badge: null,
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-      </svg>
-    ),
-  },
+  { field: 'city', label: 'City', col: 1, required: true },
+  { field: 'state', label: 'State', col: 1, required: true },
+  { field: 'pincode', label: 'Pincode', col: 1, required: true },
+  { field: 'country', label: 'Country', col: 1, required: false },
 ];
 
 export default function CheckoutPage() {
@@ -78,8 +42,7 @@ export default function CheckoutPage() {
     country: 'India',
   });
 
-  const [paymentMethod, setPaymentMethod] = useState('cod');
-  const [couponCode, setCouponCode] = useState('');
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
   if (items.length === 0) {
     return (
@@ -117,27 +80,28 @@ export default function CheckoutPage() {
     }
   };
 
-  const handlePlaceOrder = async () => {
+  const handleRequestQuote = async () => {
     setLoading(true);
     try {
-      const orderItems = items.map((item) => ({
-        product: item.product._id,
-        quantity: item.quantity,
-        variantAttributes: item.variantAttributes,
+      const quoteItems = items.map((item) => ({
+        product:       item.product._id,
+        productName:   item.product.title,
+        sku:           item.product.sku || '',
+        image:         item.product.images?.[0]?.url || '',
+        quantity:      item.quantity,
+        originalPrice: item.product.discountedPrice ?? item.product.price,
       }));
 
-      const { data } = await orderAPI.create({
-        items: orderItems,
+      const { data } = await quoteAPI.create({
+        items:           quoteItems,
         shippingAddress: address,
-        payment: { method: paymentMethod },
-        couponCode: couponCode || undefined,
       });
 
       clearCart();
-      toast.success('Order placed successfully!');
-      navigate(`/order-success/${data.data._id}`);
+      toast.success('Quote request submitted! We will contact you shortly.');
+      navigate(`/quote-success/${data.data._id}`);
     } catch (error) {
-      toast.error(error.response?.data?.message || error.message || 'Failed to place order');
+      toast.error(error?.message || 'Failed to submit quote');
     } finally {
       setLoading(false);
     }
@@ -157,13 +121,13 @@ export default function CheckoutPage() {
           {steps.map((step, idx) => (
             <div key={step} className="flex items-center gap-4">
               <button
+                type="button"
                 onClick={() => idx < currentStep && setCurrentStep(idx)}
                 className={`flex items-center gap-2 ${idx <= currentStep ? 'text-primary' : 'text-gray-400'} ${idx < currentStep ? 'cursor-pointer' : 'cursor-default'}`}
               >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${
-                  idx < currentStep ? 'bg-primary border-primary text-white' :
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all ${idx < currentStep ? 'bg-primary border-primary text-white' :
                   idx === currentStep ? 'border-primary text-primary' : 'border-gray-200 text-gray-400'
-                }`}>
+                  }`}>
                   {idx < currentStep ? (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -183,6 +147,7 @@ export default function CheckoutPage() {
           {/* Left — Steps */}
           <div className="lg:col-span-2">
             <AnimatePresence mode="wait">
+
               {/* Step 0: Address */}
               {currentStep === 0 && (
                 <motion.form
@@ -210,9 +175,8 @@ export default function CheckoutPage() {
                             if (errors[field]) setErrors({ ...errors, [field]: '' });
                           }}
                           placeholder={label}
-                          className={`input-luxury transition-all ${
-                            errors[field] ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : ''
-                          }`}
+                          className={`input-luxury transition-all ${errors[field] ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : ''
+                            }`}
                         />
                         {errors[field] && (
                           <p className="text-xs text-red-500 mt-1">{errors[field]}</p>
@@ -241,7 +205,6 @@ export default function CheckoutPage() {
                 >
                   <h2 className="font-heading text-xl font-semibold mb-6">Review Order</h2>
 
-                  {/* Items */}
                   <div className="space-y-4 mb-6">
                     {items.map((item) => {
                       const price = item.product.discountedPrice ?? item.product.price;
@@ -266,11 +229,10 @@ export default function CheckoutPage() {
                     })}
                   </div>
 
-                  {/* Address Preview */}
                   <div className="bg-luxury-cream rounded-xl p-4 mb-6">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Delivery Address</p>
-                      <button onClick={() => setCurrentStep(0)} className="text-xs text-primary hover:underline font-medium">Edit</button>
+                      <button type="button" onClick={() => setCurrentStep(0)} className="text-xs text-primary hover:underline font-medium">Edit</button>
                     </div>
                     <p className="text-sm text-gray-700 leading-relaxed">
                       {address.fullName} &bull; {address.phone}<br />
@@ -280,114 +242,77 @@ export default function CheckoutPage() {
                   </div>
 
                   <div className="flex gap-3">
-                    <button onClick={() => setCurrentStep(0)} className="btn-outline flex-1 justify-center">
+                    <button type="button" onClick={() => setCurrentStep(0)} className="btn-outline flex-1 justify-center">
                       <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
                       Back
                     </button>
-                    <button onClick={() => { setCurrentStep(2); window.scrollTo(0, 0); }} className="btn-primary flex-1 justify-center">
-                      Choose Payment
+                    <button type="button" onClick={() => { setCurrentStep(2); window.scrollTo(0, 0); }} className="btn-primary flex-1 justify-center">
+                      Confirm Quote
                       <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                     </button>
                   </div>
                 </motion.div>
               )}
 
-              {/* Step 2: Payment */}
+              {/* Step 2: Quote */}
               {currentStep === 2 && (
                 <motion.div
-                  key="payment"
+                  key="quote"
                   initial={{ opacity: 0, x: -16 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 16 }}
                   transition={{ duration: 0.2 }}
                   className="card-luxury p-6"
                 >
-                  <h2 className="font-heading text-xl font-semibold mb-6">Payment Method</h2>
+                  <h2 className="font-heading text-xl font-semibold mb-2">Request a Quote</h2>
+                  <p className="text-sm text-gray-500 mb-6">Our team will review your order and get back to you with the best price.</p>
 
-                  <div className="space-y-3 mb-6">
-                    {PAYMENT_METHODS.map((method) => (
-                      <label
-                        key={method.value}
-                        className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all duration-150 ${
-                          paymentMethod === method.value
-                            ? 'border-primary bg-primary/5'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="payment"
-                          value={method.value}
-                          checked={paymentMethod === method.value}
-                          onChange={(e) => setPaymentMethod(e.target.value)}
-                          className="accent-primary"
-                        />
-                        <span className={`${paymentMethod === method.value ? 'text-primary' : 'text-gray-400'}`}>
-                          {method.icon}
-                        </span>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold text-gray-800">{method.label}</p>
-                            {method.badge && (
-                              <span className="text-[10px] font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                                {method.badge}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-gray-400 mt-0.5">{method.desc}</p>
-                        </div>
-                        {paymentMethod === method.value && (
-                          <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                        )}
-                      </label>
-                    ))}
-                  </div>
-
-                  {/* Coupon */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Coupon Code (Optional)</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={couponCode}
-                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                        placeholder="Enter coupon code"
-                        className="input-luxury flex-1"
-                      />
-                      <button type="button" className="btn-outline px-4 text-sm">Apply</button>
+                  {/* Summary */}
+                  <div className="bg-[#faf6f2] border border-[#eedfd8] rounded-xl p-4 mb-6 space-y-3">
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>Items</span>
+                      <span>{items.reduce((t, i) => t + i.quantity, 0)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>Subtotal</span>
+                      <span>{formatPrice(subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>Shipping</span>
+                      <span className={shipping === 0 ? 'text-green-600 font-medium' : ''}>{shipping === 0 ? 'FREE' : formatPrice(shipping)}</span>
+                    </div>
+                    <div className="border-t border-[#eedfd8] pt-3 flex justify-between text-base font-bold">
+                      <span>Total</span>
+                      <span className="price-tag">{formatPrice(total)}</span>
                     </div>
                   </div>
 
-                  {/* COD Info Box */}
-                  {paymentMethod === 'cod' && (
-                    <div className="flex gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-sm text-amber-800">
-                      <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p>Pay <strong>{formatPrice(total)}</strong> in cash when your order is delivered. No advance payment needed.</p>
-                    </div>
-                  )}
+                  {/* Delivery address recap */}
+                  <div className="bg-luxury-cream rounded-xl p-4 mb-6">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Delivery Address</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      {address.fullName} &bull; {address.phone}<br />
+                      {address.addressLine1}{address.addressLine2 && `, ${address.addressLine2}`}<br />
+                      {address.city}, {address.state} &ndash; {address.pincode}
+                    </p>
+                  </div>
 
-                  {(paymentMethod === 'razorpay' || paymentMethod === 'stripe') && (
-                    <div className="flex gap-3 bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-sm text-blue-800">
-                      <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p>Payment gateway is in demo mode. Your order will be placed and marked as <strong>pending payment</strong>.</p>
-                    </div>
-                  )}
+                  {/* Info note */}
+                  <div className="flex gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-sm text-amber-800">
+                    <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p>No payment required now. Our team will contact you at <strong>{address.phone}</strong> to confirm your Quote.</p>
+                  </div>
 
                   <div className="flex gap-3">
-                    <button onClick={() => setCurrentStep(1)} className="btn-outline flex-1 justify-center">
+                    <button type="button" onClick={() => setCurrentStep(1)} className="btn-outline flex-1 justify-center">
                       <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
                       Back
                     </button>
                     <button
-                      onClick={handlePlaceOrder}
+                      type="button"
+                      onClick={handleRequestQuote}
                       disabled={loading}
                       className="btn-primary flex-1 justify-center py-3.5 disabled:opacity-60"
                     >
@@ -397,27 +322,29 @@ export default function CheckoutPage() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                           </svg>
-                          Placing Order...
+                          Submitting...
                         </>
                       ) : (
                         <>
-                          {paymentMethod === 'cod' ? 'Place Order' : 'Confirm & Pay'}
-                          &nbsp;&mdash;&nbsp;{formatPrice(total)}
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Request Quote
                         </>
                       )}
                     </button>
                   </div>
                 </motion.div>
               )}
+
             </AnimatePresence>
           </div>
 
           {/* Right — Order Summary */}
           <div className="lg:col-span-1">
             <div className="card-luxury p-6 sticky top-24">
-              <h3 className="font-heading text-lg font-semibold mb-5">Order Summary</h3>
+              <h3 className="font-heading text-lg font-semibold mb-5">Quote Summary</h3>
 
-              {/* Item thumbnails */}
               <div className="space-y-3 mb-5">
                 {items.map((item) => {
                   const price = item.product.discountedPrice ?? item.product.price;
@@ -430,7 +357,7 @@ export default function CheckoutPage() {
                             : <div className="w-full h-full bg-luxury-beige" />
                           }
                         </div>
-                        <span className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 bg-gray-700 text-white text-[10px] rounded-full flex items-center justify-center font-bold leading-none" style={{ width: 18, height: 18 }}>
+                        <span className="absolute -top-1.5 -right-1.5 bg-gray-700 text-white text-[10px] rounded-full flex items-center justify-center font-bold leading-none" style={{ width: 18, height: 18 }}>
                           {item.quantity}
                         </span>
                       </div>
@@ -467,8 +394,8 @@ export default function CheckoutPage() {
 
               <div className="space-y-1.5">
                 {[
-                  '100% Secure Payments',
-                  '15-Day Easy Returns',
+                  '100% Secure Process',
+                  'No Payment Required Now',
                   'IGI / BIS Certified Jewelry',
                 ].map((txt) => (
                   <div key={txt} className="flex items-center gap-2 text-xs text-gray-400">

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { settingsAPI } from '../../services/api';
+import { settingsAPI, pincodeAPI } from '../../services/api';
 
 // ── Icon helper ────────────────────────────────────────────────────────────────
 const I = ({ d, d2, className = 'w-5 h-5' }) => (
@@ -106,6 +106,15 @@ const GROUPS = [
     ],
   },
   {
+    id: 'pincodes',
+    label: 'Pincodes',
+    statusKey: null,
+    icon: <I d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" d2="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />,
+    description: 'Upload an Excel file of serviceable pincodes for delivery check.',
+    docsUrl: null,
+    fields: [],
+  },
+  {
     id: 'siteImages',
     label: 'Site Images',
     statusKey: null,
@@ -123,8 +132,11 @@ export default function AdminSettings() {
   const [activeTab, setActiveTab] = useState('cloudinary');
   const [siteImages, setSiteImages] = useState({});
   const [uploadingImg, setUploadingImg] = useState({});
-  const desktopRef = useRef(null);
-  const mobileRef  = useRef(null);
+  const [pincodeCount, setPincodeCount] = useState(null);
+  const [uploadingPincodes, setUploadingPincodes] = useState(false);
+  const desktopRef  = useRef(null);
+  const mobileRef   = useRef(null);
+  const pincodeRef  = useRef(null);
 
   const loadSiteImages = () =>
     settingsAPI.getSiteImages().then((r) => setSiteImages(r.data.data || {})).catch(() => {});
@@ -144,6 +156,7 @@ export default function AdminSettings() {
       .catch(() => {});
 
     loadSiteImages();
+    pincodeAPI.adminGetStats().then((r) => setPincodeCount(r.data.count ?? 0)).catch(() => {});
   }, []);
 
   const handleSiteImageUpload = async (key, file) => {
@@ -157,6 +170,35 @@ export default function AdminSettings() {
       toast.error(err.message || 'Upload failed');
     } finally {
       setUploadingImg((p) => ({ ...p, [key]: false }));
+    }
+  };
+
+  const handlePincodeUpload = async (file) => {
+    if (!file) return;
+    setUploadingPincodes(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const { data } = await pincodeAPI.adminUpload(fd);
+      toast.success(data.message || 'Pincodes uploaded');
+      const r = await pincodeAPI.adminGetStats();
+      setPincodeCount(r.data.count ?? 0);
+    } catch (err) {
+      toast.error(err.message || 'Upload failed');
+    } finally {
+      setUploadingPincodes(false);
+      if (pincodeRef.current) pincodeRef.current.value = '';
+    }
+  };
+
+  const handlePincodeClear = async () => {
+    if (!window.confirm('Clear ALL serviceable pincodes? Users will see all areas as available.')) return;
+    try {
+      await pincodeAPI.adminClear();
+      setPincodeCount(0);
+      toast.success('Pincodes cleared');
+    } catch (err) {
+      toast.error(err.message || 'Failed to clear');
     }
   };
 
@@ -264,8 +306,94 @@ export default function AdminSettings() {
               )}
             </div>
 
-            {/* Site Images — custom UI */}
-            {active.id === 'siteImages' ? (
+            {/* Pincodes — custom UI */}
+            {active.id === 'pincodes' ? (
+              <div className="space-y-5">
+                {/* Stats card */}
+                <div className="flex items-center gap-4 bg-[#fdf8f5] border border-[#eedfd8] rounded-2xl p-5">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-gray-800">
+                      {pincodeCount === null ? 'Loading…' : pincodeCount === 0 ? 'No pincodes uploaded' : `${pincodeCount.toLocaleString()} serviceable pincodes`}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {pincodeCount === 0
+                        ? 'When no pincodes are set, all areas show as available.'
+                        : 'Only these pincodes will show delivery as available on product pages.'}
+                    </p>
+                  </div>
+                  {pincodeCount > 0 && (
+                    <button
+                      onClick={handlePincodeClear}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 bg-white px-3 py-2 rounded-xl transition-all"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Clear All
+                    </button>
+                  )}
+                </div>
+
+                {/* Upload section */}
+                <div className="border border-gray-100 rounded-2xl p-5">
+                  <p className="label-luxury mb-1">Upload Pincodes File</p>
+                  <p className="text-[11px] text-gray-400 mb-4">
+                    Upload an Excel (.xlsx / .xls) or CSV file. Any column with 6-digit numbers will be treated as pincodes.
+                    New pincodes are <strong>added</strong> to existing ones — existing records are preserved.
+                  </p>
+
+                  <div
+                    className="border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center gap-3 py-10 bg-gray-50 cursor-pointer hover:border-primary/40 hover:bg-primary/3 transition-all"
+                    onClick={() => pincodeRef.current?.click()}
+                  >
+                    <svg className="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.4}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <div className="text-center">
+                      <p className="text-sm font-semibold text-gray-700">Click to select Excel / CSV file</p>
+                      <p className="text-xs text-gray-400 mt-1">Max 5 MB · .xlsx, .xls, .csv</p>
+                    </div>
+                  </div>
+
+                  <input
+                    ref={pincodeRef}
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    className="hidden"
+                    onChange={(e) => handlePincodeUpload(e.target.files[0])}
+                  />
+
+                  <button
+                    onClick={() => pincodeRef.current?.click()}
+                    disabled={uploadingPincodes}
+                    className="btn-primary mt-4 flex items-center gap-2"
+                  >
+                    {uploadingPincodes ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Processing…
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        Upload Pincodes
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : active.id === 'siteImages' ? (
               <div className="space-y-6">
                 {[
                   { key: 'categoryBannerDesktop', label: 'Category Header — Desktop', hint: 'Shown on screens ≥ 768 px. Recommended: 1440 × 320 px', ref: desktopRef },

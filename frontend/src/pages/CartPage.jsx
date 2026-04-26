@@ -58,7 +58,7 @@ export default function CartPage() {
           </div>
           <div className="lg:col-span-1">
             <div className="card-luxury p-6 sticky top-24">
-              <h3 className="font-heading text-lg font-semibold mb-5">Order Summary</h3>
+              <h3 className="font-heading text-lg font-semibold mb-5">Quote Summary</h3>
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-sm text-gray-600"><span>Subtotal</span><span>{formatPrice(getSubtotal())}</span></div>
                 <div className="flex justify-between text-sm text-gray-600"><span>Shipping</span><span className={getShipping() === 0 ? 'text-green-600 font-medium' : ''}>{getShipping() === 0 ? 'FREE' : formatPrice(getShipping())}</span></div>
