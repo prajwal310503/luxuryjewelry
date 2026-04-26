@@ -83,6 +83,13 @@ export default function ProductPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Auto-scroll selected thumbnail into view — must be before early returns
+  useEffect(() => {
+    if (!thumbsRef.current) return;
+    const btns = thumbsRef.current.querySelectorAll('button');
+    if (btns[imgIdx]) btns[imgIdx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+  }, [imgIdx]);
+
   if (loading) {
     return (
       <div className="container-luxury py-10">
@@ -122,14 +129,6 @@ export default function ProductPage() {
     ...(product.videos || []).map((vid) => ({ type: 'video', url: vid.url })),
   ];
   const currentMedia = mediaItems[imgIdx] || null;
-
-  // Auto-scroll selected thumbnail into view
-  useEffect(() => {
-    if (!thumbsRef.current || mediaItems.length <= 1) return;
-    const btns = thumbsRef.current.querySelectorAll('button');
-    if (btns[imgIdx]) btns[imgIdx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-  }, [imgIdx]);
-
   const goTo = (idx) => setImgIdx(idx);
 
   const salePrice   = product.discountedPrice ?? product.price;
