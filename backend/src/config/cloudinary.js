@@ -84,4 +84,11 @@ const uploadSiteImage = makeDynamic({
   transformation: [{ quality: 'auto' }],
 });
 
-module.exports = { cloudinary, uploadProduct, uploadBanner, uploadAvatar, uploadSiteImage, isCloudinaryConfigured, getFileUrl };
+// Product videos
+const uploadVideo = makeDynamic({
+  folder: 'luxury_jewelry/videos',
+  resource_type: 'video',
+  allowed_formats: ['mp4', 'mov', 'webm', 'avi'],
+});
+
+module.exports = { cloudinary, uploadProduct, uploadBanner, uploadAvatar, uploadSiteImage, uploadVideo, isCloudinaryConfigured, getFileUrl };

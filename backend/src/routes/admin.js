@@ -26,11 +26,13 @@ const {
   adminUploadPackageImages,
   adminUploadPromoBanner,
   adminUploadProductImages,
+  adminUploadProductVideos,
   adminUploadCertImage,
   adminRemoveProductImage,
+  adminRemoveProductVideo,
   adminUploadSiteImage,
 } = require('../controllers/productController');
-const { uploadProduct, uploadSiteImage } = require('../config/cloudinary');
+const { uploadProduct, uploadSiteImage, uploadVideo } = require('../config/cloudinary');
 
 const adminAuth = [protect, authorize('admin')];
 // Routes accessible by both admin and child_admin (permission checked per-route)
@@ -60,6 +62,8 @@ router.put('/products/:id/lifestyle1',              ...adminAuth, adminToggleLif
 router.put('/products/:id/lifestyle2',              ...adminAuth, adminToggleLifestyle2);
 router.post('/products/:id/images',                 ...adminAuth, uploadProduct.array('images', 10), adminUploadProductImages);
 router.delete('/products/:id/images/:imageIndex',   ...adminAuth, adminRemoveProductImage);
+router.post('/products/:id/videos',                 ...adminAuth, uploadVideo.array('videos', 50), adminUploadProductVideos);
+router.delete('/products/:id/videos/:videoIndex',   ...adminAuth, adminRemoveProductVideo);
 
 // Uploads — admin only
 router.post('/upload/package-images',   ...adminAuth, uploadProduct.array('images', 10), adminUploadPackageImages);

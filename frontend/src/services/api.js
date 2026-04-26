@@ -190,6 +190,8 @@ export const adminAPI = {
   uploadPackageImages: (formData) => api.post('/admin/upload/package-images', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   uploadPromoBanner: (formData) => api.post('/admin/upload/promo-banner', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   uploadProductImages: (id, formData) => api.post(`/admin/products/${id}/images`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  uploadProductVideos: (id, formData) => api.post(`/admin/products/${id}/videos`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  removeProductVideo:  (id, idx) => api.delete(`/admin/products/${id}/videos/${idx}`),
   uploadCertImage: (formData) => api.post('/admin/upload/cert-image', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
 };
 

@@ -165,6 +165,51 @@ exports.adminRemoveProductImage = async (req, res, next) => {
   }
 };
 
+// @desc    Upload product videos (admin)
+// @route   POST /api/admin/products/:id/videos
+// @access  Admin
+exports.adminUploadProductVideos = async (req, res, next) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return sendError(res, 404, 'Product not found');
+    if (!req.files || req.files.length === 0) return sendError(res, 400, 'No videos uploaded');
+
+    if (!product.videos) product.videos = [];
+    const newVideos = req.files.map((file, idx) => ({
+      url: getFileUrl(file),
+      publicId: file.filename || file.public_id || '',
+      sortOrder: product.videos.length + idx,
+    })).filter((v) => v.url);
+
+    product.videos.push(...newVideos);
+    await product.save();
+    sendSuccess(res, 200, 'Videos uploaded', product.videos);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Remove product video (admin)
+// @route   DELETE /api/admin/products/:id/videos/:videoIndex
+// @access  Admin
+exports.adminRemoveProductVideo = async (req, res, next) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return sendError(res, 404, 'Product not found');
+
+    const idx = parseInt(req.params.videoIndex);
+    if (isNaN(idx) || idx < 0 || !product.videos || idx >= product.videos.length) {
+      return sendError(res, 400, 'Invalid video index');
+    }
+
+    product.videos.splice(idx, 1);
+    await product.save();
+    sendSuccess(res, 200, 'Video removed', product.videos);
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Admin: get all products
 // @route   GET /api/admin/products
 // @access  Admin

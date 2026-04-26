@@ -23,6 +23,9 @@ export default function AdminAddProduct() {
   const [attributes, setAttributes] = useState([]);
   const [currentImages, setCurrentImages] = useState([]);
   const [pendingImageFiles, setPendingImageFiles] = useState([]);
+  const [currentVideos, setCurrentVideos] = useState([]);
+  const [pendingVideoFiles, setPendingVideoFiles] = useState([]);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [productId, setProductId] = useState(id || null);
 
@@ -67,6 +70,7 @@ export default function AdminAddProduct() {
         const p = prodRes.data.data;
         if (p) {
           setCurrentImages(p.images || []);
+          setCurrentVideos(p.videos || []);
           setProductId(p._id);
           setForm({
             title: p.title || '',
@@ -175,6 +179,18 @@ export default function AdminAddProduct() {
           slots.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
           setPendingImageFiles([]);
         }
+        if (pendingVideoFiles.length > 0) {
+          const formData = new FormData();
+          pendingVideoFiles.forEach(({ file }) => formData.append('videos', file));
+          try {
+            const vidRes = await adminAPI.uploadProductVideos(newId, formData);
+            setCurrentVideos(vidRes.data.data || []);
+          } catch {
+            toast.error('Product created but video upload failed');
+          }
+          pendingVideoFiles.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+          setPendingVideoFiles([]);
+        }
         toast.success('Product published');
       }
       navigate('/admin/products');
@@ -239,6 +255,45 @@ export default function AdminAddProduct() {
       const { data } = await productAPI.adminRemoveImage(productId, slotIndex);
       setCurrentImages(data.data || []);
       toast.success('Image removed');
+    } catch {
+      toast.error('Remove failed');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleVideoSelect = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    if (!productId) {
+      const previews = files.map((file) => ({ file, previewUrl: URL.createObjectURL(file) }));
+      setPendingVideoFiles((prev) => [...prev, ...previews]);
+      e.target.value = '';
+      return;
+    }
+    setUploadingVideo(true);
+    const formData = new FormData();
+    files.forEach((f) => formData.append('videos', f));
+    adminAPI.uploadProductVideos(productId, formData)
+      .then(({ data }) => { setCurrentVideos(data.data || []); toast.success('Video uploaded'); })
+      .catch(() => toast.error('Video upload failed'))
+      .finally(() => { setUploadingVideo(false); e.target.value = ''; });
+  };
+
+  const handleRemoveVideo = async (idx) => {
+    if (!productId) {
+      setPendingVideoFiles((prev) => {
+        const next = [...prev];
+        if (next[idx]?.previewUrl) URL.revokeObjectURL(next[idx].previewUrl);
+        return next.filter((_, i) => i !== idx);
+      });
+      return;
+    }
+    setUpdating(true);
+    try {
+      const { data } = await adminAPI.removeProductVideo(productId, idx);
+      setCurrentVideos(data.data || []);
+      toast.success('Video removed');
     } catch {
       toast.error('Remove failed');
     } finally {
@@ -420,20 +475,20 @@ export default function AdminAddProduct() {
 
         {/* Right sidebar */}
         <div className="space-y-6">
-          {/* Images — exactly 2 slots */}
+          {/* Images — 4 slots */}
           <div className="card-luxury p-6">
             <SectionTitle>Product Images</SectionTitle>
             <p className="text-xs text-gray-400 mb-4 leading-snug">
-              Slot 1 is shown by default. Slot 2 appears when customer hovers the product card.
+              Up to 4 images. Image 1 is the main photo; Image 2 shows on card hover.
             </p>
 
             <div className="grid grid-cols-2 gap-3">
-              {[0, 1].map((slotIdx) => {
+              {[0, 1, 2, 3].map((slotIdx) => {
                 const saved   = currentImages[slotIdx];
                 const pending = pendingImageFiles[slotIdx];
                 const imgUrl  = saved?.url || pending?.previewUrl || null;
-                const label   = slotIdx === 0 ? 'Main Image' : 'Hover Image';
-                const hint    = slotIdx === 0 ? 'Shown always' : 'Shown on hover';
+                const label   = slotIdx === 0 ? 'Main Image' : `Image ${slotIdx + 1}`;
+                const hint    = slotIdx === 0 ? 'Always shown' : slotIdx === 1 ? 'Hover image' : '';
                 const inputId = `img-slot-${slotIdx}`;
 
                 return (
@@ -492,11 +547,73 @@ export default function AdminAddProduct() {
               })}
             </div>
 
-            {!productId && (pendingImageFiles[0] || pendingImageFiles[1]) && (
+            {!productId && pendingImageFiles.some(Boolean) && (
               <p className="mt-3 text-[10px] text-amber-600 text-center">
                 Images will be uploaded when you save the product.
               </p>
             )}
+          </div>
+
+          {/* Videos — unlimited */}
+          <div className="card-luxury p-6">
+            <SectionTitle>Product Videos</SectionTitle>
+            <p className="text-xs text-gray-400 mb-4 leading-snug">
+              Add as many videos as needed. Shown in the product gallery after images.
+            </p>
+
+            <div className="space-y-2">
+              {/* Existing / pending videos */}
+              {[...currentVideos, ...pendingVideoFiles].map((item, idx) => {
+                const isPending = idx >= currentVideos.length;
+                const url = isPending ? item.previewUrl : item.url;
+                const realIdx = isPending ? null : idx;
+                return (
+                  <div key={idx} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50">
+                    <div className="w-14 h-14 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      <video src={url} className="w-full h-full object-cover" muted />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-gray-700 truncate">
+                        {isPending ? (item.file?.name || 'Pending') : `Video ${idx + 1}`}
+                      </p>
+                      {isPending && <span className="text-[10px] text-amber-600 font-semibold">PENDING UPLOAD</span>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveVideo(isPending ? idx - currentVideos.length : realIdx)}
+                      disabled={updating}
+                      className="flex-shrink-0 w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-colors disabled:opacity-40"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
+
+              {/* Add video button */}
+              <label className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl border-2 border-dashed border-gray-200 cursor-pointer text-sm font-semibold transition-colors ${uploadingVideo ? 'opacity-50 pointer-events-none' : 'hover:border-primary hover:text-primary text-gray-400'}`}>
+                {uploadingVideo ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                    Uploading…
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                    Add Video
+                  </>
+                )}
+                <input type="file" accept="video/*" multiple className="hidden" onChange={handleVideoSelect} disabled={uploadingVideo} />
+              </label>
+
+              {!productId && pendingVideoFiles.length > 0 && (
+                <p className="text-[10px] text-amber-600 text-center">
+                  Videos will be uploaded when you save the product.
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Price preview */}

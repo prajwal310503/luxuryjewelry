@@ -8,6 +8,12 @@ const ProductImageSchema = new mongoose.Schema({
   sortOrder: { type: Number, default: 0 },
 });
 
+const ProductVideoSchema = new mongoose.Schema({
+  url: { type: String, required: true },
+  publicId: String,
+  sortOrder: { type: Number, default: 0 },
+});
+
 const ProductVariantSchema = new mongoose.Schema({
   sku: { type: String, required: true },
   attributes: [
@@ -42,6 +48,7 @@ const ProductSchema = new mongoose.Schema(
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
     subcategory: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
     images: [ProductImageSchema],
+    videos: [ProductVideoSchema],
     price: { type: Number, required: true, min: 0 },
     comparePrice: { type: Number, min: 0 },
     costPrice: { type: Number, min: 0 },

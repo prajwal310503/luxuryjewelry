@@ -195,7 +195,14 @@ export default function ProductPage() {
         {/* ── Main Grid ────────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-10 xl:gap-16">
 
-          {/* LEFT — Image gallery */}
+          {/* LEFT — Media gallery (images + videos) */}
+          {(() => {
+            const mediaItems = [
+              ...(product.images || []).map((img) => ({ type: 'image', url: img.url })),
+              ...(product.videos || []).map((vid) => ({ type: 'video', url: vid.url })),
+            ];
+            const current = mediaItems[imgIdx];
+            return (
           <div className="lg:sticky lg:top-24 self-start">
             <motion.div
               key={imgIdx}
@@ -204,8 +211,17 @@ export default function ProductPage() {
               transition={{ duration: 0.25 }}
               className="relative aspect-square rounded-2xl overflow-hidden bg-[#f8f5f2] group"
             >
-              {product.images?.[imgIdx] ? (
-                <img src={product.images[imgIdx].url} alt={product.title} className="w-full h-full object-cover" />
+              {current?.type === 'video' ? (
+                <video
+                  src={current.url}
+                  controls
+                  autoPlay
+                  muted
+                  loop
+                  className="w-full h-full object-contain bg-black"
+                />
+              ) : current?.type === 'image' ? (
+                <img src={current.url} alt={product.title} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-luxury-cream">
                   <svg className="w-16 h-16 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1}>
@@ -214,36 +230,34 @@ export default function ProductPage() {
                 </div>
               )}
 
-              {/* Badges */}
-              <div className="absolute top-4 left-4 flex flex-col gap-2">
-                {hasDiscount && (
-                  <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
-                    -{product.discount}% OFF
-                  </span>
-                )}
-                {product.isNewArrival && (
-                  <span className="bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
-                    NEW
-                  </span>
-                )}
-                {product.isBestSeller && (
-                  <span className="bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
-                    BESTSELLER
-                  </span>
-                )}
-              </div>
+              {/* Badges — hide on video */}
+              {current?.type !== 'video' && (
+                <div className="absolute top-4 left-4 flex flex-col gap-2">
+                  {hasDiscount && (
+                    <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                      -{product.discount}% OFF
+                    </span>
+                  )}
+                  {product.isNewArrival && (
+                    <span className="bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">NEW</span>
+                  )}
+                  {product.isBestSeller && (
+                    <span className="bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">BESTSELLER</span>
+                  )}
+                </div>
+              )}
 
-              {/* Arrow nav (multiple images) */}
-              {product.images?.length > 1 && (
+              {/* Arrow nav */}
+              {mediaItems.length > 1 && current?.type !== 'video' && (
                 <>
                   <button
-                    onClick={() => setImgIdx((imgIdx - 1 + product.images.length) % product.images.length)}
+                    onClick={() => setImgIdx((imgIdx - 1 + mediaItems.length) % mediaItems.length)}
                     className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
                   </button>
                   <button
-                    onClick={() => setImgIdx((imgIdx + 1) % product.images.length)}
+                    onClick={() => setImgIdx((imgIdx + 1) % mediaItems.length)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
@@ -252,22 +266,35 @@ export default function ProductPage() {
               )}
             </motion.div>
 
-            {/* Thumbnails */}
-            {product.images?.length > 1 && (
+            {/* Thumbnails — images + videos */}
+            {mediaItems.length > 1 && (
               <div className="flex gap-2.5 mt-3 overflow-x-auto pb-1">
-                {product.images.map((img, i) => (
+                {mediaItems.map((item, i) => (
                   <button key={i} onClick={() => setImgIdx(i)}
                     className={`flex-shrink-0 w-[68px] h-[68px] rounded-xl overflow-hidden border-2 transition-all ${
                       imgIdx === i ? 'border-primary shadow-md' : 'border-transparent hover:border-gray-300'
                     }`}
                   >
-                    <img src={img.url} alt="" className="w-full h-full object-cover" />
+                    {item.type === 'video' ? (
+                      <div className="w-full h-full bg-gray-900 flex items-center justify-center relative">
+                        <video src={item.url} className="w-full h-full object-cover opacity-70" muted />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <svg className="w-5 h-5 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </div>
+                      </div>
+                    ) : (
+                      <img src={item.url} alt="" className="w-full h-full object-cover" />
+                    )}
                   </button>
                 ))}
               </div>
             )}
 
           </div>
+            );
+          })()}
 
           {/* RIGHT — Product Info */}
           <div className="space-y-5">
