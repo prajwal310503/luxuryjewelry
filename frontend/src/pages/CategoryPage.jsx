@@ -346,6 +346,9 @@ export default function CategoryPage() {
     (k) => k !== 'sort' && k !== 'page' && filters[k] !== undefined
   ).length;
 
+  const desktopBg = bannerImages.categoryBannerDesktop || 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=1440&h=320&fit=crop&q=80&auto=format';
+  const mobileBg  = bannerImages.categoryBannerMobile  || 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=768&h=400&fit=crop&q=80&auto=format';
+
   return (
     <>
       <Helmet>
@@ -358,29 +361,13 @@ export default function CategoryPage() {
         background: 'linear-gradient(135deg, #3a2927 0%, #5a413f 40%, #7a5a57 70%, #4e3735 100%)',
       }}>
         {/* Mobile banner image */}
-        {bannerImages.categoryBannerMobile && (
-          <div className="md:hidden absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${bannerImages.categoryBannerMobile})` }} />
-        )}
+        <div className="md:hidden absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${mobileBg})` }} />
         {/* Desktop banner image */}
-        {bannerImages.categoryBannerDesktop && (
-          <div className="hidden md:block absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${bannerImages.categoryBannerDesktop})` }} />
-        )}
-        {/* Dark overlay when image is present */}
-        {(bannerImages.categoryBannerDesktop || bannerImages.categoryBannerMobile) && (
-          <div className="absolute inset-0 bg-black/50" />
-        )}
-
-        {/* Decorative orbs (shown only when no images) */}
-        {!bannerImages.categoryBannerDesktop && !bannerImages.categoryBannerMobile && (<>
-          <div className="absolute top-[-30%] right-[-5%] w-80 h-80 rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(201,168,76,0.25) 0%, transparent 65%)' }} />
-          <div className="absolute bottom-[-40%] left-[10%] w-64 h-64 rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(183,110,121,0.2) 0%, transparent 65%)' }} />
-          <div className="absolute top-[10%] left-[-5%] w-48 h-48 rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(201,168,76,0.15) 0%, transparent 65%)' }} />
-        </>)}
+        <div className="hidden md:block absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${desktopBg})` }} />
+        {/* Dark overlay for text readability */}
+        <div className="absolute inset-0 bg-black/50" />
 
         <div className="container-luxury py-8 relative z-10">
           {/* Breadcrumb */}
