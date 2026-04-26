@@ -219,7 +219,7 @@ export default function ProductPage() {
               initial={{ opacity: 0, scale: 0.99 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.25 }}
-              className="relative aspect-square rounded-2xl overflow-hidden bg-[#f8f5f2] group"
+              className="relative aspect-[4/3] md:aspect-[5/4] rounded-xl overflow-hidden bg-[#f8f5f2] group"
             >
               {currentMedia?.type === 'video' ? (
                 <video src={currentMedia.url} controls autoPlay muted loop
@@ -274,9 +274,9 @@ export default function ProductPage() {
                 {/* Scroll left */}
                 <button
                   onClick={() => thumbsRef.current?.scrollBy({ left: -160, behavior: 'smooth' })}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow hover:border-primary transition-colors"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:border-gray-400 transition-colors"
                 >
-                  <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                  <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
                 </button>
 
                 {/* Scrollable thumbs */}
@@ -289,10 +289,10 @@ export default function ProductPage() {
                     <button
                       key={i}
                       onClick={() => goTo(i)}
-                      className={`flex-shrink-0 w-[70px] h-[70px] rounded-xl overflow-hidden border-2 transition-all duration-200 ${
+                      className={`flex-shrink-0 w-[64px] h-[64px] rounded-md overflow-hidden border transition-colors duration-150 ${
                         imgIdx === i
-                          ? 'border-primary shadow-lg scale-105'
-                          : 'border-gray-200 hover:border-primary/50 hover:scale-105'
+                          ? 'border-primary border-2'
+                          : 'border-gray-200 hover:border-gray-400'
                       }`}
                     >
                       {item.type === 'video' ? (
@@ -314,9 +314,9 @@ export default function ProductPage() {
                 {/* Scroll right */}
                 <button
                   onClick={() => thumbsRef.current?.scrollBy({ left: 160, behavior: 'smooth' })}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow hover:border-primary transition-colors"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:border-gray-400 transition-colors"
                 >
-                  <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                  <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                 </button>
               </div>
             )}
