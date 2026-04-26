@@ -47,8 +47,10 @@ export default function ProductPage() {
   const [stickyVisible, setStickyVisible] = useState(false);
   const [pincode, setPincode]             = useState('');
   const [pinMsg, setPinMsg]               = useState('');
-  const titleRef  = useRef(null);
-  const thumbsRef = useRef(null);
+  const [paused, setPaused]               = useState(false);
+  const titleRef    = useRef(null);
+  const thumbsRef   = useRef(null);
+  const mediaLenRef = useRef(0);
 
   const { addItem }                  = useCartStore();
   const { toggleItem, isInWishlist } = useWishlistStore();
@@ -90,6 +92,30 @@ export default function ProductPage() {
     if (btns[imgIdx]) btns[imgIdx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
   }, [imgIdx]);
 
+  // Pause auto-advance while a video slide is shown
+  useEffect(() => {
+    if (!product) return;
+    const items = [
+      ...(product.images || []).map(() => 'image'),
+      ...(product.videos || []).map(() => 'video'),
+    ];
+    setPaused(items[imgIdx] === 'video');
+  }, [imgIdx, product]);
+
+  // Auto-advance slides every 3.5 s; pause on hover or when video active
+  useEffect(() => {
+    if (paused) return;
+    const id = setInterval(() => {
+      setImgIdx((prev) => {
+        const total = mediaLenRef.current;
+        if (total <= 1) return prev;
+        const next = (prev + 1) % total;
+        return next;
+      });
+    }, 3500);
+    return () => clearInterval(id);
+  }, [paused]);
+
   if (loading) {
     return (
       <div className="container-luxury py-10">
@@ -128,8 +154,13 @@ export default function ProductPage() {
     ...(product.images || []).map((img) => ({ type: 'image', url: img.url })),
     ...(product.videos || []).map((vid) => ({ type: 'video', url: vid.url })),
   ];
+  mediaLenRef.current = mediaItems.length;
   const currentMedia = mediaItems[imgIdx] || null;
-  const goTo = (idx) => setImgIdx(idx);
+
+  // Pause auto-scroll when a video is playing
+  const isVideo = currentMedia?.type === 'video';
+
+  const goTo = (idx) => { setImgIdx(idx); setPaused(false); };
 
   const salePrice   = product.discountedPrice ?? product.price;
   const hasDiscount = product.discount > 0;
@@ -220,6 +251,8 @@ export default function ProductPage() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.25 }}
               className="relative aspect-[4/3] md:aspect-[5/4] rounded-xl overflow-hidden bg-[#f8f5f2] group"
+              onMouseEnter={() => setPaused(true)}
+              onMouseLeave={() => !isVideo && setPaused(false)}
             >
               {currentMedia?.type === 'video' ? (
                 <video src={currentMedia.url} controls autoPlay muted loop
