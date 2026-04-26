@@ -47,7 +47,8 @@ export default function ProductPage() {
   const [stickyVisible, setStickyVisible] = useState(false);
   const [pincode, setPincode]             = useState('');
   const [pinMsg, setPinMsg]               = useState('');
-  const titleRef = useRef(null);
+  const titleRef  = useRef(null);
+  const thumbsRef = useRef(null);
 
   const { addItem }                  = useCartStore();
   const { toggleItem, isInWishlist } = useWishlistStore();
@@ -115,6 +116,21 @@ export default function ProductPage() {
       <Link to="/" className="btn-primary inline-block">Back to Home</Link>
     </div>
   );
+
+  const mediaItems = [
+    ...(product.images || []).map((img) => ({ type: 'image', url: img.url })),
+    ...(product.videos || []).map((vid) => ({ type: 'video', url: vid.url })),
+  ];
+  const currentMedia = mediaItems[imgIdx] || null;
+
+  // Auto-scroll selected thumbnail into view
+  useEffect(() => {
+    if (!thumbsRef.current || mediaItems.length <= 1) return;
+    const btns = thumbsRef.current.querySelectorAll('button');
+    if (btns[imgIdx]) btns[imgIdx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+  }, [imgIdx]);
+
+  const goTo = (idx) => setImgIdx(idx);
 
   const salePrice   = product.discountedPrice ?? product.price;
   const hasDiscount = product.discount > 0;
@@ -196,14 +212,9 @@ export default function ProductPage() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-10 xl:gap-16">
 
           {/* LEFT — Media gallery (images + videos) */}
-          {(() => {
-            const mediaItems = [
-              ...(product.images || []).map((img) => ({ type: 'image', url: img.url })),
-              ...(product.videos || []).map((vid) => ({ type: 'video', url: vid.url })),
-            ];
-            const current = mediaItems[imgIdx];
-            return (
           <div className="lg:sticky lg:top-24 self-start">
+
+            {/* Main viewer */}
             <motion.div
               key={imgIdx}
               initial={{ opacity: 0, scale: 0.99 }}
@@ -211,17 +222,11 @@ export default function ProductPage() {
               transition={{ duration: 0.25 }}
               className="relative aspect-square rounded-2xl overflow-hidden bg-[#f8f5f2] group"
             >
-              {current?.type === 'video' ? (
-                <video
-                  src={current.url}
-                  controls
-                  autoPlay
-                  muted
-                  loop
-                  className="w-full h-full object-contain bg-black"
-                />
-              ) : current?.type === 'image' ? (
-                <img src={current.url} alt={product.title} className="w-full h-full object-cover" />
+              {currentMedia?.type === 'video' ? (
+                <video src={currentMedia.url} controls autoPlay muted loop
+                  className="w-full h-full object-contain bg-black" />
+              ) : currentMedia?.type === 'image' ? (
+                <img src={currentMedia.url} alt={product.title} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-luxury-cream">
                   <svg className="w-16 h-16 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1}>
@@ -230,71 +235,94 @@ export default function ProductPage() {
                 </div>
               )}
 
-              {/* Badges — hide on video */}
-              {current?.type !== 'video' && (
+              {/* Badges */}
+              {currentMedia?.type !== 'video' && (
                 <div className="absolute top-4 left-4 flex flex-col gap-2">
-                  {hasDiscount && (
-                    <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
-                      -{product.discount}% OFF
-                    </span>
-                  )}
-                  {product.isNewArrival && (
-                    <span className="bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">NEW</span>
-                  )}
-                  {product.isBestSeller && (
-                    <span className="bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">BESTSELLER</span>
-                  )}
+                  {hasDiscount && <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">-{product.discount}% OFF</span>}
+                  {product.isNewArrival && <span className="bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">NEW</span>}
+                  {product.isBestSeller && <span className="bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">BESTSELLER</span>}
                 </div>
               )}
 
-              {/* Arrow nav */}
-              {mediaItems.length > 1 && current?.type !== 'video' && (
+              {/* Hover arrow nav */}
+              {mediaItems.length > 1 && currentMedia?.type !== 'video' && (
                 <>
-                  <button
-                    onClick={() => setImgIdx((imgIdx - 1 + mediaItems.length) % mediaItems.length)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                  <button onClick={() => goTo((imgIdx - 1 + mediaItems.length) % mediaItems.length)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/85 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity border border-white/60">
+                    <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
                   </button>
-                  <button
-                    onClick={() => setImgIdx((imgIdx + 1) % mediaItems.length)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                  <button onClick={() => goTo((imgIdx + 1) % mediaItems.length)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/85 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity border border-white/60">
+                    <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                   </button>
                 </>
               )}
+
+              {/* Dot indicator */}
+              {mediaItems.length > 1 && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                  {mediaItems.map((_, i) => (
+                    <button key={i} onClick={() => goTo(i)}
+                      className={`rounded-full transition-all ${imgIdx === i ? 'w-5 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/50'}`} />
+                  ))}
+                </div>
+              )}
             </motion.div>
 
-            {/* Thumbnails — images + videos */}
+            {/* Thumbnail strip with scroll arrows */}
             {mediaItems.length > 1 && (
-              <div className="flex gap-2.5 mt-3 overflow-x-auto pb-1">
-                {mediaItems.map((item, i) => (
-                  <button key={i} onClick={() => setImgIdx(i)}
-                    className={`flex-shrink-0 w-[68px] h-[68px] rounded-xl overflow-hidden border-2 transition-all ${
-                      imgIdx === i ? 'border-primary shadow-md' : 'border-transparent hover:border-gray-300'
-                    }`}
-                  >
-                    {item.type === 'video' ? (
-                      <div className="w-full h-full bg-gray-900 flex items-center justify-center relative">
-                        <video src={item.url} className="w-full h-full object-cover opacity-70" muted />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <svg className="w-5 h-5 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
+              <div className="relative mt-3">
+                {/* Scroll left */}
+                <button
+                  onClick={() => thumbsRef.current?.scrollBy({ left: -160, behavior: 'smooth' })}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow hover:border-primary transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+
+                {/* Scrollable thumbs */}
+                <div
+                  ref={thumbsRef}
+                  className="flex gap-2 overflow-x-auto scroll-smooth px-8 pb-1"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  {mediaItems.map((item, i) => (
+                    <button
+                      key={i}
+                      onClick={() => goTo(i)}
+                      className={`flex-shrink-0 w-[70px] h-[70px] rounded-xl overflow-hidden border-2 transition-all duration-200 ${
+                        imgIdx === i
+                          ? 'border-primary shadow-lg scale-105'
+                          : 'border-gray-200 hover:border-primary/50 hover:scale-105'
+                      }`}
+                    >
+                      {item.type === 'video' ? (
+                        <div className="w-full h-full bg-gray-900 relative flex items-center justify-center">
+                          <video src={item.url} className="w-full h-full object-cover opacity-60" muted preload="metadata" />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-7 h-7 bg-white/90 rounded-full flex items-center justify-center shadow">
+                              <svg className="w-3.5 h-3.5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <img src={item.url} alt="" className="w-full h-full object-cover" />
-                    )}
-                  </button>
-                ))}
+                      ) : (
+                        <img src={item.url} alt="" className="w-full h-full object-cover" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Scroll right */}
+                <button
+                  onClick={() => thumbsRef.current?.scrollBy({ left: 160, behavior: 'smooth' })}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow hover:border-primary transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                </button>
               </div>
             )}
 
           </div>
-            );
-          })()}
 
           {/* RIGHT — Product Info */}
           <div className="space-y-5">
