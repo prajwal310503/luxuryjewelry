@@ -253,9 +253,16 @@ export const blogAPI = {
 
 // ==================== SETTINGS ====================
 export const settingsAPI = {
-  getStatus: () => api.get('/settings/status'),
-  getAll:    () => api.get('/settings'),
-  update:    (group, data) => api.put(`/settings/${group}`, data),
+  getStatus:       () => api.get('/settings/status'),
+  getAll:          () => api.get('/settings'),
+  update:          (group, data) => api.put(`/settings/${group}`, data),
+  getSiteImages:   () => api.get('/settings/site-images'),
+  uploadSiteImage: (key, file) => {
+    const fd = new FormData();
+    fd.append('image', file);
+    return api.put(`/settings/site-images/${key}`, fd);
+  },
+  deleteSiteImage: (key) => api.delete(`/settings/site-images/${key}`),
 };
 
 export default api;

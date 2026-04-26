@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { settingsAPI } from '../../services/api';
 
@@ -105,6 +105,15 @@ const GROUPS = [
       { name: 'support_phone', label: 'Support Phone', type: 'text',  placeholder: '+91 98765 43210' },
     ],
   },
+  {
+    id: 'siteImages',
+    label: 'Site Images',
+    statusKey: null,
+    icon: <I d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />,
+    description: 'Page banner images shown on desktop and mobile.',
+    docsUrl: null,
+    fields: [],
+  },
 ];
 
 export default function AdminSettings() {
@@ -112,25 +121,55 @@ export default function AdminSettings() {
   const [forms, setForms] = useState({});
   const [saving, setSaving] = useState({});
   const [activeTab, setActiveTab] = useState('cloudinary');
+  const [siteImages, setSiteImages] = useState({});
+  const [uploadingImg, setUploadingImg] = useState({});
+  const desktopRef = useRef(null);
+  const mobileRef  = useRef(null);
+
+  const loadSiteImages = () =>
+    settingsAPI.getSiteImages().then((r) => setSiteImages(r.data.data || {})).catch(() => {});
 
   useEffect(() => {
-    // Load status
     settingsAPI.getStatus()
       .then((r) => setStatus(r.data.data || {}))
       .catch(() => {});
 
-    // Load saved settings (masked values pre-filled)
     settingsAPI.getAll()
       .then((r) => {
         const data = r.data.data || {};
         const init = {};
-        GROUPS.forEach(({ id }) => {
-          init[id] = data[id] || {};
-        });
+        GROUPS.forEach(({ id }) => { init[id] = data[id] || {}; });
         setForms(init);
       })
       .catch(() => {});
+
+    loadSiteImages();
   }, []);
+
+  const handleSiteImageUpload = async (key, file) => {
+    if (!file) return;
+    setUploadingImg((p) => ({ ...p, [key]: true }));
+    try {
+      await settingsAPI.uploadSiteImage(key, file);
+      await loadSiteImages();
+      toast.success('Image uploaded');
+    } catch (err) {
+      toast.error(err.message || 'Upload failed');
+    } finally {
+      setUploadingImg((p) => ({ ...p, [key]: false }));
+    }
+  };
+
+  const handleSiteImageDelete = async (key) => {
+    if (!window.confirm('Remove this image?')) return;
+    try {
+      await settingsAPI.deleteSiteImage(key);
+      await loadSiteImages();
+      toast.success('Image removed');
+    } catch (err) {
+      toast.error(err.message || 'Failed to remove');
+    }
+  };
 
   const handleChange = (group, name, value) => {
     setForms((prev) => ({ ...prev, [group]: { ...(prev[group] || {}), [name]: value } }));
@@ -225,47 +264,108 @@ export default function AdminSettings() {
               )}
             </div>
 
-            {/* Fields */}
-            <div className="space-y-4">
-              {active.fields.map((f) => (
-                <Field
-                  key={f.name}
-                  label={f.label}
-                  name={f.name}
-                  type={f.type}
-                  placeholder={f.placeholder}
-                  hint={f.hint}
-                  value={forms[active.id]?.[f.name] || ''}
-                  onChange={(e) => handleChange(active.id, f.name, e.target.value)}
-                />
-              ))}
-            </div>
+            {/* Site Images — custom UI */}
+            {active.id === 'siteImages' ? (
+              <div className="space-y-6">
+                {[
+                  { key: 'categoryBannerDesktop', label: 'Category Header — Desktop', hint: 'Shown on screens ≥ 768 px. Recommended: 1440 × 320 px', ref: desktopRef },
+                  { key: 'categoryBannerMobile',  label: 'Category Header — Mobile',  hint: 'Shown on screens < 768 px. Recommended: 768 × 400 px',  ref: mobileRef  },
+                ].map(({ key, label, hint, ref }) => (
+                  <div key={key} className="border border-gray-100 rounded-2xl p-5">
+                    <p className="label-luxury mb-1">{label}</p>
+                    <p className="text-[11px] text-gray-400 mb-3">{hint}</p>
 
-            {/* Save */}
-            <div className="mt-6 pt-5 border-t border-gray-100 flex justify-end">
-              <button
-                onClick={() => handleSave(active.id)}
-                disabled={saving[active.id]}
-                className="btn-primary min-w-[130px] flex items-center justify-center gap-2"
-              >
-                {saving[active.id] ? (
-                  <>
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Save {active.label}
-                  </>
-                )}
-              </button>
-            </div>
+                    {siteImages[key] ? (
+                      <div className="relative rounded-xl overflow-hidden bg-gray-100 mb-3" style={{ height: 140 }}>
+                        <img src={siteImages[key]} alt={label} className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => handleSiteImageDelete(key)}
+                          className="absolute top-2 right-2 bg-white/90 hover:bg-red-50 border border-gray-200 hover:border-red-300 text-gray-600 hover:text-red-600 rounded-lg px-2.5 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-all"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center mb-3" style={{ height: 120 }}>
+                        <p className="text-sm text-gray-400">No image set — gradient shown</p>
+                      </div>
+                    )}
+
+                    <input
+                      ref={ref}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleSiteImageUpload(key, e.target.files[0])}
+                    />
+                    <button
+                      onClick={() => ref.current?.click()}
+                      disabled={uploadingImg[key]}
+                      className="btn-outline text-sm flex items-center gap-2"
+                    >
+                      {uploadingImg[key] ? (
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                      )}
+                      {uploadingImg[key] ? 'Uploading…' : siteImages[key] ? 'Replace Image' : 'Upload Image'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <>
+                {/* Standard text fields */}
+                <div className="space-y-4">
+                  {active.fields.map((f) => (
+                    <Field
+                      key={f.name}
+                      label={f.label}
+                      name={f.name}
+                      type={f.type}
+                      placeholder={f.placeholder}
+                      hint={f.hint}
+                      value={forms[active.id]?.[f.name] || ''}
+                      onChange={(e) => handleChange(active.id, f.name, e.target.value)}
+                    />
+                  ))}
+                </div>
+
+                {/* Save */}
+                <div className="mt-6 pt-5 border-t border-gray-100 flex justify-end">
+                  <button
+                    onClick={() => handleSave(active.id)}
+                    disabled={saving[active.id]}
+                    className="btn-primary min-w-[130px] flex items-center justify-center gap-2"
+                  >
+                    {saving[active.id] ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Save {active.label}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
