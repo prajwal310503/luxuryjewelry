@@ -1,10 +1,215 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { productAPI } from '../../services/api';
 import Pagination from '../components/Pagination';
 import Select from '../../components/ui/Select';
+
+// ── CSV template columns (must match backend parsing) ──────────
+const CSV_TEMPLATE_HEADERS = ['title','sku','price','comparePrice','stock','category','shortDescription','description','weight','status'];
+const CSV_SAMPLE_ROW = ['Diamond Solitaire Ring','DSR-001','24999','28000','10','Rings','Elegant solitaire ring','24kt diamond ring handcrafted in gold','5','approved'];
+
+function downloadTemplate() {
+  const csv = [CSV_TEMPLATE_HEADERS.join(','), CSV_SAMPLE_ROW.join(',')].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'vk_products_template.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Bulk Upload Modal ──────────────────────────────────────────
+function BulkUploadModal({ onClose, onSuccess }) {
+  const fileRef  = useRef(null);
+  const [file,     setFile]     = useState(null);
+  const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [results,  setResults]  = useState(null);
+
+  const handleFile = (f) => {
+    if (!f) return;
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (!['csv','xlsx','xls'].includes(ext)) {
+      toast.error('Only CSV or Excel files are allowed');
+      return;
+    }
+    setFile(f);
+    setResults(null);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault(); setDragging(false);
+    handleFile(e.dataTransfer.files[0]);
+  };
+
+  const handleUpload = async () => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const { data } = await productAPI.adminBulkUpload(fd);
+      setResults(data.data);
+      toast.success(`${data.data.successCount} products created`);
+      if (data.data.successCount > 0) onSuccess();
+    } catch (err) {
+      toast.error(err?.message || 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const successRows = results?.results?.filter(r => r.status === 'success') || [];
+  const failRows    = results?.results?.filter(r => r.status === 'error')   || [];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.96 }}
+        transition={{ duration: 0.18 }}
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div>
+            <h2 className="font-heading text-lg font-bold text-gray-900">Bulk Upload Products</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Upload a CSV or Excel file to add multiple products at once</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-6 space-y-5">
+
+          {/* Download template */}
+          <div className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold text-blue-800">Download Sample Template</p>
+              <p className="text-xs text-blue-500 mt-0.5">Fill in the CSV and upload it below</p>
+            </div>
+            <button onClick={downloadTemplate} className="flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900 transition-colors">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Download CSV
+            </button>
+          </div>
+
+          {/* Column reference */}
+          <div className="bg-gray-50 rounded-xl p-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Required Columns</p>
+            <div className="flex flex-wrap gap-1.5">
+              {CSV_TEMPLATE_HEADERS.map((col) => (
+                <span key={col} className={`text-xs px-2 py-0.5 rounded-full font-mono ${['title','price','category'].includes(col) ? 'bg-primary/10 text-primary font-semibold' : 'bg-gray-200 text-gray-600'}`}>
+                  {col}
+                  {['title','price','category'].includes(col) && <span className="text-red-500 ml-0.5">*</span>}
+                </span>
+              ))}
+            </div>
+            <p className="text-[11px] text-gray-400 mt-2">
+              <span className="text-primary font-semibold">*</span> Required &nbsp;·&nbsp; <strong>category</strong>: use exact category name or slug &nbsp;·&nbsp; <strong>status</strong>: approved / draft / pending
+            </p>
+          </div>
+
+          {/* Drop zone */}
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={handleDrop}
+            onClick={() => fileRef.current?.click()}
+            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${dragging ? 'border-primary bg-primary/5' : file ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
+          >
+            <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={(e) => handleFile(e.target.files[0])} />
+            {file ? (
+              <>
+                <svg className="w-10 h-10 text-green-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                <p className="font-semibold text-sm text-gray-800">{file.name}</p>
+                <p className="text-xs text-gray-400 mt-1">{(file.size / 1024).toFixed(1)} KB &nbsp;·&nbsp; Click to change</p>
+              </>
+            ) : (
+              <>
+                <svg className="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                <p className="font-semibold text-sm text-gray-600">Drag & drop your file here</p>
+                <p className="text-xs text-gray-400 mt-1">or click to browse &nbsp;·&nbsp; CSV, XLSX, XLS &nbsp;·&nbsp; Max 5 MB</p>
+              </>
+            )}
+          </div>
+
+          {/* Results */}
+          {results && (
+            <div className="space-y-3">
+              {/* Summary */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="text-center bg-gray-50 rounded-xl py-3">
+                  <p className="text-2xl font-bold text-gray-800">{results.total}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Total Rows</p>
+                </div>
+                <div className="text-center bg-green-50 rounded-xl py-3">
+                  <p className="text-2xl font-bold text-green-600">{results.successCount}</p>
+                  <p className="text-xs text-green-500 mt-0.5">Created</p>
+                </div>
+                <div className="text-center bg-red-50 rounded-xl py-3">
+                  <p className="text-2xl font-bold text-red-500">{results.failCount}</p>
+                  <p className="text-xs text-red-400 mt-0.5">Failed</p>
+                </div>
+              </div>
+
+              {/* Failed rows */}
+              {failRows.length > 0 && (
+                <div className="border border-red-200 rounded-xl overflow-hidden">
+                  <div className="bg-red-50 px-4 py-2 border-b border-red-100">
+                    <p className="text-xs font-semibold text-red-700">Failed Rows</p>
+                  </div>
+                  <div className="divide-y divide-red-50 max-h-40 overflow-y-auto">
+                    {failRows.map((r) => (
+                      <div key={r.row} className="flex items-start gap-3 px-4 py-2.5">
+                        <span className="text-[10px] bg-red-100 text-red-600 font-mono px-1.5 py-0.5 rounded mt-0.5 flex-shrink-0">Row {r.row}</span>
+                        <div>
+                          <p className="text-xs font-medium text-gray-700">{r.title}</p>
+                          <p className="text-[11px] text-red-500">{r.error}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Success list (collapsed) */}
+              {successRows.length > 0 && (
+                <p className="text-xs text-green-600 font-medium text-center">
+                  {successRows.length} product{successRows.length > 1 ? 's' : ''} created successfully and are now live in the store.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between gap-3">
+          <button onClick={onClose} className="btn-outline text-sm px-4 py-2">
+            {results ? 'Close' : 'Cancel'}
+          </button>
+          {!results && (
+            <button
+              onClick={handleUpload}
+              disabled={!file || uploading}
+              className="btn-primary text-sm px-6 py-2 disabled:opacity-50 flex items-center gap-2"
+            >
+              {uploading ? (
+                <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Uploading...</>
+              ) : (
+                <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>Upload & Create Products</>
+              )}
+            </button>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
 
 const STATUS_BADGE = {
   approved: 'badge-success',
@@ -41,6 +246,7 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [bulkModal, setBulkModal] = useState(false);
   const [flagCounts, setFlagCounts] = useState({ featured: 0, bestseller: 0, newarrival: 0, lifestyle1: 0, lifestyle2: 0 });
 
   const FLAG_LIMITS = { featured: 12, bestseller: 8, newarrival: 999, lifestyle1: 4, lifestyle2: 4 };
@@ -158,6 +364,11 @@ export default function AdminProducts() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             <span className="hidden sm:inline">Manage Images</span>
             <span className="sm:hidden">Images</span>
+          </button>
+          <button onClick={() => setBulkModal(true)} className="btn-outline text-sm flex items-center gap-2 py-2 px-4">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+            <span className="hidden sm:inline">Bulk Upload</span>
+            <span className="sm:hidden">Bulk</span>
           </button>
           <button onClick={() => navigate('/admin/products/add')} className="btn-primary text-sm flex items-center gap-2 py-2 px-4">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -365,6 +576,16 @@ export default function AdminProducts() {
           </motion.div>
         </div>
       )}
+
+      {/* Bulk Upload Modal */}
+      <AnimatePresence>
+        {bulkModal && (
+          <BulkUploadModal
+            onClose={() => setBulkModal(false)}
+            onSuccess={() => { fetchProducts(); }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

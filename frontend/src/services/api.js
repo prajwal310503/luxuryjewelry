@@ -99,6 +99,7 @@ export const productAPI = {
   adminGetAll: (params) => api.get('/admin/products', { params }),
   adminGetById: (id) => api.get(`/admin/products/${id}`),
   adminCreate: (data) => api.post('/admin/products', data),
+  adminBulkUpload: (formData) => api.post('/admin/products/bulk-upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   adminUpdate: (id, data) => api.put(`/admin/products/${id}`, data),
   adminUpdateStatus: (id, data) => api.put(`/admin/products/${id}/status`, data),
   adminToggleFeatured:   (id) => api.put(`/admin/products/${id}/featured`),

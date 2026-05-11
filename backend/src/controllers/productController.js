@@ -514,3 +514,80 @@ exports.uploadProductImages = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Admin: bulk upload products via CSV / Excel
+// @route   POST /api/admin/products/bulk-upload
+// @access  Admin
+exports.adminBulkUploadProducts = async (req, res, next) => {
+  try {
+    const XLSX = require('xlsx');
+
+    if (!req.file) return sendError(res, 400, 'No file uploaded');
+
+    const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+
+    if (!rows.length) return sendError(res, 400, 'File is empty or has no data rows');
+
+    // Build category lookup map (by name and slug, case-insensitive)
+    const categories = await Category.find({}, 'name slug _id').lean();
+    const catMap = {};
+    categories.forEach((c) => {
+      catMap[c.name.toLowerCase().trim()] = c._id;
+      catMap[c.slug.toLowerCase().trim()] = c._id;
+    });
+
+    const results = [];
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowNum = i + 2;
+
+      try {
+        const title       = String(row.title       || row.Title       || '').trim();
+        const price       = parseFloat(row.price   || row.Price       || 0);
+        const categoryRaw = String(row.category    || row.Category    || '').trim();
+
+        if (!title)             throw new Error('title is required');
+        if (!price || price<=0) throw new Error('price must be a positive number');
+        if (!categoryRaw)       throw new Error('category is required');
+
+        const categoryId = catMap[categoryRaw.toLowerCase()];
+        if (!categoryId) throw new Error(`Category "${categoryRaw}" not found — check spelling`);
+
+        const sku          = String(row.sku           || row.SKU          || '').trim() || undefined;
+        const comparePrice = parseFloat(row.comparePrice || row.compare_price || 0) || undefined;
+        const stock        = parseInt(row.stock        || row.Stock        || 0) || 0;
+        const shortDesc    = String(row.shortDescription || row.short_description || '').trim();
+        const description  = String(row.description   || row.Description  || '').trim();
+        const weight       = parseFloat(row.weight     || row.Weight       || 0) || undefined;
+        const rawStatus    = String(row.status         || '').toLowerCase().trim();
+        const status       = ['approved','draft','pending'].includes(rawStatus) ? rawStatus : 'approved';
+
+        const data = { title, price, category: categoryId, stock, status, approvedBy: req.user.id, approvedAt: new Date() };
+        if (sku)          data.sku          = sku;
+        if (comparePrice) data.comparePrice = comparePrice;
+        if (shortDesc)    data.shortDescription = shortDesc;
+        if (description)  data.description  = description;
+        if (weight)       data.weight       = weight;
+
+        const product = await Product.create(data);
+        results.push({ row: rowNum, title, status: 'success', id: product._id });
+        successCount++;
+      } catch (err) {
+        const title = String(row.title || row.Title || '').trim() || `Row ${rowNum}`;
+        results.push({ row: rowNum, title, status: 'error', error: err.message });
+        failCount++;
+      }
+    }
+
+    sendSuccess(res, 200, `Bulk upload complete: ${successCount} created, ${failCount} failed`, {
+      successCount, failCount, total: rows.length, results,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -31,8 +31,11 @@ const {
   adminRemoveProductImage,
   adminRemoveProductVideo,
   adminUploadSiteImage,
+  adminBulkUploadProducts,
 } = require('../controllers/productController');
 const { uploadProduct, uploadSiteImage, uploadVideo } = require('../config/cloudinary');
+const multer = require('multer');
+const memUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 const adminAuth = [protect, authorize('admin')];
 // Routes accessible by both admin and child_admin (permission checked per-route)
@@ -49,6 +52,7 @@ router.put('/users/:id/permissions',    ...adminAuth, updateUserPermissions);
 router.put('/users/:id/toggle',         ...adminAuth, toggleUserStatus);
 
 // Products — admin only
+router.post('/products/bulk-upload',                ...adminAuth, memUpload.single('file'), adminBulkUploadProducts);
 router.get('/products',                             ...adminAuth, adminGetProducts);
 router.get('/products/:id',                         ...adminAuth, adminGetProductById);
 router.post('/products',                            ...adminAuth, adminCreateProduct);
