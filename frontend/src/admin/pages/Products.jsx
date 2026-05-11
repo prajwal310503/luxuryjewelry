@@ -6,12 +6,149 @@ import { productAPI } from '../../services/api';
 import Pagination from '../components/Pagination';
 import Select from '../../components/ui/Select';
 
-// ── CSV template columns (must match backend parsing) ──────────
-const CSV_TEMPLATE_HEADERS = ['title','sku','price','comparePrice','stock','category','shortDescription','description','weight','status'];
-const CSV_SAMPLE_ROW = ['Diamond Solitaire Ring','DSR-001','24999','28000','10','Rings','Elegant solitaire ring','24kt diamond ring handcrafted in gold','5','approved'];
+// ── CSV template — all product fields ─────────────────────────
+const CSV_COLUMNS = [
+  // Required
+  { key: 'title',              group: 'required',     label: 'title *' },
+  { key: 'price',              group: 'required',     label: 'price *' },
+  { key: 'category',           group: 'required',     label: 'category *' },
+  // Core
+  { key: 'sku',                group: 'core',         label: 'sku' },
+  { key: 'comparePrice',       group: 'core',         label: 'comparePrice' },
+  { key: 'costPrice',          group: 'core',         label: 'costPrice' },
+  { key: 'discount',           group: 'core',         label: 'discount' },
+  { key: 'stock',              group: 'core',         label: 'stock' },
+  { key: 'lowStockThreshold',  group: 'core',         label: 'lowStockThreshold' },
+  { key: 'shortDescription',   group: 'core',         label: 'shortDescription' },
+  { key: 'description',        group: 'core',         label: 'description' },
+  { key: 'weight',             group: 'core',         label: 'weight' },
+  { key: 'status',             group: 'core',         label: 'status' },
+  { key: 'freeShipping',       group: 'core',         label: 'freeShipping' },
+  { key: 'shippingDays',       group: 'core',         label: 'shippingDays' },
+  // Images
+  { key: 'image1',             group: 'images',       label: 'image1' },
+  { key: 'image2',             group: 'images',       label: 'image2' },
+  { key: 'image3',             group: 'images',       label: 'image3' },
+  { key: 'image4',             group: 'images',       label: 'image4' },
+  { key: 'image5',             group: 'images',       label: 'image5' },
+  // Flags
+  { key: 'isFeatured',         group: 'flags',        label: 'isFeatured' },
+  { key: 'isNewArrival',       group: 'flags',        label: 'isNewArrival' },
+  { key: 'isBestSeller',       group: 'flags',        label: 'isBestSeller' },
+  // Tags (comma-separated inside each cell)
+  { key: 'segments',           group: 'tags',         label: 'segments' },
+  { key: 'occasions',          group: 'tags',         label: 'occasions' },
+  { key: 'collectionStyles',   group: 'tags',         label: 'collectionStyles' },
+  { key: 'themes',             group: 'tags',         label: 'themes' },
+  { key: 'productPersonas',    group: 'tags',         label: 'productPersonas' },
+  { key: 'wearingTypes',       group: 'tags',         label: 'wearingTypes' },
+  { key: 'giftTags',           group: 'tags',         label: 'giftTags' },
+  // Dimensions
+  { key: 'dimensionLength',    group: 'dimensions',   label: 'dimensionLength' },
+  { key: 'dimensionWidth',     group: 'dimensions',   label: 'dimensionWidth' },
+  { key: 'dimensionHeight',    group: 'dimensions',   label: 'dimensionHeight' },
+  { key: 'dimensionUnit',      group: 'dimensions',   label: 'dimensionUnit' },
+  // SEO
+  { key: 'seoTitle',           group: 'seo',          label: 'seoTitle' },
+  { key: 'seoDescription',     group: 'seo',          label: 'seoDescription' },
+  { key: 'seoKeywords',        group: 'seo',          label: 'seoKeywords' },
+  // Price breakup
+  { key: 'metalType',          group: 'priceBreakup', label: 'metalType' },
+  { key: 'grossWeight',        group: 'priceBreakup', label: 'grossWeight' },
+  { key: 'netWeight',          group: 'priceBreakup', label: 'netWeight' },
+  { key: 'metalRate',          group: 'priceBreakup', label: 'metalRate' },
+  { key: 'metalAmount',        group: 'priceBreakup', label: 'metalAmount' },
+  { key: 'diamondPieces',      group: 'priceBreakup', label: 'diamondPieces' },
+  { key: 'diamondCarat',       group: 'priceBreakup', label: 'diamondCarat' },
+  { key: 'diamondClarity',     group: 'priceBreakup', label: 'diamondClarity' },
+  { key: 'diamondCut',         group: 'priceBreakup', label: 'diamondCut' },
+  { key: 'diamondColor',       group: 'priceBreakup', label: 'diamondColor' },
+  { key: 'diamondAmount',      group: 'priceBreakup', label: 'diamondAmount' },
+  { key: 'makingCharges',      group: 'priceBreakup', label: 'makingCharges' },
+  { key: 'gstPct',             group: 'priceBreakup', label: 'gstPct' },
+  // Certification
+  { key: 'certLab',            group: 'certification',label: 'certLab' },
+  { key: 'certNumber',         group: 'certification',label: 'certNumber' },
+  { key: 'certImage',          group: 'certification',label: 'certImage' },
+];
+
+const CSV_GROUPS = [
+  { id: 'required',     label: 'Required',       color: 'bg-red-100 text-red-700' },
+  { id: 'core',         label: 'Core Fields',    color: 'bg-blue-100 text-blue-700' },
+  { id: 'images',       label: 'Images (URLs)',  color: 'bg-purple-100 text-purple-700' },
+  { id: 'flags',        label: 'Flags (true/false)', color: 'bg-amber-100 text-amber-700' },
+  { id: 'tags',         label: 'Tags (comma-separated)', color: 'bg-green-100 text-green-700' },
+  { id: 'dimensions',   label: 'Dimensions',     color: 'bg-teal-100 text-teal-700' },
+  { id: 'seo',          label: 'SEO',            color: 'bg-indigo-100 text-indigo-700' },
+  { id: 'priceBreakup', label: 'Price Breakup',  color: 'bg-orange-100 text-orange-700' },
+  { id: 'certification',label: 'Certification',  color: 'bg-pink-100 text-pink-700' },
+];
+
+const CSV_HEADERS = CSV_COLUMNS.map((c) => c.key);
+
+// Sample row — only fills meaningful fields, rest blank
+const CSV_SAMPLE = {
+  title: 'Diamond Solitaire Ring',
+  price: '24999',
+  category: 'Rings',
+  sku: 'DSR-001',
+  comparePrice: '28000',
+  costPrice: '18000',
+  discount: '0',
+  stock: '10',
+  lowStockThreshold: '3',
+  shortDescription: 'Elegant solitaire diamond ring',
+  description: '24kt diamond ring handcrafted in gold',
+  weight: '5',
+  status: 'approved',
+  freeShipping: 'false',
+  shippingDays: '7',
+  image1: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=800',
+  image2: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800',
+  isFeatured: 'false',
+  isNewArrival: 'true',
+  isBestSeller: 'false',
+  segments: 'Women',
+  occasions: 'Wedding,Anniversary',
+  collectionStyles: 'Modern,Classic',
+  themes: 'Love',
+  productPersonas: 'Bride',
+  wearingTypes: 'Ring',
+  giftTags: 'Gift',
+  dimensionLength: '15',
+  dimensionWidth: '15',
+  dimensionHeight: '5',
+  dimensionUnit: 'mm',
+  seoTitle: 'Diamond Solitaire Ring | VK Jewellers',
+  seoDescription: 'Buy elegant 24kt diamond solitaire ring online',
+  seoKeywords: 'diamond ring,solitaire ring,gold ring',
+  metalType: '14KT Yellow Gold',
+  grossWeight: '3.2',
+  netWeight: '2.8',
+  metalRate: '5500',
+  metalAmount: '15400',
+  diamondPieces: '1',
+  diamondCarat: '0.5',
+  diamondClarity: 'VVS-VS',
+  diamondCut: 'Round',
+  diamondColor: 'F',
+  diamondAmount: '8500',
+  makingCharges: '6800',
+  gstPct: '3',
+  certLab: 'IGI',
+  certNumber: 'IGI123456',
+  certImage: '',
+};
+
+function csvEscape(v) {
+  const s = String(v == null ? '' : v);
+  return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+}
 
 function downloadTemplate() {
-  const csv = [CSV_TEMPLATE_HEADERS.join(','), CSV_SAMPLE_ROW.join(',')].join('\n');
+  const header = CSV_HEADERS.join(',');
+  const sample = CSV_HEADERS.map((k) => csvEscape(CSV_SAMPLE[k] || '')).join(',');
+  const csv = [header, sample].join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
@@ -98,19 +235,31 @@ function BulkUploadModal({ onClose, onSuccess }) {
             </button>
           </div>
 
-          {/* Column reference */}
-          <div className="bg-gray-50 rounded-xl p-4">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Required Columns</p>
-            <div className="flex flex-wrap gap-1.5">
-              {CSV_TEMPLATE_HEADERS.map((col) => (
-                <span key={col} className={`text-xs px-2 py-0.5 rounded-full font-mono ${['title','price','category'].includes(col) ? 'bg-primary/10 text-primary font-semibold' : 'bg-gray-200 text-gray-600'}`}>
-                  {col}
-                  {['title','price','category'].includes(col) && <span className="text-red-500 ml-0.5">*</span>}
-                </span>
-              ))}
-            </div>
-            <p className="text-[11px] text-gray-400 mt-2">
-              <span className="text-primary font-semibold">*</span> Required &nbsp;·&nbsp; <strong>category</strong>: use exact category name or slug &nbsp;·&nbsp; <strong>status</strong>: approved / draft / pending
+          {/* Column reference — grouped */}
+          <div className="bg-gray-50 rounded-xl p-4 space-y-2.5">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Column Reference</p>
+            {CSV_GROUPS.map((group) => {
+              const cols = CSV_COLUMNS.filter((c) => c.group === group.id);
+              return (
+                <div key={group.id}>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">{group.label}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {cols.map((col) => (
+                      <span key={col.key} className={`text-[11px] px-2 py-0.5 rounded-full font-mono ${group.color}`}>
+                        {col.key}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            <p className="text-[11px] text-gray-400 pt-1 border-t border-gray-200">
+              <span className="text-red-500 font-semibold">*</span> Required &nbsp;·&nbsp;
+              <strong>category</strong>: exact name or slug &nbsp;·&nbsp;
+              <strong>status</strong>: approved / draft / pending &nbsp;·&nbsp;
+              <strong>images</strong>: full https:// URL &nbsp;·&nbsp;
+              <strong>tags</strong>: comma-separated values in one cell &nbsp;·&nbsp;
+              <strong>flags</strong>: true / false
             </p>
           </div>
 

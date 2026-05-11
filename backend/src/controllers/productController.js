@@ -538,6 +538,14 @@ exports.adminBulkUploadProducts = async (req, res, next) => {
       catMap[c.slug.toLowerCase().trim()] = c._id;
     });
 
+    // Parsing helpers
+    const str  = (v) => String(v == null ? '' : v).trim();
+    const num  = (v) => { const n = parseFloat(v); return isNaN(n) ? undefined : n; };
+    const int  = (v) => { const n = parseInt(v);   return isNaN(n) ? undefined : n; };
+    const bool = (v) => { const s = str(v).toLowerCase(); return ['true','yes','1'].includes(s) ? true : ['false','no','0'].includes(s) ? false : undefined; };
+    const arr  = (v) => str(v) ? str(v).split(',').map((s) => s.trim()).filter(Boolean) : [];
+    const pick = (row, ...keys) => { for (const k of keys) { if (row[k] !== undefined && row[k] !== '') return row[k]; } return ''; };
+
     const results = [];
     let successCount = 0;
     let failCount = 0;
@@ -547,9 +555,10 @@ exports.adminBulkUploadProducts = async (req, res, next) => {
       const rowNum = i + 2;
 
       try {
-        const title       = String(row.title       || row.Title       || '').trim();
-        const price       = parseFloat(row.price   || row.Price       || 0);
-        const categoryRaw = String(row.category    || row.Category    || '').trim();
+        // ── Required ──────────────────────────────────────
+        const title       = str(pick(row, 'title', 'Title'));
+        const price       = parseFloat(pick(row, 'price', 'Price') || 0);
+        const categoryRaw = str(pick(row, 'category', 'Category'));
 
         if (!title)             throw new Error('title is required');
         if (!price || price<=0) throw new Error('price must be a positive number');
@@ -558,27 +567,110 @@ exports.adminBulkUploadProducts = async (req, res, next) => {
         const categoryId = catMap[categoryRaw.toLowerCase()];
         if (!categoryId) throw new Error(`Category "${categoryRaw}" not found — check spelling`);
 
-        const sku          = String(row.sku           || row.SKU          || '').trim() || undefined;
-        const comparePrice = parseFloat(row.comparePrice || row.compare_price || 0) || undefined;
-        const stock        = parseInt(row.stock        || row.Stock        || 0) || 0;
-        const shortDesc    = String(row.shortDescription || row.short_description || '').trim();
-        const description  = String(row.description   || row.Description  || '').trim();
-        const weight       = parseFloat(row.weight     || row.Weight       || 0) || undefined;
-        const rawStatus    = String(row.status         || '').toLowerCase().trim();
-        const status       = ['approved','draft','pending'].includes(rawStatus) ? rawStatus : 'approved';
+        const rawStatus = str(pick(row, 'status')).toLowerCase();
+        const status = ['approved','draft','pending','archived'].includes(rawStatus) ? rawStatus : 'approved';
 
-        const data = { title, price, category: categoryId, stock, status, approvedBy: req.user.id, approvedAt: new Date() };
-        if (sku)          data.sku          = sku;
-        if (comparePrice) data.comparePrice = comparePrice;
-        if (shortDesc)    data.shortDescription = shortDesc;
-        if (description)  data.description  = description;
-        if (weight)       data.weight       = weight;
+        const data = {
+          title, price, category: categoryId, stock: 0, status,
+          approvedBy: req.user.id, approvedAt: new Date(),
+        };
+
+        // ── Core scalar fields ─────────────────────────────
+        const sku = str(pick(row, 'sku', 'SKU'));               if (sku)                         data.sku               = sku;
+        const cp  = num(pick(row, 'comparePrice', 'compare_price')); if (cp != null)             data.comparePrice      = cp;
+        const cst = num(pick(row, 'costPrice', 'cost_price'));       if (cst != null)             data.costPrice         = cst;
+        const disc= num(pick(row, 'discount'));                      if (disc != null)            data.discount          = disc;
+        const stk = int(pick(row, 'stock', 'Stock'));                if (stk != null)             data.stock             = stk;
+        const lst = int(pick(row, 'lowStockThreshold', 'low_stock_threshold')); if (lst != null) data.lowStockThreshold = lst;
+        const wt  = num(pick(row, 'weight', 'Weight'));              if (wt != null)              data.weight            = wt;
+        const sd  = num(pick(row, 'shippingDays', 'shipping_days')); if (sd != null)              data.shippingDays      = sd;
+        const fs  = bool(pick(row, 'freeShipping', 'free_shipping')); if (fs !== undefined)       data.freeShipping      = fs;
+
+        const shortDesc   = str(pick(row, 'shortDescription', 'short_description')); if (shortDesc)   data.shortDescription = shortDesc;
+        const description = str(pick(row, 'description', 'Description'));             if (description) data.description      = description;
+
+        // ── Visibility flags ───────────────────────────────
+        const isFeat = bool(pick(row, 'isFeatured',   'is_featured'));   if (isFeat !== undefined)  data.isFeatured   = isFeat;
+        const isNA   = bool(pick(row, 'isNewArrival', 'is_new_arrival')); if (isNA !== undefined)   data.isNewArrival  = isNA;
+        const isBS   = bool(pick(row, 'isBestSeller', 'is_best_seller')); if (isBS !== undefined)   data.isBestSeller  = isBS;
+
+        // ── Images (image1 … image5 — each a full URL) ────
+        const imageUrls = [];
+        for (let n = 1; n <= 5; n++) {
+          const u = str(pick(row, `image${n}`, `Image${n}`, `IMAGE${n}`));
+          if (u && /^https?:\/\/.+/.test(u)) imageUrls.push(u);
+        }
+        if (imageUrls.length) {
+          data.images = imageUrls.map((url, idx) => ({
+            url, publicId: '', alt: title, isPrimary: idx === 0, sortOrder: idx,
+          }));
+        }
+
+        // ── Merchandising tag arrays (comma-separated) ─────
+        const segs  = arr(pick(row, 'segments'));                              if (segs.length)  data.segments        = segs;
+        const occ   = arr(pick(row, 'occasions'));                             if (occ.length)   data.occasions       = occ;
+        const cols  = arr(pick(row, 'collectionStyles', 'collection_styles')); if (cols.length)  data.collectionStyles = cols;
+        const thm   = arr(pick(row, 'themes'));                                if (thm.length)   data.themes          = thm;
+        const pp    = arr(pick(row, 'productPersonas', 'product_personas'));   if (pp.length)    data.productPersonas = pp;
+        const wt2   = arr(pick(row, 'wearingTypes', 'wearing_types'));         if (wt2.length)   data.wearingTypes    = wt2;
+        const gt    = arr(pick(row, 'giftTags', 'gift_tags'));                 if (gt.length)    data.giftTags        = gt;
+
+        // ── Dimensions ─────────────────────────────────────
+        const dL = num(pick(row, 'dimensionLength', 'dimension_length'));
+        const dW = num(pick(row, 'dimensionWidth',  'dimension_width'));
+        const dH = num(pick(row, 'dimensionHeight', 'dimension_height'));
+        const dU = str(pick(row, 'dimensionUnit',   'dimension_unit'));
+        if (dL != null || dW != null || dH != null) {
+          data.dimensions = {};
+          if (dL != null) data.dimensions.length = dL;
+          if (dW != null) data.dimensions.width  = dW;
+          if (dH != null) data.dimensions.height = dH;
+          if (['mm','cm','inch'].includes(dU)) data.dimensions.unit = dU;
+        }
+
+        // ── SEO ────────────────────────────────────────────
+        const seoTitle = str(pick(row, 'seoTitle', 'seo_title'));
+        const seoDesc  = str(pick(row, 'seoDescription', 'seo_description'));
+        const seoKeys  = arr(pick(row, 'seoKeywords', 'seo_keywords'));
+        if (seoTitle || seoDesc || seoKeys.length) {
+          data.seo = {};
+          if (seoTitle)       data.seo.metaTitle       = seoTitle;
+          if (seoDesc)        data.seo.metaDescription = seoDesc;
+          if (seoKeys.length) data.seo.metaKeywords    = seoKeys;
+        }
+
+        // ── Price breakup ──────────────────────────────────
+        const pb = {
+          metalType:            str(pick(row, 'metalType',         'metal_type')),
+          grossWeight:          num(pick(row, 'grossWeight',        'gross_weight')),
+          netWeight:            num(pick(row, 'netWeight',          'net_weight')),
+          metalRate:            num(pick(row, 'metalRate',          'metal_rate')),
+          metalAmount:          num(pick(row, 'metalAmount',        'metal_amount')),
+          diamondPieces:        int(pick(row, 'diamondPieces',      'diamond_pieces')),
+          diamondCarat:         num(pick(row, 'diamondCarat',       'diamond_carat')),
+          diamondClarity:       str(pick(row, 'diamondClarity',     'diamond_clarity')),
+          diamondCut:           str(pick(row, 'diamondCut',         'diamond_cut')),
+          diamondColor:         str(pick(row, 'diamondColor',       'diamond_color')),
+          diamondAmount:        num(pick(row, 'diamondAmount',      'diamond_amount')),
+          makingCharges:        num(pick(row, 'makingCharges',      'making_charges')),
+          gstPct:               num(pick(row, 'gstPct',             'gst_pct')),
+        };
+        const pbClean = Object.fromEntries(Object.entries(pb).filter(([, v]) => v !== undefined && v !== ''));
+        if (Object.keys(pbClean).length) data.priceBreakup = pbClean;
+
+        // ── Certification ──────────────────────────────────
+        const certLab    = str(pick(row, 'certLab',    'cert_lab'));
+        const certNumber = str(pick(row, 'certNumber', 'cert_number'));
+        const certImage  = str(pick(row, 'certImage',  'cert_image'));
+        if (certLab || certNumber) {
+          data.certifications = [{ lab: certLab, certNumber, certImage }];
+        }
 
         const product = await Product.create(data);
         results.push({ row: rowNum, title, status: 'success', id: product._id });
         successCount++;
       } catch (err) {
-        const title = String(row.title || row.Title || '').trim() || `Row ${rowNum}`;
+        const title = str(pick(row, 'title', 'Title')) || `Row ${rowNum}`;
         results.push({ row: rowNum, title, status: 'error', error: err.message });
         failCount++;
       }
