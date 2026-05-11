@@ -10,7 +10,7 @@ const Ic = ({ d }) => (
 );
 
 // ─── Image Upload ──────────────────────────────────────────────────────────────
-function ImageUpload({ value, onChange, label = 'Image' }) {
+function ImageUpload({ value, onChange, label = 'Image', dims }) {
   const ref = useRef(null);
   const [uploading, setUploading] = useState(false);
   const handleFile = async (e) => {
@@ -36,12 +36,15 @@ function ImageUpload({ value, onChange, label = 'Image' }) {
   };
   return (
     <div>
-      <label className="label-luxury mb-1 block">{label}</label>
+      {label && <label className="label-luxury mb-1 block">{label}</label>}
       <div className="flex items-center gap-3">
         {value && <img src={value} alt="" className="w-20 h-14 object-cover rounded-lg border border-gray-200 flex-shrink-0" />}
-        <button type="button" onClick={() => ref.current?.click()} disabled={uploading} className="btn-outline text-xs px-4 py-2">
-          {uploading ? 'Uploading…' : value ? 'Change' : 'Upload'}
-        </button>
+        <div className="flex flex-col gap-0.5">
+          <button type="button" onClick={() => ref.current?.click()} disabled={uploading} className="btn-outline text-xs px-4 py-2">
+            {uploading ? 'Uploading…' : value ? 'Change' : 'Upload'}
+          </button>
+          {dims && <span className="text-[10px] text-gray-400 font-mono">{dims} &nbsp;·&nbsp; JPG PNG WEBP</span>}
+        </div>
         {value && <button type="button" onClick={() => onChange('')} className="text-xs text-red-400 hover:text-red-600">Remove</button>}
       </div>
       <input ref={ref} type="file" accept="image/*,.gif" className="hidden" onChange={handleFile} />
@@ -363,7 +366,7 @@ function HeroEditor({ banners, onBannersChange }) {
         </div>
 
         {newSlide.mediaType === 'image' ? (
-          <ImageUpload value={newSlide.image} onChange={(url) => setNewSlide((s) => ({ ...s, image: url }))} label="Banner Image or GIF" />
+          <ImageUpload value={newSlide.image} onChange={(url) => setNewSlide((s) => ({ ...s, image: url }))} label="Banner Image or GIF" dims="1920 × 720 px" />
         ) : (
           <div>
             <label className="label-luxury mb-1 block">Video URL (YouTube embed or direct .mp4)</label>
@@ -576,7 +579,7 @@ function VisitStoresEditor({ form, set }) {
                 <span className="text-xs font-semibold text-gray-500">Slide {i + 1}</span>
                 <button type="button" onClick={() => remove(i)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
               </div>
-              <ImageUpload value={store.image} onChange={(url) => update(i, 'image', url)} label="Store Photo" />
+              <ImageUpload value={store.image} onChange={(url) => update(i, 'image', url)} label="Store Photo" dims="800 × 600 px" />
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="label-luxury mb-1 block">Store Name (shown on slide)</label>
                   <input className="input-luxury text-sm" value={store.name} onChange={(e) => update(i, 'name', e.target.value)} placeholder="e.g. Luminary Jewels — Bandra" /></div>
@@ -625,6 +628,7 @@ function DiamondCutsEditor({ form, set }) {
                 value={cut.image}
                 onChange={(url) => updateCut(i, 'image', url)}
                 label=""
+                dims="200 × 200 px"
               />
               <div className="flex-1">
                 <input
@@ -714,7 +718,7 @@ function WhyChooseEditor({ form, set }) {
             </div>
             <div><label className="label-luxury mb-1 block">Link URL</label>
               <input className="input-luxury" value={item.link || ''} onChange={(e) => setItem(i, 'link', e.target.value)} placeholder="/collections/rings" /></div>
-            <ImageUpload value={item.image || ''} onChange={(url) => setItem(i, 'image', url)} label="Background Image" />
+            <ImageUpload value={item.image || ''} onChange={(url) => setItem(i, 'image', url)} label="Background Image" dims="900 × 1100 px" />
           </div>
         ))}
       </div>
@@ -773,7 +777,7 @@ function GiftingEditor({ form, set }) {
           {budgets.map((b, i) => (
             <div key={i} className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
               <p className="text-xs font-semibold text-gray-400">Card {i + 1}</p>
-              <ImageUpload value={b.image || ''} onChange={(url) => setBudget(i, 'image', url)} label="Card Image (gift/wrapping photo)" />
+              <ImageUpload value={b.image || ''} onChange={(url) => setBudget(i, 'image', url)} label="Card Image (gift/wrapping photo)" dims="400 × 400 px" />
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="label-luxury mb-1 block">Label (e.g. 30K)</label>
                   <input className="input-luxury" value={b.label} onChange={(e) => setBudget(i, 'label', e.target.value)} /></div>
@@ -800,7 +804,7 @@ function GiftingEditor({ form, set }) {
                   <button onClick={() => removeOcc(i)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
                 )}
               </div>
-              <ImageUpload value={o.image || ''} onChange={(url) => setOccasion(i, 'image', url)} label="Occasion Photo" />
+              <ImageUpload value={o.image || ''} onChange={(url) => setOccasion(i, 'image', url)} label="Occasion Photo" dims="400 × 400 px" />
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="label-luxury mb-1 block">Title</label>
                   <input className="input-luxury" value={o.title} onChange={(e) => setOccasion(i, 'title', e.target.value)} placeholder="GIFTS FOR WIFE" /></div>
@@ -1009,7 +1013,7 @@ function LifestyleLookbookEditor({ form, set }) {
           <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider">{PANEL_LABELS[i]}</p>
           <div>
             <label className="label-luxury">Model / Lifestyle Image</label>
-            <ImageUpload value={panel.image || ''} onChange={(url) => setPanel(i, 'image', url)} label="Model Photo" />
+            <ImageUpload value={panel.image || ''} onChange={(url) => setPanel(i, 'image', url)} label="Model Photo" dims="900 × 1100 px" />
           </div>
           <div>
             <label className="label-luxury">Eyebrow (small label above heading)</label>

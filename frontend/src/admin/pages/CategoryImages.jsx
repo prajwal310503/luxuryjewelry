@@ -71,6 +71,8 @@ function CategoryImageCard({ category, onUpdated }) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
             <span className="text-[11px] font-semibold text-gray-400">Upload Image</span>
+            <span className="text-[9px] text-gray-300 font-mono">600 × 400 px</span>
+            <span className="text-[9px] text-gray-300">JPG · PNG · WEBP</span>
           </label>
         )}
         <input id={inputId} type="file" accept="image/*" onChange={handleUpload} className="hidden" disabled={uploading} />

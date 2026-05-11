@@ -123,6 +123,8 @@ function ProductImageCard({ product, onUpdated }) {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
                     <span className="text-[10px] font-semibold text-gray-400">Upload</span>
+                    <span className="text-[9px] text-gray-300 font-mono leading-tight">800 × 800 px</span>
+                    <span className="text-[9px] text-gray-300 leading-tight">JPG · PNG · WEBP</span>
                   </label>
                 )}
 
