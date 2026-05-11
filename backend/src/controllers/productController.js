@@ -515,6 +515,34 @@ exports.uploadProductImages = async (req, res, next) => {
   }
 };
 
+// @desc    Admin: bulk delete products
+// @route   DELETE /api/admin/products/bulk
+// @access  Admin
+exports.adminBulkDeleteProducts = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || !ids.length) return sendError(res, 400, 'No product IDs provided');
+    const result = await Product.deleteMany({ _id: { $in: ids } });
+    sendSuccess(res, 200, `${result.deletedCount} products deleted permanently`, { deletedCount: result.deletedCount });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Admin: bulk archive products
+// @route   PUT /api/admin/products/bulk-archive
+// @access  Admin
+exports.adminBulkArchiveProducts = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || !ids.length) return sendError(res, 400, 'No product IDs provided');
+    const result = await Product.updateMany({ _id: { $in: ids } }, { $set: { status: 'archived', isActive: false } });
+    sendSuccess(res, 200, `${result.modifiedCount} products archived`, { modifiedCount: result.modifiedCount });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Admin: bulk upload products via CSV / Excel (SSE streaming)
 // @route   POST /api/admin/products/bulk-upload
 // @access  Admin

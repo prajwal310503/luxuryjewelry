@@ -109,6 +109,8 @@ export const productAPI = {
   adminToggleLifestyle2: (id) => api.put(`/admin/products/${id}/lifestyle2`),
   adminDelete: (id) => api.delete(`/admin/products/${id}`),
   adminRemoveImage: (id, imageIndex) => api.delete(`/admin/products/${id}/images/${imageIndex}`),
+  adminBulkDelete:  (ids) => api.delete('/admin/products/bulk', { data: { ids } }),
+  adminBulkArchive: (ids) => api.put('/admin/products/bulk-archive', { ids }),
 };
 
 // ==================== CATEGORIES ====================

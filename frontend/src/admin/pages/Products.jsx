@@ -512,6 +512,11 @@ export default function AdminProducts() {
   const [bulkModal, setBulkModal] = useState(false);
   const [flagCounts, setFlagCounts] = useState({ featured: 0, bestseller: 0, newarrival: 0, lifestyle1: 0, lifestyle2: 0 });
 
+  // ── Bulk selection ─────────────────────────────────────────
+  const [selected, setSelected] = useState(new Set());
+  const [bulkConfirm, setBulkConfirm] = useState(null); // 'delete' | 'archive' | null
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+
   const FLAG_LIMITS = { featured: 12, bestseller: 8, newarrival: 999, lifestyle1: 4, lifestyle2: 4 };
 
   const fetchFlagCounts = useCallback(async () => {
@@ -551,6 +556,35 @@ export default function AdminProducts() {
   }, [page, statusFilter, search]);
 
   useEffect(() => { fetchProducts(); fetchFlagCounts(); }, [fetchProducts, fetchFlagCounts]);
+  useEffect(() => { setSelected(new Set()); }, [products]);
+
+  const allSelected  = products.length > 0 && products.every((p) => selected.has(p._id));
+  const someSelected = !allSelected && products.some((p) => selected.has(p._id));
+
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(products.map((p) => p._id)));
+  const toggleOne = (id) => setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  const handleBulkDelete = async () => {
+    setBulkProcessing(true);
+    try {
+      const ids = [...selected];
+      await productAPI.adminBulkDelete(ids);
+      toast.success(`${ids.length} product${ids.length > 1 ? 's' : ''} deleted`);
+      setSelected(new Set()); setBulkConfirm(null); fetchProducts();
+    } catch (err) { toast.error(err?.message || 'Bulk delete failed'); }
+    finally { setBulkProcessing(false); }
+  };
+
+  const handleBulkArchive = async () => {
+    setBulkProcessing(true);
+    try {
+      const ids = [...selected];
+      await productAPI.adminBulkArchive(ids);
+      toast.success(`${ids.length} product${ids.length > 1 ? 's' : ''} archived`);
+      setSelected(new Set()); setBulkConfirm(null); fetchProducts();
+    } catch (err) { toast.error(err?.message || 'Bulk archive failed'); }
+    finally { setBulkProcessing(false); }
+  };
 
   const handleStatusUpdate = async (id, status, rejectionReason) => {
     setUpdating(id);
@@ -664,12 +698,63 @@ export default function AdminProducts() {
         </Select>
       </div>
 
+      {/* Bulk action bar — visible when rows are selected */}
+      <AnimatePresence>
+        {selected.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.15 }}
+            className="card-luxury px-4 py-3 flex items-center gap-3 bg-primary/5 border border-primary/20"
+          >
+            <span className="text-sm font-semibold text-primary flex-shrink-0">
+              {selected.size} selected
+            </span>
+            <div className="h-4 w-px bg-primary/20" />
+            <button
+              onClick={() => setBulkConfirm('archive')}
+              className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <IcArchive />
+              Archive
+            </button>
+            <button
+              onClick={() => setBulkConfirm('delete')}
+              className="flex items-center gap-1.5 text-sm font-medium text-red-600 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              <IcTrash />
+              Delete
+            </button>
+            <div className="flex-1" />
+            <button
+              onClick={() => setSelected(new Set())}
+              className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors"
+            >
+              <IcX />
+              Clear
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Table */}
       <div className="card-luxury overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
+                {/* Select-all checkbox */}
+                <th className="px-4 py-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={(el) => { if (el) el.indeterminate = someSelected; }}
+                    onChange={toggleAll}
+                    className="w-4 h-4 rounded cursor-pointer"
+                    style={{ accentColor: '#5a413f' }}
+                  />
+                </th>
                 {['Product', 'Vendor', 'Price', 'Stock', 'Status', 'Home Page Flags', 'Lifestyle Panels', 'Actions'].map((h) => (
                   <th key={h} className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-5 py-3">{h}</th>
                 ))}
@@ -679,6 +764,7 @@ export default function AdminProducts() {
               {loading ? (
                 Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i} className="border-b border-gray-50">
+                    <td className="px-4 py-4 w-10"><div className="w-4 h-4 rounded shimmer-loading" /></td>
                     {/* Product */}
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
@@ -719,9 +805,19 @@ export default function AdminProducts() {
                   </tr>
                 ))
               ) : products.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-12 text-gray-300">No products found</td></tr>
+                <tr><td colSpan={9} className="text-center py-12 text-gray-300">No products found</td></tr>
               ) : products.map((product) => (
-                <tr key={product._id} className="hover:bg-gray-50/50 transition-colors">
+                <tr key={product._id} className={`hover:bg-gray-50/50 transition-colors ${selected.has(product._id) ? 'bg-primary/5' : ''}`}>
+                  {/* Checkbox */}
+                  <td className="px-4 py-4 w-10">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(product._id)}
+                      onChange={() => toggleOne(product._id)}
+                      className="w-4 h-4 rounded cursor-pointer"
+                      style={{ accentColor: '#5a413f' }}
+                    />
+                  </td>
                   {/* Product */}
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
@@ -809,6 +905,48 @@ export default function AdminProducts() {
 
         <Pagination page={page} pages={meta.pages} total={meta.total} shown={products.length} onPage={setPage} />
       </div>
+
+      {/* Bulk Action Confirm Modal */}
+      {bulkConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl shadow-2xl p-7 w-full max-w-sm"
+          >
+            {bulkConfirm === 'delete' ? (
+              <>
+                <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </div>
+                <h3 className="text-center font-heading font-bold text-gray-900 text-lg mb-2">Delete {selected.size} Products?</h3>
+                <p className="text-center text-xs text-red-500 mb-6">This permanently removes all selected products and cannot be undone.</p>
+                <div className="flex gap-3">
+                  <button onClick={() => setBulkConfirm(null)} disabled={bulkProcessing} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40">Cancel</button>
+                  <button onClick={handleBulkDelete} disabled={bulkProcessing} className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-colors disabled:opacity-50">
+                    {bulkProcessing ? 'Deleting…' : `Delete ${selected.size}`}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-7 h-7 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12" /></svg>
+                </div>
+                <h3 className="text-center font-heading font-bold text-gray-900 text-lg mb-2">Archive {selected.size} Products?</h3>
+                <p className="text-center text-sm text-gray-500 mb-1">Products will be hidden from the store.</p>
+                <p className="text-center text-xs text-gray-400 mb-6">You can re-approve them later from the Archived filter.</p>
+                <div className="flex gap-3">
+                  <button onClick={() => setBulkConfirm(null)} disabled={bulkProcessing} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40">Cancel</button>
+                  <button onClick={handleBulkArchive} disabled={bulkProcessing} className="flex-1 px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-900 text-white text-sm font-bold transition-colors disabled:opacity-50">
+                    {bulkProcessing ? 'Archiving…' : `Archive ${selected.size}`}
+                  </button>
+                </div>
+              </>
+            )}
+          </motion.div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
