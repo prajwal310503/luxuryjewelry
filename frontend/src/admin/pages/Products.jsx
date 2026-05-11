@@ -158,51 +158,105 @@ function downloadTemplate() {
 
 // ── Bulk Upload Modal ──────────────────────────────────────────
 function BulkUploadModal({ onClose, onSuccess }) {
-  const fileRef  = useRef(null);
+  const fileRef    = useRef(null);
+  const logRef     = useRef(null);
   const [file,     setFile]     = useState(null);
   const [dragging, setDragging] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [results,  setResults]  = useState(null);
+  const [phase,    setPhase]    = useState('idle'); // idle | processing | done | error
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [rows,     setRows]     = useState([]);     // live row results
+  const [summary,  setSummary]  = useState(null);   // { successCount, failCount, total }
+
+  // Auto-scroll the live log
+  useEffect(() => {
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  }, [rows]);
 
   const handleFile = (f) => {
     if (!f) return;
     const ext = f.name.split('.').pop().toLowerCase();
-    if (!['csv','xlsx','xls'].includes(ext)) {
-      toast.error('Only CSV or Excel files are allowed');
-      return;
-    }
+    if (!['csv','xlsx','xls'].includes(ext)) { toast.error('Only CSV or Excel files are allowed'); return; }
     setFile(f);
-    setResults(null);
+    setPhase('idle');
+    setRows([]);
+    setSummary(null);
   };
 
-  const handleDrop = (e) => {
-    e.preventDefault(); setDragging(false);
-    handleFile(e.dataTransfer.files[0]);
-  };
+  const handleDrop = (e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); };
 
   const handleUpload = async () => {
     if (!file) return;
-    setUploading(true);
+    setPhase('processing');
+    setProgress({ done: 0, total: 0 });
+    setRows([]);
+    setSummary(null);
+
     try {
-      const fd = new FormData();
+      const token   = localStorage.getItem('token');
+      const apiBase = import.meta.env.VITE_API_URL || '/api';
+      const fd      = new FormData();
       fd.append('file', file);
-      const { data } = await productAPI.adminBulkUpload(fd);
-      setResults(data.data);
-      toast.success(`${data.data.successCount} products created`);
-      if (data.data.successCount > 0) onSuccess();
+
+      const response = await fetch(`${apiBase}/admin/products/bulk-upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+
+      // Non-SSE error (400/401/500 before stream started)
+      if (!response.ok) {
+        const json = await response.json().catch(() => ({}));
+        throw new Error(json?.message || `Server error ${response.status}`);
+      }
+
+      const reader  = response.body.getReader();
+      const decoder = new TextDecoder();
+      let   buffer  = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); // keep incomplete last line
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          let event;
+          try { event = JSON.parse(line.slice(6)); } catch { continue; }
+
+          if (event.type === 'start') {
+            setProgress({ done: 0, total: event.total });
+          } else if (event.type === 'row') {
+            setProgress({ done: event.done, total: event.total });
+            setRows((prev) => [...prev, event.row]);
+          } else if (event.type === 'done') {
+            setSummary({ successCount: event.successCount, failCount: event.failCount, total: event.total });
+            setPhase('done');
+            if (event.successCount > 0) {
+              toast.success(`${event.successCount} product${event.successCount > 1 ? 's' : ''} created`);
+              onSuccess();
+            } else {
+              toast.error('No products were created — check failed rows');
+            }
+          } else if (event.type === 'error') {
+            throw new Error(event.message);
+          }
+        }
+      }
     } catch (err) {
+      setPhase('error');
       toast.error(err?.message || 'Upload failed');
-    } finally {
-      setUploading(false);
     }
   };
 
-  const successRows = results?.results?.filter(r => r.status === 'success') || [];
-  const failRows    = results?.results?.filter(r => r.status === 'error')   || [];
+  const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
+  const successRows = rows.filter((r) => r.status === 'success');
+  const failRows    = rows.filter((r) => r.status === 'error');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={phase === 'processing' ? undefined : onClose} />
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -214,144 +268,204 @@ function BulkUploadModal({ onClose, onSuccess }) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
             <h2 className="font-heading text-lg font-bold text-gray-900">Bulk Upload Products</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Upload a CSV or Excel file to add multiple products at once</p>
+            <p className="text-xs text-gray-400 mt-0.5">Upload a CSV or Excel file to create multiple products at once</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={onClose} disabled={phase === 'processing'} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-30">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
 
         <div className="overflow-y-auto flex-1 p-6 space-y-5">
 
-          {/* Download template */}
-          <div className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
-            <div>
-              <p className="text-sm font-semibold text-blue-800">Download Sample Template</p>
-              <p className="text-xs text-blue-500 mt-0.5">Fill in the CSV and upload it below</p>
-            </div>
-            <button onClick={downloadTemplate} className="flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900 transition-colors">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              Download CSV
-            </button>
-          </div>
-
-          {/* Column reference — grouped */}
-          <div className="bg-gray-50 rounded-xl p-4 space-y-2.5">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Column Reference</p>
-            {CSV_GROUPS.map((group) => {
-              const cols = CSV_COLUMNS.filter((c) => c.group === group.id);
-              return (
-                <div key={group.id}>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">{group.label}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {cols.map((col) => (
-                      <span key={col.key} className={`text-[11px] px-2 py-0.5 rounded-full font-mono ${group.color}`}>
-                        {col.key}
-                      </span>
-                    ))}
-                  </div>
+          {/* ── PROCESSING PHASE ── */}
+          {phase === 'processing' && (
+            <div className="space-y-4">
+              {/* Progress bar */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm font-medium">
+                  <span className="text-gray-700 flex items-center gap-2">
+                    <svg className="w-4 h-4 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                    </svg>
+                    Processing rows…
+                  </span>
+                  <span className="text-gray-500 tabular-nums">
+                    {progress.done} / {progress.total || '?'} &nbsp;·&nbsp; {pct}%
+                  </span>
                 </div>
-              );
-            })}
-            <p className="text-[11px] text-gray-400 pt-1 border-t border-gray-200">
-              <span className="text-red-500 font-semibold">*</span> Required &nbsp;·&nbsp;
-              <strong>category</strong>: exact name or slug &nbsp;·&nbsp;
-              <strong>status</strong>: approved / draft / pending &nbsp;·&nbsp;
-              <strong>images</strong>: full https:// URL &nbsp;·&nbsp;
-              <strong>tags</strong>: comma-separated values in one cell &nbsp;·&nbsp;
-              <strong>flags</strong>: true / false
-            </p>
-          </div>
+                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#C9A84C,#5a413f)' }}
+                  />
+                </div>
+                <div className="flex gap-4 text-xs">
+                  <span className="text-green-600 font-semibold">{successRows.length} created</span>
+                  <span className="text-red-500 font-semibold">{failRows.length} failed</span>
+                </div>
+              </div>
 
-          {/* Drop zone */}
-          <div
-            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={handleDrop}
-            onClick={() => fileRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${dragging ? 'border-primary bg-primary/5' : file ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
-          >
-            <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={(e) => handleFile(e.target.files[0])} />
-            {file ? (
-              <>
-                <svg className="w-10 h-10 text-green-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                <p className="font-semibold text-sm text-gray-800">{file.name}</p>
-                <p className="text-xs text-gray-400 mt-1">{(file.size / 1024).toFixed(1)} KB &nbsp;·&nbsp; Click to change</p>
-              </>
-            ) : (
-              <>
-                <svg className="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-                <p className="font-semibold text-sm text-gray-600">Drag & drop your file here</p>
-                <p className="text-xs text-gray-400 mt-1">or click to browse &nbsp;·&nbsp; CSV, XLSX, XLS &nbsp;·&nbsp; Max 5 MB</p>
-              </>
-            )}
-          </div>
+              {/* Live log */}
+              <div
+                ref={logRef}
+                className="border border-gray-100 rounded-xl bg-gray-50 max-h-52 overflow-y-auto divide-y divide-gray-100"
+              >
+                {rows.length === 0 && (
+                  <p className="text-xs text-gray-400 text-center py-6">Waiting for first row…</p>
+                )}
+                {rows.map((r, idx) => (
+                  <div key={idx} className="flex items-center gap-3 px-4 py-2">
+                    {r.status === 'success' ? (
+                      <span className="w-5 h-5 flex-shrink-0 rounded-full bg-green-100 flex items-center justify-center">
+                        <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                      </span>
+                    ) : (
+                      <span className="w-5 h-5 flex-shrink-0 rounded-full bg-red-100 flex items-center justify-center">
+                        <svg className="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                      </span>
+                    )}
+                    <span className="text-[10px] text-gray-400 font-mono flex-shrink-0">Row {r.rowNum}</span>
+                    <span className="text-xs text-gray-700 truncate flex-1">{r.title}</span>
+                    {r.status === 'error' && <span className="text-[11px] text-red-500 flex-shrink-0 max-w-[180px] truncate">{r.error}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-          {/* Results */}
-          {results && (
-            <div className="space-y-3">
-              {/* Summary */}
+          {/* ── DONE PHASE ── */}
+          {phase === 'done' && summary && (
+            <div className="space-y-4">
+              {/* Summary cards */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="text-center bg-gray-50 rounded-xl py-3">
-                  <p className="text-2xl font-bold text-gray-800">{results.total}</p>
+                <div className="text-center bg-gray-50 rounded-xl py-4">
+                  <p className="text-2xl font-bold text-gray-800">{summary.total}</p>
                   <p className="text-xs text-gray-400 mt-0.5">Total Rows</p>
                 </div>
-                <div className="text-center bg-green-50 rounded-xl py-3">
-                  <p className="text-2xl font-bold text-green-600">{results.successCount}</p>
+                <div className="text-center bg-green-50 rounded-xl py-4">
+                  <p className="text-2xl font-bold text-green-600">{summary.successCount}</p>
                   <p className="text-xs text-green-500 mt-0.5">Created</p>
                 </div>
-                <div className="text-center bg-red-50 rounded-xl py-3">
-                  <p className="text-2xl font-bold text-red-500">{results.failCount}</p>
+                <div className="text-center bg-red-50 rounded-xl py-4">
+                  <p className="text-2xl font-bold text-red-500">{summary.failCount}</p>
                   <p className="text-xs text-red-400 mt-0.5">Failed</p>
                 </div>
               </div>
 
-              {/* Failed rows */}
-              {failRows.length > 0 && (
-                <div className="border border-red-200 rounded-xl overflow-hidden">
-                  <div className="bg-red-50 px-4 py-2 border-b border-red-100">
-                    <p className="text-xs font-semibold text-red-700">Failed Rows</p>
+              {/* Full log */}
+              <div className="border border-gray-100 rounded-xl bg-gray-50 max-h-56 overflow-y-auto divide-y divide-gray-100">
+                {rows.map((r, idx) => (
+                  <div key={idx} className="flex items-center gap-3 px-4 py-2">
+                    {r.status === 'success' ? (
+                      <span className="w-5 h-5 flex-shrink-0 rounded-full bg-green-100 flex items-center justify-center">
+                        <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                      </span>
+                    ) : (
+                      <span className="w-5 h-5 flex-shrink-0 rounded-full bg-red-100 flex items-center justify-center">
+                        <svg className="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                      </span>
+                    )}
+                    <span className="text-[10px] text-gray-400 font-mono flex-shrink-0">Row {r.rowNum}</span>
+                    <span className="text-xs text-gray-700 truncate flex-1">{r.title}</span>
+                    {r.status === 'error' && <span className="text-[11px] text-red-500 flex-shrink-0 max-w-[180px] truncate">{r.error}</span>}
+                    {r.status === 'success' && <span className="text-[11px] text-green-600 flex-shrink-0">Created</span>}
                   </div>
-                  <div className="divide-y divide-red-50 max-h-40 overflow-y-auto">
-                    {failRows.map((r) => (
-                      <div key={r.row} className="flex items-start gap-3 px-4 py-2.5">
-                        <span className="text-[10px] bg-red-100 text-red-600 font-mono px-1.5 py-0.5 rounded mt-0.5 flex-shrink-0">Row {r.row}</span>
-                        <div>
-                          <p className="text-xs font-medium text-gray-700">{r.title}</p>
-                          <p className="text-[11px] text-red-500">{r.error}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Success list (collapsed) */}
-              {successRows.length > 0 && (
-                <p className="text-xs text-green-600 font-medium text-center">
-                  {successRows.length} product{successRows.length > 1 ? 's' : ''} created successfully and are now live in the store.
-                </p>
-              )}
+                ))}
+              </div>
             </div>
+          )}
+
+          {/* ── IDLE PHASE ── */}
+          {(phase === 'idle' || phase === 'error') && (
+            <>
+              {/* Download template */}
+              <div className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-blue-800">Download Sample Template</p>
+                  <p className="text-xs text-blue-500 mt-0.5">Fill in the CSV and upload below — all 53 columns included</p>
+                </div>
+                <button onClick={downloadTemplate} className="flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                  Download CSV
+                </button>
+              </div>
+
+              {/* Column reference — grouped */}
+              <div className="bg-gray-50 rounded-xl p-4 space-y-2.5">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Column Reference</p>
+                {CSV_GROUPS.map((group) => {
+                  const cols = CSV_COLUMNS.filter((c) => c.group === group.id);
+                  return (
+                    <div key={group.id}>
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">{group.label}</p>
+                      <div className="flex flex-wrap gap-1">
+                        {cols.map((col) => (
+                          <span key={col.key} className={`text-[11px] px-2 py-0.5 rounded-full font-mono ${group.color}`}>
+                            {col.key}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                <p className="text-[11px] text-gray-400 pt-1 border-t border-gray-200">
+                  <span className="text-red-500 font-semibold">*</span> Required &nbsp;·&nbsp;
+                  <strong>category</strong>: exact name or slug &nbsp;·&nbsp;
+                  <strong>images</strong>: full https:// URL &nbsp;·&nbsp;
+                  <strong>tags</strong>: comma-separated &nbsp;·&nbsp;
+                  <strong>flags</strong>: true / false
+                </p>
+              </div>
+
+              {/* Drop zone */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => fileRef.current?.click()}
+                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${dragging ? 'border-primary bg-primary/5' : file ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
+              >
+                <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={(e) => handleFile(e.target.files[0])} />
+                {file ? (
+                  <>
+                    <svg className="w-10 h-10 text-green-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    <p className="font-semibold text-sm text-gray-800">{file.name}</p>
+                    <p className="text-xs text-gray-400 mt-1">{(file.size / 1024).toFixed(1)} KB &nbsp;·&nbsp; Click to change</p>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-10 h-10 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                    <p className="font-semibold text-sm text-gray-600">Drag & drop your file here</p>
+                    <p className="text-xs text-gray-400 mt-1">or click to browse &nbsp;·&nbsp; CSV, XLSX, XLS &nbsp;·&nbsp; Max 5 MB</p>
+                  </>
+                )}
+              </div>
+            </>
           )}
         </div>
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between gap-3">
-          <button onClick={onClose} className="btn-outline text-sm px-4 py-2">
-            {results ? 'Close' : 'Cancel'}
+          <button onClick={onClose} disabled={phase === 'processing'} className="btn-outline text-sm px-4 py-2 disabled:opacity-30">
+            {phase === 'done' ? 'Close' : 'Cancel'}
           </button>
-          {!results && (
+          {phase !== 'done' && phase !== 'processing' && (
             <button
               onClick={handleUpload}
-              disabled={!file || uploading}
+              disabled={!file}
               className="btn-primary text-sm px-6 py-2 disabled:opacity-50 flex items-center gap-2"
             >
-              {uploading ? (
-                <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Uploading...</>
-              ) : (
-                <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>Upload & Create Products</>
-              )}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+              Upload &amp; Create Products
+            </button>
+          )}
+          {phase === 'done' && summary?.failCount > 0 && (
+            <button
+              onClick={() => { setPhase('idle'); setFile(null); setRows([]); setSummary(null); }}
+              className="btn-outline text-sm px-4 py-2"
+            >
+              Upload Another File
             </button>
           )}
         </div>

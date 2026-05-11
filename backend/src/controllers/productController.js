@@ -515,7 +515,7 @@ exports.uploadProductImages = async (req, res, next) => {
   }
 };
 
-// @desc    Admin: bulk upload products via CSV / Excel
+// @desc    Admin: bulk upload products via CSV / Excel (SSE streaming)
 // @route   POST /api/admin/products/bulk-upload
 // @access  Admin
 exports.adminBulkUploadProducts = async (req, res, next) => {
@@ -538,6 +538,17 @@ exports.adminBulkUploadProducts = async (req, res, next) => {
       catMap[c.slug.toLowerCase().trim()] = c._id;
     });
 
+    // Switch to SSE — all validation passed, stream row-by-row progress
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    const emit = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+    emit({ type: 'start', total: rows.length });
+
     // Parsing helpers
     const str  = (v) => String(v == null ? '' : v).trim();
     const num  = (v) => { const n = parseFloat(v); return isNaN(n) ? undefined : n; };
@@ -546,9 +557,7 @@ exports.adminBulkUploadProducts = async (req, res, next) => {
     const arr  = (v) => str(v) ? str(v).split(',').map((s) => s.trim()).filter(Boolean) : [];
     const pick = (row, ...keys) => { for (const k of keys) { if (row[k] !== undefined && row[k] !== '') return row[k]; } return ''; };
 
-    const results = [];
-    let successCount = 0;
-    let failCount = 0;
+    let successCount = 0, failCount = 0;
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -667,19 +676,20 @@ exports.adminBulkUploadProducts = async (req, res, next) => {
         }
 
         const product = await Product.create(data);
-        results.push({ row: rowNum, title, status: 'success', id: product._id });
         successCount++;
+        emit({ type: 'row', done: i + 1, total: rows.length, row: { rowNum, title, status: 'success', id: String(product._id) } });
       } catch (err) {
         const title = str(pick(row, 'title', 'Title')) || `Row ${rowNum}`;
-        results.push({ row: rowNum, title, status: 'error', error: err.message });
         failCount++;
+        emit({ type: 'row', done: i + 1, total: rows.length, row: { rowNum, title, status: 'error', error: err.message } });
       }
     }
 
-    sendSuccess(res, 200, `Bulk upload complete: ${successCount} created, ${failCount} failed`, {
-      successCount, failCount, total: rows.length, results,
-    });
+    emit({ type: 'done', successCount, failCount, total: rows.length });
+    res.end();
   } catch (error) {
-    next(error);
+    if (!res.headersSent) return next(error);
+    res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+    res.end();
   }
 };
