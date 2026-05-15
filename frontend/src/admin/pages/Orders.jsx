@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { orderAPI, adminAPI, productAPI } from '../../services/api';
@@ -543,9 +543,8 @@ export default function AdminOrders() {
                 const firstItem = order.items?.[0];
                 const isOpen    = expanded === order._id;
                 return (
-                  <>
+                  <Fragment key={order._id}>
                     <tr
-                      key={order._id}
                       className={`hover:bg-gray-50/60 cursor-pointer transition-colors ${isOpen ? 'bg-blue-50/30' : ''}`}
                       onClick={() => setExpanded(isOpen ? null : order._id)}
                     >
@@ -613,7 +612,7 @@ export default function AdminOrders() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}}
             </tbody>

@@ -709,7 +709,12 @@ exports.adminBulkUploadProducts = async (req, res, next) => {
       } catch (err) {
         const title = str(pick(row, 'title', 'Title')) || `Row ${rowNum}`;
         failCount++;
-        emit({ type: 'row', done: i + 1, total: rows.length, row: { rowNum, title, status: 'error', error: err.message } });
+        let errMsg = err.message;
+        if (err.code === 11000) {
+          const field = Object.keys(err.keyPattern || {})[0] || 'field';
+          errMsg = `Duplicate ${field} — a product with this ${field} already exists`;
+        }
+        emit({ type: 'row', done: i + 1, total: rows.length, row: { rowNum, title, status: 'error', error: errMsg } });
       }
     }
 
