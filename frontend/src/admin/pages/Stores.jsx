@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { storeAPI } from '../../services/api';
 import Select from '../../components/ui/Select';
+import { resizeImage } from '../../utils/resizeImage';
 
 const DEFAULT_SERVICES = [
   { icon: 'exchange', title: 'GOLD EXCHANGE' },
@@ -66,7 +67,7 @@ function StoreModal({ store, onSave, onClose }) {
         else if (k === 'facilitiesText') fd.append('facilities', v);
         else if (v !== '' && v !== null && v !== undefined) fd.append(k, v);
       });
-      if (imageFile) fd.append('image', imageFile);
+      if (imageFile) fd.append('image', await resizeImage(imageFile, 1200, 450));
       await onSave(fd);
       onClose();
     } catch (err) {

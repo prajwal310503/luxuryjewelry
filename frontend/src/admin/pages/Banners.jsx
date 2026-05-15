@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { cmsAPI } from '../../services/api';
 import Select from '../../components/ui/Select';
+import { resizeImage } from '../../utils/resizeImage';
 
 // ── Position config with recommended sizes ───────────────────────────────────
 const POSITIONS_CONFIG = [
@@ -107,11 +108,15 @@ export default function AdminBanners() {
       const fullForm = { ...form, overlayColor: toRgba(overlayHex, overlayAlpha) };
       let payload;
       if (imageFile) {
+        const pos = POS_MAP[form.position] || POSITIONS_CONFIG[0];
+        const fileToUpload = imageFile.type !== 'image/gif'
+          ? await resizeImage(imageFile, pos.w, pos.h)
+          : imageFile;
         payload = new FormData();
         Object.entries(fullForm).forEach(([k, v]) => {
           if (v !== '' && v !== null && v !== undefined) payload.append(k, v);
         });
-        payload.append('image', imageFile);
+        payload.append('image', fileToUpload);
       } else {
         payload = { ...fullForm };
       }

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { productAPI, adminAPI } from '../../services/api';
+import { resizeImage } from '../../utils/resizeImage';
 
 // ── Slot upload card for one product ─────────────────────────────────────────
 function ProductImageCard({ product, onUpdated }) {
@@ -26,8 +27,9 @@ function ProductImageCard({ product, onUpdated }) {
 
     setUploading(slotIndex);
     try {
+      const resized = await resizeImage(file, 800, 800);
       const formData = new FormData();
-      formData.append('images', file);
+      formData.append('images', resized);
       const { data } = await adminAPI.uploadProductImages(product._id, formData);
       const updated = data.data || [];
       setImages(updated);

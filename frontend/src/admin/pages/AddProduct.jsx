@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { productAPI, categoryAPI, attributeAPI, adminAPI } from '../../services/api';
 import Select from '../../components/ui/Select';
+import { resizeImage } from '../../utils/resizeImage';
 
 const SectionTitle = ({ children }) => (
   <h3 className="font-heading font-semibold text-gray-800 text-sm uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">
@@ -205,12 +206,14 @@ export default function AdminAddProduct() {
     const file = e.target.files[0];
     if (!file) return;
 
+    const resized = await resizeImage(file, 800, 800);
+
     if (!productId) {
-      const previewUrl = URL.createObjectURL(file);
+      const previewUrl = URL.createObjectURL(resized);
       setPendingImageFiles((prev) => {
         const next = [...prev];
         if (next[slotIndex]?.previewUrl) URL.revokeObjectURL(next[slotIndex].previewUrl);
-        next[slotIndex] = { file, previewUrl };
+        next[slotIndex] = { file: resized, previewUrl };
         return next;
       });
       e.target.value = '';
@@ -227,7 +230,7 @@ export default function AdminAddProduct() {
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append('images', file);
+      formData.append('images', resized);
       const { data } = await adminAPI.uploadProductImages(productId, formData);
       setCurrentImages(data.data || []);
       toast.success(slotIndex === 0 ? 'Main image updated' : 'Hover image updated');

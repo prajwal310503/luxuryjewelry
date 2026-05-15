@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { categoryAPI } from '../../services/api';
+import { resizeImage } from '../../utils/resizeImage';
 
 function CategoryImageCard({ category, onUpdated }) {
   const [imgPreview, setImgPreview] = useState(category.image || null);
@@ -12,13 +13,14 @@ function CategoryImageCard({ category, onUpdated }) {
     e.target.value = '';
     setUploading(true);
     try {
+      const resized = await resizeImage(file, 600, 400);
       const fd = new FormData();
       // carry over required fields
       fd.append('name', category.name);
       if (category.parent?._id || category.parent) fd.append('parent', category.parent?._id || category.parent);
       fd.append('sortOrder', category.sortOrder ?? 0);
       fd.append('isFeatured', category.isFeatured ?? false);
-      fd.append('image', file);
+      fd.append('image', resized);
 
       await categoryAPI.adminUpdate(category._id, fd);
       const preview = URL.createObjectURL(file);

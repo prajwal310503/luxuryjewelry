@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { blogAPI } from '../../services/api';
 import Select from '../../components/ui/Select';
+import { resizeImage } from '../../utils/resizeImage';
 
 const CATEGORIES = ['EDUCATION', 'ENGAGEMENT RING', 'GIFTING', 'TRENDS', 'BRIDAL', 'CARE & MAINTENANCE', 'DIAMONDS'];
 
@@ -78,7 +79,7 @@ export default function AdminBlog() {
     try {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-      if (imageFile) fd.append('image', imageFile);
+      if (imageFile) fd.append('image', await resizeImage(imageFile, 1200, 450));
       if (modal === 'edit') {
         await blogAPI.adminUpdate(editingPost._id, fd);
         toast.success('Post updated');

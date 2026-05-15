@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { categoryAPI } from '../../services/api';
 import Select from '../../components/ui/Select';
+import { resizeImage } from '../../utils/resizeImage';
 
 const EMPTY = { name: '', description: '', parent: '', sortOrder: 0, isFeatured: false };
 
@@ -65,7 +66,7 @@ export default function AdminCategories() {
       Object.entries(form).forEach(([k, v]) => {
         if (v !== '' && v !== null && v !== undefined) fd.append(k, v);
       });
-      if (imageFile) fd.append('image', imageFile);
+      if (imageFile) fd.append('image', await resizeImage(imageFile, 600, 400));
 
       if (editItem) {
         await categoryAPI.adminUpdate(editItem._id, fd);

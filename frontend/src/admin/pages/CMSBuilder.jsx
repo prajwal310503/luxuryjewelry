@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { cmsAPI, productAPI } from '../../services/api';
+import { resizeImage } from '../../utils/resizeImage';
 
 // ─── Icon ─────────────────────────────────────────────────────────────────────
 const Ic = ({ d }) => (
@@ -18,8 +19,13 @@ function ImageUpload({ value, onChange, label = 'Image', dims }) {
     if (!file) return;
     setUploading(true);
     try {
+      let uploadFile = file;
+      if (dims) {
+        const m = dims.match(/(\d+)\s*[×x]\s*(\d+)/);
+        if (m) uploadFile = await resizeImage(file, parseInt(m[1]), parseInt(m[2]));
+      }
       const fd = new FormData();
-      fd.append('image', file);
+      fd.append('image', uploadFile);
       const token = localStorage.getItem('token');
       // Use native fetch — lets browser set correct multipart boundary automatically
       const res = await fetch('/api/cms/admin/upload', {

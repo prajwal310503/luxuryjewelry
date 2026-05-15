@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { resizeImage } from '../../utils/resizeImage';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
@@ -12,14 +13,14 @@ const SITE_IMAGES = [
         key: 'lifestyle-bridal',
         label: 'Bridal & Festive — Model Photo',
         hint: 'Portrait photo of model wearing bridal jewelry. Best: 900×1100px',
-        aspect: '3/4',
+        aspect: '3/4', w: 900, h: 1100,
         fallback: 'https://images.unsplash.com/photo-1610992015732-2449b76344bc?w=600&h=800&fit=crop&q=80&auto=format',
       },
       {
         key: 'lifestyle-everyday',
         label: 'Everyday Luxury — Model Photo',
         hint: 'Portrait photo of model wearing everyday jewelry. Best: 900×1100px',
-        aspect: '3/4',
+        aspect: '3/4', w: 900, h: 1100,
         fallback: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=600&h=800&fit=crop&q=80&auto=format',
       },
     ],
@@ -31,28 +32,28 @@ const SITE_IMAGES = [
         key: 'promo-shipping',
         label: 'Fast & Secure Shipping',
         hint: 'Delivery / packaging scene. Best: 800×400px',
-        aspect: '2/1',
+        aspect: '2/1', w: 800, h: 400,
         fallback: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=600&h=300&fit=crop&q=80&auto=format',
       },
       {
         key: 'promo-ring',
         label: 'Vault of Dreams',
         hint: 'Diamond ring / savings visual. Best: 800×400px',
-        aspect: '2/1',
+        aspect: '2/1', w: 800, h: 400,
         fallback: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=600&h=300&fit=crop&q=80&auto=format',
       },
       {
         key: 'promo-consultation',
         label: 'Virtual Consultation',
         hint: 'Video call / consultation scene. Best: 800×400px',
-        aspect: '2/1',
+        aspect: '2/1', w: 800, h: 400,
         fallback: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&h=300&fit=crop&q=80&auto=format',
       },
       {
         key: 'promo-bespoke',
         label: 'Bespoke Designs',
         hint: 'Jewelry sketching / design. Best: 800×400px',
-        aspect: '2/1',
+        aspect: '2/1', w: 800, h: 400,
         fallback: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=600&h=300&fit=crop&q=80&auto=format',
       },
     ],
@@ -71,8 +72,9 @@ function ImageSlot({ item, savedUrl, onUploaded }) {
     e.target.value = '';
     setUploading(true);
     try {
+      const resized = item.w && item.h ? await resizeImage(file, item.w, item.h) : file;
       const fd = new FormData();
-      fd.append('image', file);
+      fd.append('image', resized);
       const token = localStorage.getItem('token');
       const res = await fetch(
         `${API_BASE}/admin/upload/site-image?key=${encodeURIComponent(item.key)}`,
