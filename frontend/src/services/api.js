@@ -94,12 +94,12 @@ export const productAPI = {
   create: (data) => api.post('/products', data),
   update: (id, data) => api.put(`/products/${id}`, data),
   delete: (id) => api.delete(`/products/${id}`),
-  uploadImages: (id, formData) => api.post(`/products/${id}/images`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  uploadImages: (id, formData) => api.post(`/products/${id}/images`, formData),
   // Admin
   adminGetAll: (params) => api.get('/admin/products', { params }),
   adminGetById: (id) => api.get(`/admin/products/${id}`),
   adminCreate: (data) => api.post('/admin/products', data),
-  adminBulkUpload: (formData) => api.post('/admin/products/bulk-upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  adminBulkUpload: (formData) => api.post('/admin/products/bulk-upload', formData),
   adminUpdate: (id, data) => api.put(`/admin/products/${id}`, data),
   adminUpdateStatus: (id, data) => api.put(`/admin/products/${id}/status`, data),
   adminToggleFeatured:   (id) => api.put(`/admin/products/${id}/featured`),
@@ -117,8 +117,8 @@ export const productAPI = {
 export const categoryAPI = {
   getAll: (params) => api.get('/categories', { params }),
   getBySlug: (slug) => api.get(`/categories/${slug}`),
-  adminCreate: (data) => api.post('/categories/admin', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  adminUpdate: (id, data) => api.put(`/categories/admin/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  adminCreate: (data) => api.post('/categories/admin', data),
+  adminUpdate: (id, data) => api.put(`/categories/admin/${id}`, data),
   adminDelete: (id) => api.delete(`/categories/admin/${id}`),
 };
 
@@ -158,12 +158,8 @@ export const cmsAPI = {
   reorderSections: (page, data) => api.put(`/cms/admin/pages/${page}/reorder`, data),
   toggleSection: (id) => api.put(`/cms/admin/sections/${id}/toggle`),
   adminGetBanners: () => api.get('/cms/admin/banners'),
-  createBanner: (data) => api.post('/cms/admin/banners', data, {
-    headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {},
-  }),
-  updateBanner: (id, data) => api.put(`/cms/admin/banners/${id}`, data, {
-    headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {},
-  }),
+  createBanner: (data) => api.post('/cms/admin/banners', data),
+  updateBanner: (id, data) => api.put(`/cms/admin/banners/${id}`, data),
   deleteBanner: (id) => api.delete(`/cms/admin/banners/${id}`),
   adminGetMenus: () => api.get('/cms/admin/menus'),
   upsertMenu: (location, data) => api.put(`/cms/admin/menus/${location}`, data),
@@ -191,12 +187,12 @@ export const adminAPI = {
   toggleUser: (id) => api.put(`/admin/users/${id}/toggle`),
   getReviews: (params) => api.get('/admin/reviews', { params }),
   updateReviewStatus: (id, data) => api.put(`/admin/reviews/${id}/status`, data),
-  uploadPackageImages: (formData) => api.post('/admin/upload/package-images', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  uploadPromoBanner: (formData) => api.post('/admin/upload/promo-banner', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  uploadProductImages: (id, formData) => api.post(`/admin/products/${id}/images`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  uploadProductVideos: (id, formData) => api.post(`/admin/products/${id}/videos`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  uploadPackageImages: (formData) => api.post('/admin/upload/package-images', formData),
+  uploadPromoBanner: (formData) => api.post('/admin/upload/promo-banner', formData),
+  uploadProductImages: (id, formData) => api.post(`/admin/products/${id}/images`, formData),
+  uploadProductVideos: (id, formData) => api.post(`/admin/products/${id}/videos`, formData),
   removeProductVideo:  (id, idx) => api.delete(`/admin/products/${id}/videos/${idx}`),
-  uploadCertImage: (formData) => api.post('/admin/upload/cert-image', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  uploadCertImage: (formData) => api.post('/admin/upload/cert-image', formData),
 };
 
 // ==================== REVIEWS ====================
@@ -223,12 +219,8 @@ export const storeAPI = {
   getStoreBySlug: (slug) => api.get(`/stores/${slug}`),
   // Admin
   adminGetAll: () => api.get('/stores/admin/all'),
-  adminCreate: (data) => api.post('/stores/admin', data, {
-    headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {},
-  }),
-  adminUpdate: (id, data) => api.put(`/stores/admin/${id}`, data, {
-    headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {},
-  }),
+  adminCreate: (data) => api.post('/stores/admin', data),
+  adminUpdate: (id, data) => api.put(`/stores/admin/${id}`, data),
   adminDelete: (id) => api.delete(`/stores/admin/${id}`),
   adminToggle: (id) => api.put(`/stores/admin/${id}/toggle`),
 };
@@ -263,7 +255,7 @@ export const blogAPI = {
 export const pincodeAPI = {
   check: (pincode) => api.get('/pincodes/check', { params: { pincode } }),
   adminGetStats: () => api.get('/pincodes/admin/stats'),
-  adminUpload: (formData) => api.post('/pincodes/admin/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  adminUpload: (formData) => api.post('/pincodes/admin/upload', formData),
   adminClear: () => api.delete('/pincodes/admin/clear'),
 };
 

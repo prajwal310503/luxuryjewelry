@@ -77,7 +77,7 @@ function QuoteEditor({ quote, onSaved, onCancel }) {
       toast.success(confirm ? 'Quote confirmed successfully!' : 'Quote saved');
       onSaved();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Save failed');
+      toast.error(err.message || 'Save failed');
     } finally { setSaving(false); }
   };
 

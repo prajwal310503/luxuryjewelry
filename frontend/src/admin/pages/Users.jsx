@@ -126,6 +126,10 @@ function CreateUserModal({ onClose, onCreated }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (form.phone && !/^[0-9]{10}$/.test(form.phone)) {
+      toast.error('Phone must be exactly 10 digits');
+      return;
+    }
     setSaving(true);
     try {
       await adminAPI.createUser(form);
@@ -133,7 +137,7 @@ function CreateUserModal({ onClose, onCreated }) {
       onCreated();
       onClose();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to create user');
+      toast.error(err.message || 'Failed to create user');
     } finally {
       setSaving(false);
     }
@@ -166,9 +170,10 @@ function CreateUserModal({ onClose, onCreated }) {
                 required minLength={6} placeholder="Min. 6 chars" className="input-luxury w-full h-10 px-3 text-sm" />
             </div>
             <div>
-              <label className="label-luxury mb-1">Phone</label>
-              <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                placeholder="Optional" className="input-luxury w-full h-10 px-3 text-sm" />
+              <label className="label-luxury mb-1">Phone <span className="text-gray-400 font-normal">(10 digits)</span></label>
+              <input type="tel" value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                placeholder="Optional — 10 digits" className="input-luxury w-full h-10 px-3 text-sm" />
             </div>
             <div className="col-span-2">
               <label className="label-luxury mb-1">Role</label>

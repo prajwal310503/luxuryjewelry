@@ -48,7 +48,7 @@ export default function QuoteRequestPage() {
       toast.success('Quote request submitted! We will get back to you shortly.');
       navigate('/my-quotes');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to submit quote request');
+      toast.error(err.message || 'Failed to submit quote request');
     } finally {
       setSaving(false);
     }
