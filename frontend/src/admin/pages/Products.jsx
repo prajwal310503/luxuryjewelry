@@ -315,19 +315,29 @@ function BulkUploadModal({ onClose, onSuccess }) {
                   <p className="text-xs text-gray-400 text-center py-6">Waiting for first row…</p>
                 )}
                 {rows.map((r, idx) => (
-                  <div key={idx} className="flex items-center gap-3 px-4 py-2">
+                  <div key={idx} className="flex items-start gap-3 px-4 py-2.5">
                     {r.status === 'success' ? (
-                      <span className="w-5 h-5 flex-shrink-0 rounded-full bg-green-100 flex items-center justify-center">
+                      <span className="w-5 h-5 mt-0.5 flex-shrink-0 rounded-full bg-green-100 flex items-center justify-center">
                         <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
                       </span>
                     ) : (
-                      <span className="w-5 h-5 flex-shrink-0 rounded-full bg-red-100 flex items-center justify-center">
+                      <span className="w-5 h-5 mt-0.5 flex-shrink-0 rounded-full bg-red-100 flex items-center justify-center">
                         <svg className="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                       </span>
                     )}
-                    <span className="text-[10px] text-gray-400 font-mono flex-shrink-0">Row {r.rowNum}</span>
-                    <span className="text-xs text-gray-700 truncate flex-1">{r.title}</span>
-                    {r.status === 'error' && <span className="text-[11px] text-red-500 flex-shrink-0 max-w-[180px] truncate">{r.error}</span>}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-gray-400 font-mono flex-shrink-0">Row {r.rowNum}</span>
+                        <span className="text-xs text-gray-700 font-medium truncate">{r.title}</span>
+                      </div>
+                      {r.status === 'error' && (
+                        <p className="text-[11px] text-red-500 mt-0.5 leading-snug break-words">
+                          {/^Duplicate/i.test(r.error)
+                            ? <><span className="inline-block bg-orange-100 text-orange-600 font-bold px-1.5 py-0.5 rounded text-[10px] mr-1">Duplicate</span>{r.error.replace(/^Duplicate\s*/i, '')}</>
+                            : r.error}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -356,20 +366,30 @@ function BulkUploadModal({ onClose, onSuccess }) {
               {/* Full log */}
               <div className="border border-gray-100 rounded-xl bg-gray-50 max-h-56 overflow-y-auto divide-y divide-gray-100">
                 {rows.map((r, idx) => (
-                  <div key={idx} className="flex items-center gap-3 px-4 py-2">
+                  <div key={idx} className="flex items-start gap-3 px-4 py-2.5">
                     {r.status === 'success' ? (
-                      <span className="w-5 h-5 flex-shrink-0 rounded-full bg-green-100 flex items-center justify-center">
+                      <span className="w-5 h-5 mt-0.5 flex-shrink-0 rounded-full bg-green-100 flex items-center justify-center">
                         <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
                       </span>
                     ) : (
-                      <span className="w-5 h-5 flex-shrink-0 rounded-full bg-red-100 flex items-center justify-center">
+                      <span className="w-5 h-5 mt-0.5 flex-shrink-0 rounded-full bg-red-100 flex items-center justify-center">
                         <svg className="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                       </span>
                     )}
-                    <span className="text-[10px] text-gray-400 font-mono flex-shrink-0">Row {r.rowNum}</span>
-                    <span className="text-xs text-gray-700 truncate flex-1">{r.title}</span>
-                    {r.status === 'error' && <span className="text-[11px] text-red-500 flex-shrink-0 max-w-[180px] truncate">{r.error}</span>}
-                    {r.status === 'success' && <span className="text-[11px] text-green-600 flex-shrink-0">Created</span>}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-gray-400 font-mono flex-shrink-0">Row {r.rowNum}</span>
+                        <span className="text-xs text-gray-700 font-medium truncate flex-1">{r.title}</span>
+                        {r.status === 'success' && <span className="text-[10px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded flex-shrink-0">Created</span>}
+                      </div>
+                      {r.status === 'error' && (
+                        <p className="text-[11px] text-red-500 mt-0.5 leading-snug break-words">
+                          {/^Duplicate/i.test(r.error)
+                            ? <><span className="inline-block bg-orange-100 text-orange-600 font-bold px-1.5 py-0.5 rounded text-[10px] mr-1">Duplicate</span>{r.error.replace(/^Duplicate\s*/i, '')}</>
+                            : r.error}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

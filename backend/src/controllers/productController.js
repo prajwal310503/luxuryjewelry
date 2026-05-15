@@ -712,7 +712,10 @@ exports.adminBulkUploadProducts = async (req, res, next) => {
         let errMsg = err.message;
         if (err.code === 11000) {
           const field = Object.keys(err.keyPattern || {})[0] || 'field';
-          errMsg = `Duplicate ${field} — a product with this ${field} already exists`;
+          const value = err.keyValue ? err.keyValue[field] : null;
+          errMsg = value
+            ? `Duplicate ${field}: "${value}" already exists in the database`
+            : `Duplicate ${field} — already exists in the database`;
         }
         emit({ type: 'row', done: i + 1, total: rows.length, row: { rowNum, title, status: 'error', error: errMsg } });
       }
