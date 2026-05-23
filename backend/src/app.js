@@ -105,7 +105,7 @@ app.use(
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'development' ? 5000 : 200,
+  max: process.env.NODE_ENV === 'development' ? 10000 : 2000,
   skip: () => process.env.NODE_ENV === 'development',
   message: { success: false, message: 'Too many requests, please try again later.' },
 });
@@ -113,7 +113,7 @@ app.use('/api', limiter);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'development' ? 500 : 20,
+  max: process.env.NODE_ENV === 'development' ? 1000 : 100,
   skip: () => process.env.NODE_ENV === 'development',
   message: { success: false, message: 'Too many auth attempts.' },
 });
