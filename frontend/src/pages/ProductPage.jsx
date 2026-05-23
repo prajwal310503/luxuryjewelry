@@ -251,7 +251,7 @@ export default function ProductPage() {
 
             {/* Main viewer */}
             <div
-              className="relative aspect-[4/3] md:aspect-[5/4] rounded-xl overflow-hidden bg-[#f8f5f2] group"
+              className="relative aspect-square rounded-xl overflow-hidden bg-[#f8f5f2] group"
               onMouseEnter={() => setPaused(true)}
               onMouseLeave={() => setPaused(false)}
             >
@@ -269,7 +269,7 @@ export default function ProductPage() {
                     <video src={currentMedia.url} controls autoPlay muted loop
                       className="w-full h-full object-contain bg-black" />
                   ) : currentMedia?.type === 'image' ? (
-                    <img src={currentMedia.url} alt={product.title} className="w-full h-full object-cover" />
+                    <img src={currentMedia.url} alt={product.title} className="w-full h-full object-contain" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-luxury-cream">
                       <svg className="w-16 h-16 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1}>
