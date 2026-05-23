@@ -442,8 +442,9 @@ export default function AdminOrders() {
   const [meta,      setMeta]      = useState({});
   const [loading,   setLoading]   = useState(true);
   const [expanded,  setExpanded]  = useState(null);
-  const [selected,  setSelected]  = useState(null);
-  const [statusUpdate, setStatusUpdate] = useState({ status: '', comment: '' });
+  const [selected,      setSelected]      = useState(null);
+  const [statusSaving,  setStatusSaving]  = useState(false);
+  const [statusUpdate,  setStatusUpdate]  = useState({ status: '', comment: '' });
   const [showCreate, setShowCreate] = useState(false);
 
   const statusFilter = searchParams.get('status') || '';
@@ -468,12 +469,14 @@ export default function AdminOrders() {
 
   const handleUpdateStatus = async () => {
     if (!statusUpdate.status) return;
+    setStatusSaving(true);
     try {
       await orderAPI.adminUpdateStatus(selected._id, statusUpdate);
       toast.success('Order status updated');
       setSelected(null);
       fetchOrders();
     } catch (err) { toast.error(err.message); }
+    finally { setStatusSaving(false); }
   };
 
   const setPage = (p) => setSearchParams({ status: statusFilter, search, page: p });
@@ -652,7 +655,7 @@ export default function AdminOrders() {
               </div>
               <div className="flex gap-3">
                 <button type="button" onClick={() => setSelected(null)} className="btn-outline flex-1 justify-center">Cancel</button>
-                <button type="button" onClick={handleUpdateStatus} className="btn-primary flex-1 justify-center">Update Status</button>
+                <button type="button" onClick={handleUpdateStatus} disabled={statusSaving} className="btn-primary flex-1 justify-center disabled:opacity-60">{statusSaving ? 'Updating...' : 'Update Status'}</button>
               </div>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
@@ -7,6 +8,7 @@ const formatPrice = (p) => `₹${Math.round(p).toLocaleString('en-IN')}`;
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, getSubtotal, getShipping, getTotal, clearCart } = useCartStore();
+  const [confirmClear, setConfirmClear] = useState(false);
 
   if (items.length === 0) {
     return (
@@ -28,7 +30,15 @@ export default function CartPage() {
       <div className="container-luxury py-10">
         <div className="flex items-center justify-between mb-8">
           <h1 className="font-heading text-3xl font-bold">My Cart ({items.length})</h1>
-          <button onClick={clearCart} className="text-sm text-red-500 hover:underline">Clear Cart</button>
+          {confirmClear ? (
+            <span className="flex items-center gap-2 text-sm">
+              <span className="text-gray-500">Remove all items?</span>
+              <button onClick={() => { clearCart(); setConfirmClear(false); }} className="text-red-500 font-medium hover:underline">Yes, clear</button>
+              <button onClick={() => setConfirmClear(false)} className="text-gray-400 hover:underline">Cancel</button>
+            </span>
+          ) : (
+            <button onClick={() => setConfirmClear(true)} className="text-sm text-red-500 hover:underline">Clear Cart</button>
+          )}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           <div className="lg:col-span-2 space-y-4">

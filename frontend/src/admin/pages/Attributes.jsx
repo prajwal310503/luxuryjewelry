@@ -17,6 +17,7 @@ export default function AdminAttributes() {
   const [valueForm, setValueForm] = useState({ value: '', colorCode: '', sortOrder: 0 });
   const [saving, setSaving] = useState(false);
   const [editValue, setEditValue] = useState(null);
+  const [confirmDel, setConfirmDel] = useState(null); // { type: 'attr'|'value', id, label }
 
   const fetchAttrs = async () => {
     setLoading(true);
@@ -43,14 +44,8 @@ export default function AdminAttributes() {
     } catch (err) { toast.error(err.message); } finally { setSaving(false); }
   };
 
-  const handleDeleteAttr = async (id) => {
-    if (!confirm('Delete this attribute and all its values?')) return;
-    try {
-      await attributeAPI.delete(id);
-      toast.success('Deleted');
-      if (selected?._id === id) setSelected(null);
-      fetchAttrs();
-    } catch (err) { toast.error(err.message); }
+  const handleDeleteAttr = (id, name) => {
+    setConfirmDel({ type: 'attr', id, label: name });
   };
 
   const handleSaveValue = async (e) => {
@@ -71,13 +66,24 @@ export default function AdminAttributes() {
     } catch (err) { toast.error(err.message); } finally { setSaving(false); }
   };
 
-  const handleDeleteValue = async (valId) => {
-    if (!confirm('Delete this value?')) return;
+  const handleDeleteValue = (valId, label) => {
+    setConfirmDel({ type: 'value', id: valId, label });
+  };
+
+  const executeDelete = async () => {
+    if (!confirmDel) return;
     try {
-      await attributeAPI.deleteValue(selected._id, valId);
-      toast.success('Value deleted');
+      if (confirmDel.type === 'attr') {
+        await attributeAPI.delete(confirmDel.id);
+        toast.success('Attribute deleted');
+        if (selected?._id === confirmDel.id) setSelected(null);
+      } else {
+        await attributeAPI.deleteValue(selected._id, confirmDel.id);
+        toast.success('Value deleted');
+      }
       fetchAttrs();
     } catch (err) { toast.error(err.message); }
+    finally { setConfirmDel(null); }
   };
 
   return (
@@ -106,7 +112,7 @@ export default function AdminAttributes() {
                   <p className="text-sm font-medium text-gray-800">{attr.name}</p>
                   <p className="text-xs text-gray-400">{attr.group} · {attr.type} · {attr.values?.length || 0} values</p>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); handleDeleteAttr(attr._id); }} className="text-gray-300 hover:text-red-500 p-1 transition-colors">
+                <button onClick={(e) => { e.stopPropagation(); handleDeleteAttr(attr._id, attr.name); }} className="text-gray-300 hover:text-red-500 p-1 transition-colors">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
@@ -157,7 +163,7 @@ export default function AdminAttributes() {
                         onClick={() => { setEditValue(val); setValueForm({ value: val.value, colorCode: val.colorCode || '', sortOrder: val.sortOrder }); setShowValueModal(true); }}
                         className="text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
                       >Edit</button>
-                      <button onClick={() => handleDeleteValue(val._id)} className="text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100">Del</button>
+                      <button onClick={() => handleDeleteValue(val._id, val.value)} className="text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100">Del</button>
                     </div>
                   </div>
                 ))}
@@ -220,6 +226,27 @@ export default function AdminAttributes() {
                 <button type="submit" disabled={saving} className="btn-primary flex-1 justify-center">{saving ? 'Saving...' : 'Save'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm delete modal */}
+      {confirmDel && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setConfirmDel(null)}>
+          <div className="bg-white rounded-2xl shadow-luxury-lg w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </div>
+            <h3 className="font-heading text-base font-bold text-gray-900 text-center mb-1">Delete "{confirmDel.label}"?</h3>
+            <p className="text-sm text-gray-500 text-center mb-6">
+              {confirmDel.type === 'attr' ? 'This will delete the attribute and all its values.' : 'This value will be permanently removed.'}
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmDel(null)} className="btn-outline flex-1 justify-center text-sm py-2">Cancel</button>
+              <button onClick={executeDelete} className="flex-1 justify-center text-sm py-2 rounded-xl font-medium text-white bg-red-500 hover:bg-red-600 transition-colors">Delete</button>
+            </div>
           </div>
         </div>
       )}
