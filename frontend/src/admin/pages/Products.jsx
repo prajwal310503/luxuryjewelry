@@ -775,7 +775,7 @@ export default function AdminProducts() {
                     style={{ accentColor: '#5a413f' }}
                   />
                 </th>
-                {['Product', 'Vendor', 'Price', 'Stock', 'Status', 'Home Page Flags', 'Lifestyle Panels', 'Actions'].map((h) => (
+                {['Product', 'Category', 'Price', 'Stock', 'Status', 'Home Page Flags', 'Lifestyle Panels', 'Actions'].map((h) => (
                   <th key={h} className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-5 py-3">{h}</th>
                 ))}
               </tr>
@@ -850,8 +850,8 @@ export default function AdminProducts() {
                       </div>
                     </div>
                   </td>
-                  {/* Vendor */}
-                  <td className="px-5 py-4 text-sm text-gray-600">{product.vendor?.storeName || '—'}</td>
+                  {/* Category */}
+                  <td className="px-5 py-4 text-sm text-gray-600">{product.category?.name || '—'}</td>
                   {/* Price */}
                   <td className="px-5 py-4 text-sm font-semibold text-gray-800">₹{product.price?.toLocaleString('en-IN')}</td>
                   {/* Stock */}
