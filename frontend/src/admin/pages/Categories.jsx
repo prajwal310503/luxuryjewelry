@@ -6,19 +6,65 @@ import Pagination from '../components/Pagination';
 import { resizeImage } from '../../utils/resizeImage';
 
 const EMPTY = { name: '', description: '', parent: '', sortOrder: 0, isFeatured: false };
-const PAGE_SIZE = 8; // root categories per page
+const PAGE_SIZE = 8;
+
+// ── Tooltip wrapper ───────────────────────────────────────────────────────────
+function Tip({ label, children }) {
+  return (
+    <div className="relative group/tip">
+      {children}
+      <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap rounded px-2 py-0.5 text-[10px] font-medium text-white bg-gray-800 opacity-0 group-hover/tip:opacity-100 transition-opacity z-10">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// ── Confirm modal ─────────────────────────────────────────────────────────────
+function ConfirmModal({ open, title, message, confirmLabel = 'Confirm', danger = false, onConfirm, onCancel }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4" onClick={onCancel}>
+      <div className="bg-white rounded-2xl shadow-luxury-lg w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-4 ${danger ? 'bg-red-100' : 'bg-amber-100'}`}>
+          {danger ? (
+            <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+          )}
+        </div>
+        <h3 className="font-heading text-base font-bold text-gray-900 text-center mb-1">{title}</h3>
+        <p className="text-sm text-gray-500 text-center mb-6">{message}</p>
+        <div className="flex gap-3">
+          <button onClick={onCancel} className="btn-outline flex-1 justify-center text-sm py-2">Cancel</button>
+          <button
+            onClick={onConfirm}
+            className={`flex-1 justify-center text-sm py-2 rounded-xl font-medium text-white transition-colors ${danger ? 'bg-red-500 hover:bg-red-600' : 'bg-amber-500 hover:bg-amber-600'}`}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminCategories() {
-  const [categories, setCategories]         = useState([]);
-  const [page, setPage]                     = useState(1);
-  const [loading, setLoading]               = useState(true);
-  const [showModal, setShowModal]           = useState(false);
-  const [editItem, setEditItem]             = useState(null);
-  const [presetParent, setPresetParent]     = useState(null); // {_id, name} for "Add Sub" flow
-  const [form, setForm]                     = useState(EMPTY);
-  const [saving, setSaving]                 = useState(false);
-  const [imageFile, setImageFile]           = useState(null);
-  const [imagePreview, setImagePreview]     = useState(null);
+  const [categories, setCategories]     = useState([]);
+  const [page, setPage]                 = useState(1);
+  const [loading, setLoading]           = useState(true);
+  const [showModal, setShowModal]       = useState(false);
+  const [editItem, setEditItem]         = useState(null);
+  const [presetParent, setPresetParent] = useState(null);
+  const [form, setForm]                 = useState(EMPTY);
+  const [saving, setSaving]             = useState(false);
+  const [imageFile, setImageFile]       = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [confirm, setConfirm]           = useState({ open: false, title: '', message: '', confirmLabel: '', danger: false, onConfirm: null });
   const fileRef = useRef(null);
 
   const load = async () => {
@@ -38,29 +84,27 @@ export default function AdminCategories() {
   );
   const pagedRoots = rootCategories.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  // ── Open modals ──────────────────────────────────────────────────────────────
+  // ── Confirm helper ────────────────────────────────────────────────────────
+  const askConfirm = ({ title, message, confirmLabel, danger, onConfirm }) =>
+    setConfirm({ open: true, title, message, confirmLabel, danger, onConfirm });
+  const closeConfirm = () => setConfirm((c) => ({ ...c, open: false }));
 
+  // ── Open modals ───────────────────────────────────────────────────────────
   const openCreate = () => {
-    setEditItem(null);
-    setPresetParent(null);
-    setForm(EMPTY);
-    setImageFile(null);
-    setImagePreview(null);
+    setEditItem(null); setPresetParent(null);
+    setForm(EMPTY); setImageFile(null); setImagePreview(null);
     setShowModal(true);
   };
 
   const openAddSub = (parentCat) => {
-    setEditItem(null);
-    setPresetParent(parentCat);
+    setEditItem(null); setPresetParent(parentCat);
     setForm({ ...EMPTY, parent: parentCat._id });
-    setImageFile(null);
-    setImagePreview(null);
+    setImageFile(null); setImagePreview(null);
     setShowModal(true);
   };
 
   const openEdit = (cat) => {
-    setEditItem(cat);
-    setPresetParent(null);
+    setEditItem(cat); setPresetParent(null);
     setForm({
       name: cat.name,
       description: cat.description || '',
@@ -68,8 +112,7 @@ export default function AdminCategories() {
       sortOrder: cat.sortOrder || 0,
       isFeatured: cat.isFeatured || false,
     });
-    setImageFile(null);
-    setImagePreview(null);
+    setImageFile(null); setImagePreview(null);
     setShowModal(true);
   };
 
@@ -90,7 +133,6 @@ export default function AdminCategories() {
         if (v !== '' && v !== null && v !== undefined) fd.append(k, v);
       });
       if (imageFile) fd.append('image', await resizeImage(imageFile, 600, 400));
-
       if (editItem) {
         await categoryAPI.adminUpdate(editItem._id, fd);
         toast.success('Category updated');
@@ -107,40 +149,53 @@ export default function AdminCategories() {
     }
   };
 
-  const handleDeactivate = async (id) => {
-    if (!confirm('Deactivate this category? It will be hidden from the store.')) return;
-    try {
-      await categoryAPI.adminDelete(id);
-      toast.success('Category deactivated');
-      load();
-    } catch (error) {
-      toast.error(error.message || 'Failed');
-    }
+  const handleDeactivate = (id) => {
+    askConfirm({
+      title: 'Deactivate Category',
+      message: 'This category will be hidden from the storefront. You can reactivate it later.',
+      confirmLabel: 'Deactivate',
+      danger: false,
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          await categoryAPI.adminDelete(id);
+          toast.success('Category deactivated');
+          load();
+        } catch (error) {
+          toast.error(error.message || 'Failed');
+        }
+      },
+    });
   };
 
-  const handlePermanentDelete = async (cat) => {
-    if (!confirm(`Permanently delete "${cat.name}"? This cannot be undone.`)) return;
-    try {
-      await categoryAPI.adminPermanentDelete(cat._id);
-      toast.success(`"${cat.name}" deleted`);
-      load();
-    } catch (error) {
-      toast.error(error.message || 'Delete failed');
-    }
+  const handlePermanentDelete = (cat) => {
+    askConfirm({
+      title: 'Delete Permanently',
+      message: `"${cat.name}" will be removed forever. This cannot be undone.`,
+      confirmLabel: 'Delete',
+      danger: true,
+      onConfirm: async () => {
+        closeConfirm();
+        try {
+          await categoryAPI.adminPermanentDelete(cat._id);
+          toast.success(`"${cat.name}" deleted`);
+          load();
+        } catch (error) {
+          toast.error(error.message || 'Delete failed');
+        }
+      },
+    });
   };
 
   const currentPreview = imagePreview || (editItem?.image || null);
-
-  // Modal title
   const modalTitle = editItem
     ? `Edit — ${editItem.name}`
     : presetParent
     ? `Add Subcategory to "${presetParent.name}"`
     : 'New Category';
 
-  // ── Row renderer ─────────────────────────────────────────────────────────────
-
-  const CategoryRow = ({ cat, isSubcategory = false }) => (
+  // ── Row (plain function, not a component, to avoid remount issues) ────────
+  const renderRow = (cat, isSubcategory = false) => (
     <tr key={cat._id} className={`hover:bg-gray-50/50 ${isSubcategory ? 'bg-gray-50/30' : ''}`}>
       <td className="px-5 py-3.5">
         <div className="flex items-center gap-3" style={{ paddingLeft: isSubcategory ? '20px' : '0' }}>
@@ -182,33 +237,53 @@ export default function AdminCategories() {
       <td className="px-5 py-3.5">
         <div className="flex gap-1.5 items-center">
           {/* Edit */}
-          <button onClick={() => openEdit(cat)} title="Edit" className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
-            </svg>
-          </button>
+          <Tip label="Edit">
+            <button
+              onClick={() => openEdit(cat)}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+              </svg>
+            </button>
+          </Tip>
           {/* Add Subcategory */}
           {!isSubcategory && (
-            <button onClick={() => openAddSub(cat)} title="Add Subcategory" className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-            </button>
+            <Tip label="Add Subcategory">
+              <button
+                onClick={() => openAddSub(cat)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </Tip>
           )}
-          {/* Deactivate (eye-off) */}
+          {/* Deactivate */}
           {cat.isActive && (
-            <button onClick={() => handleDeactivate(cat._id)} title="Deactivate" className="w-8 h-8 flex items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-              </svg>
-            </button>
+            <Tip label="Deactivate">
+              <button
+                onClick={() => handleDeactivate(cat._id)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                </svg>
+              </button>
+            </Tip>
           )}
           {/* Permanent Delete */}
-          <button onClick={() => handlePermanentDelete(cat)} title="Delete permanently" className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-            </svg>
-          </button>
+          <Tip label="Delete permanently">
+            <button
+              onClick={() => handlePermanentDelete(cat)}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+              </svg>
+            </button>
+          </Tip>
         </div>
       </td>
     </tr>
@@ -243,15 +318,10 @@ export default function AdminCategories() {
                 ))
               ) : rootCategories.length === 0 ? (
                 <tr><td colSpan={6} className="text-center py-10 text-gray-300">No categories</td></tr>
-              ) : pagedRoots.map((root) => {
-                const subs = subsOf(root._id);
-                return [
-                  <CategoryRow key={root._id} cat={root} isSubcategory={false} />,
-                  ...subs.map((sub) => (
-                    <CategoryRow key={sub._id} cat={sub} isSubcategory={true} />
-                  )),
-                ];
-              })}
+              ) : pagedRoots.map((root) => [
+                renderRow(root, false),
+                ...subsOf(root._id).map((sub) => renderRow(sub, true)),
+              ])}
             </tbody>
           </table>
         </div>
@@ -267,7 +337,18 @@ export default function AdminCategories() {
         />
       )}
 
-      {/* ── Modal ───────────────────────────────────────────────────────────── */}
+      {/* ── Confirm modal ───────────────────────────────────────────────────── */}
+      <ConfirmModal
+        open={confirm.open}
+        title={confirm.title}
+        message={confirm.message}
+        confirmLabel={confirm.confirmLabel}
+        danger={confirm.danger}
+        onConfirm={confirm.onConfirm}
+        onCancel={closeConfirm}
+      />
+
+      {/* ── Edit / Create modal ──────────────────────────────────────────────── */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
           <div className="bg-white rounded-2xl shadow-luxury-lg w-full max-w-md" onClick={(e) => e.stopPropagation()}>
@@ -283,7 +364,6 @@ export default function AdminCategories() {
 
             <form onSubmit={handleSave} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
 
-              {/* Name — always shown */}
               <div>
                 <label className="label-luxury">Name *</label>
                 <input
@@ -297,10 +377,8 @@ export default function AdminCategories() {
                 />
               </div>
 
-              {/* Rest of fields hidden when adding OR editing a subcategory */}
               {!presetParent && !(editItem?.parent) && (
                 <>
-                  {/* Image */}
                   <div>
                     <label className="label-luxury">Category Image</label>
                     <p className="text-[11px] text-gray-400 mb-2">Recommended: 600 × 400 px · JPG, PNG, WebP</p>
@@ -333,13 +411,7 @@ export default function AdminCategories() {
                     <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
                       onChange={(e) => handleFile(e.target.files?.[0])} />
                   </div>
-                </>
-              )}
 
-              {/* All extra fields hidden when adding or editing a subcategory */}
-              {!presetParent && !(editItem?.parent) && (
-                <>
-                  {/* Parent */}
                   <div>
                     <label className="label-luxury">Parent Category</label>
                     <Select value={form.parent} onChange={(e) => setForm({ ...form, parent: e.target.value })}>
@@ -350,13 +422,11 @@ export default function AdminCategories() {
                     </Select>
                   </div>
 
-                  {/* Description */}
                   <div>
                     <label className="label-luxury">Description</label>
                     <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="input-luxury resize-none" />
                   </div>
 
-                  {/* Sort Order + Featured */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="label-luxury">Sort Order</label>
