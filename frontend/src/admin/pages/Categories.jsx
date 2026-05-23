@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { categoryAPI } from '../../services/api';
-import Select from '../../components/ui/Select';
 import Pagination from '../components/Pagination';
 import { resizeImage } from '../../utils/resizeImage';
 
@@ -149,25 +148,6 @@ export default function AdminCategories() {
     }
   };
 
-  const handleDeactivate = (id) => {
-    askConfirm({
-      title: 'Deactivate Category',
-      message: 'This category will be hidden from the storefront. You can reactivate it later.',
-      confirmLabel: 'Deactivate',
-      danger: false,
-      onConfirm: async () => {
-        closeConfirm();
-        try {
-          await categoryAPI.adminDelete(id);
-          toast.success('Category deactivated');
-          load();
-        } catch (error) {
-          toast.error(error.message || 'Failed');
-        }
-      },
-    });
-  };
-
   const handlePermanentDelete = (cat) => {
     askConfirm({
       title: 'Delete Permanently',
@@ -223,12 +203,6 @@ export default function AdminCategories() {
         </div>
       </td>
       <td className="px-5 py-3.5 text-sm text-gray-500">{cat.level === 0 ? 'Root' : `Sub (L${cat.level})`}</td>
-      <td className="px-5 py-3.5 text-sm text-gray-500">{cat.sortOrder}</td>
-      <td className="px-5 py-3.5">
-        <span className={`badge text-xs ${cat.isFeatured ? 'badge-success' : 'bg-gray-100 text-gray-400'}`}>
-          {cat.isFeatured ? 'Yes' : 'No'}
-        </span>
-      </td>
       <td className="px-5 py-3.5">
         <span className={`badge text-xs ${cat.isActive ? 'badge-success' : 'badge-danger'}`}>
           {cat.isActive ? 'Active' : 'Inactive'}
@@ -291,7 +265,7 @@ export default function AdminCategories() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                {['Category', 'Level', 'Sort Order', 'Featured', 'Active', 'Actions'].map((h) => (
+                {['Category', 'Level', 'Active', 'Actions'].map((h) => (
                   <th key={h} className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-5 py-3">{h}</th>
                 ))}
               </tr>
@@ -304,7 +278,7 @@ export default function AdminCategories() {
                   ))}</tr>
                 ))
               ) : rootCategories.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-10 text-gray-300">No categories</td></tr>
+                <tr><td colSpan={4} className="text-center py-10 text-gray-300">No categories</td></tr>
               ) : pagedRoots.map((root) => [
                 renderRow(root, false),
                 ...subsOf(root._id).map((sub) => renderRow(sub, true)),
