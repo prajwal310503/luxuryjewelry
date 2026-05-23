@@ -400,16 +400,6 @@ export default function AdminCategories() {
                   </div>
 
                   <div>
-                    <label className="label-luxury">Parent Category</label>
-                    <Select value={form.parent} onChange={(e) => setForm({ ...form, parent: e.target.value })}>
-                      <option value="">— Root Level —</option>
-                      {rootCategories.filter((c) => !editItem || c._id !== editItem._id).map((c) => (
-                        <option key={c._id} value={c._id}>{c.name}</option>
-                      ))}
-                    </Select>
-                  </div>
-
-                  <div>
                     <label className="label-luxury">Description</label>
                     <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="input-luxury resize-none" />
                   </div>
