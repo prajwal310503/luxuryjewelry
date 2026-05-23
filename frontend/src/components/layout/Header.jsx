@@ -903,7 +903,7 @@ export default function Header() {
     }).catch(() => {});
   }, []);
 
-  useEffect(() => { setAccountOpen(false); setMobileOpen(false); }, [pathname]);
+  useEffect(() => { setAccountOpen(false); setMobileOpen(false); setActiveMenu(null); }, [pathname]);
 
 
   const handleMouseEnter = (label) => {
