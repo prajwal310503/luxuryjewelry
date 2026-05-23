@@ -454,7 +454,7 @@ export default function AdminOrders() {
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { page, limit: 20 };
+      const params = { page, limit: 10 };
       if (statusFilter) params.status = statusFilter;
       if (search) params.search = search;
       const { data } = await orderAPI.adminGetAll(params);
