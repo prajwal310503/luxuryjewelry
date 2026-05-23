@@ -404,16 +404,6 @@ export default function AdminCategories() {
                     <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="input-luxury resize-none" />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="label-luxury">Sort Order</label>
-                      <input type="number" min="0" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })} className="input-luxury" />
-                    </div>
-                    <div className="flex items-center gap-2 mt-7">
-                      <input type="checkbox" id="featured" checked={form.isFeatured} onChange={(e) => setForm({ ...form, isFeatured: e.target.checked })} className="accent-primary w-4 h-4" />
-                      <label htmlFor="featured" className="text-sm font-medium text-gray-700">Featured</label>
-                    </div>
-                  </div>
                 </>
               )}
 
