@@ -7,20 +7,21 @@ import { resizeImage } from '../../utils/resizeImage';
 const EMPTY = { name: '', description: '', parent: '', sortOrder: 0, isFeatured: false };
 
 export default function AdminCategories() {
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [showModal, setShowModal]   = useState(false);
-  const [editItem, setEditItem]     = useState(null);
-  const [form, setForm]             = useState(EMPTY);
-  const [saving, setSaving]         = useState(false);
-  const [imageFile, setImageFile]   = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [categories, setCategories]         = useState([]);
+  const [loading, setLoading]               = useState(true);
+  const [showModal, setShowModal]           = useState(false);
+  const [editItem, setEditItem]             = useState(null);
+  const [presetParent, setPresetParent]     = useState(null); // {_id, name} for "Add Sub" flow
+  const [form, setForm]                     = useState(EMPTY);
+  const [saving, setSaving]                 = useState(false);
+  const [imageFile, setImageFile]           = useState(null);
+  const [imagePreview, setImagePreview]     = useState(null);
   const fileRef = useRef(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const { data } = await categoryAPI.getAll();
+      const { data } = await categoryAPI.getAll({ limit: 200 });
       setCategories(data.data || []);
     } catch (_) {}
     finally { setLoading(false); }
@@ -28,9 +29,26 @@ export default function AdminCategories() {
 
   useEffect(() => { load(); }, []);
 
+  const rootCategories = categories.filter((c) => !c.parent);
+  const subsOf = (parentId) => categories.filter(
+    (c) => c.parent === parentId || c.parent?._id === parentId
+  );
+
+  // ── Open modals ──────────────────────────────────────────────────────────────
+
   const openCreate = () => {
     setEditItem(null);
+    setPresetParent(null);
     setForm(EMPTY);
+    setImageFile(null);
+    setImagePreview(null);
+    setShowModal(true);
+  };
+
+  const openAddSub = (parentCat) => {
+    setEditItem(null);
+    setPresetParent(parentCat);
+    setForm({ ...EMPTY, parent: parentCat._id });
     setImageFile(null);
     setImagePreview(null);
     setShowModal(true);
@@ -38,6 +56,7 @@ export default function AdminCategories() {
 
   const openEdit = (cat) => {
     setEditItem(cat);
+    setPresetParent(null);
     setForm({
       name: cat.name,
       description: cat.description || '',
@@ -73,7 +92,7 @@ export default function AdminCategories() {
         toast.success('Category updated');
       } else {
         await categoryAPI.adminCreate(fd);
-        toast.success('Category created');
+        toast.success(presetParent ? `Subcategory added to ${presetParent.name}` : 'Category created');
       }
       setShowModal(false);
       load();
@@ -95,13 +114,85 @@ export default function AdminCategories() {
     }
   };
 
-  const rootCategories = categories.filter((c) => !c.parent);
   const currentPreview = imagePreview || (editItem?.image || null);
+
+  // Modal title
+  const modalTitle = editItem
+    ? `Edit — ${editItem.name}`
+    : presetParent
+    ? `Add Subcategory to "${presetParent.name}"`
+    : 'New Category';
+
+  // ── Row renderer ─────────────────────────────────────────────────────────────
+
+  const CategoryRow = ({ cat, isSubcategory = false }) => (
+    <tr key={cat._id} className={`hover:bg-gray-50/50 ${isSubcategory ? 'bg-gray-50/30' : ''}`}>
+      <td className="px-5 py-3.5">
+        <div className="flex items-center gap-3" style={{ paddingLeft: isSubcategory ? '20px' : '0' }}>
+          {isSubcategory && (
+            <svg className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          )}
+          <div className={`${isSubcategory ? 'w-8 h-8' : 'w-10 h-10'} rounded-lg bg-luxury-cream overflow-hidden flex-shrink-0`}>
+            {cat.image
+              ? <img src={cat.image} alt="" className="w-full h-full object-cover" />
+              : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                  <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z" />
+                  </svg>
+                </div>
+              )
+            }
+          </div>
+          <div>
+            <p className={`font-medium text-gray-800 ${isSubcategory ? 'text-xs' : 'text-sm'}`}>{cat.name}</p>
+            <p className="text-[11px] text-gray-400">/{cat.slug}</p>
+          </div>
+        </div>
+      </td>
+      <td className="px-5 py-3.5 text-sm text-gray-500">{cat.level === 0 ? 'Root' : `Sub (L${cat.level})`}</td>
+      <td className="px-5 py-3.5 text-sm text-gray-500">{cat.sortOrder}</td>
+      <td className="px-5 py-3.5">
+        <span className={`badge text-xs ${cat.isFeatured ? 'badge-success' : 'bg-gray-100 text-gray-400'}`}>
+          {cat.isFeatured ? 'Yes' : 'No'}
+        </span>
+      </td>
+      <td className="px-5 py-3.5">
+        <span className={`badge text-xs ${cat.isActive ? 'badge-success' : 'badge-danger'}`}>
+          {cat.isActive ? 'Active' : 'Inactive'}
+        </span>
+      </td>
+      <td className="px-5 py-3.5">
+        <div className="flex gap-2 items-center flex-wrap">
+          <button onClick={() => openEdit(cat)} className="text-xs px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100">Edit</button>
+          {!isSubcategory && (
+            <button
+              onClick={() => openAddSub(cat)}
+              className="text-xs px-2.5 py-1 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 flex items-center gap-1"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Sub
+            </button>
+          )}
+          {cat.isActive && (
+            <button onClick={() => handleDelete(cat._id)} className="text-xs px-2.5 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">Deactivate</button>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="font-heading text-2xl font-bold text-gray-900">Categories</h1>
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-gray-900">Categories</h1>
+          <p className="text-sm text-gray-400 mt-0.5">Root categories and their subcategories. Both are available in Add Product.</p>
+        </div>
         <button onClick={openCreate} className="btn-primary text-sm py-2.5">+ Add Category</button>
       </div>
 
@@ -115,74 +206,36 @@ export default function AdminCategories() {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-100">
               {loading ? (
                 Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i}>{Array.from({ length: 6 }).map((_, j) => (
                     <td key={j} className="px-5 py-4"><div className="h-4 shimmer-loading rounded" /></td>
                   ))}</tr>
                 ))
-              ) : categories.length === 0 ? (
+              ) : rootCategories.length === 0 ? (
                 <tr><td colSpan={6} className="text-center py-10 text-gray-300">No categories</td></tr>
-              ) : categories.map((cat) => (
-                <tr key={cat._id} className="hover:bg-gray-50/50">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-luxury-cream overflow-hidden flex-shrink-0">
-                        {cat.image
-                          ? <img src={cat.image} alt="" className="w-full h-full object-cover" />
-                          : (
-                            <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                              <svg className="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z" />
-                              </svg>
-                            </div>
-                          )
-                        }
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-800" style={{ paddingLeft: `${cat.level * 16}px` }}>
-                          {cat.level > 0 ? '↳ ' : ''}{cat.name}
-                        </p>
-                        <p className="text-xs text-gray-400">/{cat.slug}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-sm text-gray-500">{cat.level === 0 ? 'Root' : `Level ${cat.level}`}</td>
-                  <td className="px-5 py-4 text-sm text-gray-500">{cat.sortOrder}</td>
-                  <td className="px-5 py-4">
-                    <span className={`badge text-xs ${cat.isFeatured ? 'badge-success' : 'bg-gray-100 text-gray-400'}`}>
-                      {cat.isFeatured ? 'Yes' : 'No'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className={`badge text-xs ${cat.isActive ? 'badge-success' : 'badge-danger'}`}>
-                      {cat.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex gap-2">
-                      <button onClick={() => openEdit(cat)} className="text-xs px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100">Edit</button>
-                      {cat.isActive && (
-                        <button onClick={() => handleDelete(cat._id)} className="text-xs px-2.5 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">Deactivate</button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              ) : rootCategories.map((root) => {
+                const subs = subsOf(root._id);
+                return [
+                  <CategoryRow key={root._id} cat={root} isSubcategory={false} />,
+                  ...subs.map((sub) => (
+                    <CategoryRow key={sub._id} cat={sub} isSubcategory={true} />
+                  )),
+                ];
+              })}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Modal */}
+      {/* ── Modal ───────────────────────────────────────────────────────────── */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
           <div className="bg-white rounded-2xl shadow-luxury-lg w-full max-w-md" onClick={(e) => e.stopPropagation()}>
 
-            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="font-heading text-lg font-bold">{editItem ? 'Edit Category' : 'New Category'}</h3>
+              <h3 className="font-heading text-lg font-bold">{modalTitle}</h3>
               <button onClick={() => setShowModal(false)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -192,7 +245,7 @@ export default function AdminCategories() {
 
             <form onSubmit={handleSave} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
 
-              {/* Category Image */}
+              {/* Image */}
               <div>
                 <label className="label-luxury">Category Image</label>
                 <p className="text-[11px] text-gray-400 mb-2">Recommended: 600 × 400 px · JPG, PNG, WebP</p>
@@ -219,8 +272,7 @@ export default function AdminCategories() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                     </svg>
                     <p className="text-sm font-medium text-gray-600">Click to upload or drag & drop</p>
-                    <p className="text-xs text-gray-400 mt-0.5">JPG, PNG, WebP — max 5 MB</p>
-                    <p className="text-[11px] font-semibold text-primary mt-2">Best size: 600 × 400 px</p>
+                    <p className="text-xs text-gray-400 mt-0.5">JPG, PNG, WebP — max 5 MB · auto-resized to 600 × 400 px</p>
                   </div>
                 )}
                 <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
@@ -233,13 +285,24 @@ export default function AdminCategories() {
                 <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="input-luxury" />
               </div>
 
-              {/* Parent */}
+              {/* Parent — locked when adding sub, editable when editing or creating root */}
               <div>
                 <label className="label-luxury">Parent Category</label>
-                <Select value={form.parent} onChange={(e) => setForm({ ...form, parent: e.target.value })} placeholder="— Root Level —">
-                  <option value="">— Root Level —</option>
-                  {rootCategories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-                </Select>
+                {presetParent ? (
+                  <div className="input-luxury flex items-center gap-2 bg-gray-50 cursor-not-allowed">
+                    <svg className="w-4 h-4 text-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                    </svg>
+                    <span className="text-sm font-medium text-primary">{presetParent.name}</span>
+                  </div>
+                ) : (
+                  <Select value={form.parent} onChange={(e) => setForm({ ...form, parent: e.target.value })}>
+                    <option value="">— Root Level —</option>
+                    {rootCategories.filter((c) => !editItem || c._id !== editItem._id).map((c) => (
+                      <option key={c._id} value={c._id}>{c.name}</option>
+                    ))}
+                  </Select>
+                )}
               </div>
 
               {/* Description */}
@@ -260,7 +323,6 @@ export default function AdminCategories() {
                 </div>
               </div>
 
-              {/* Actions */}
               <div className="flex gap-3 pt-2 border-t border-gray-100">
                 <button type="button" onClick={() => setShowModal(false)} className="btn-outline flex-1 justify-center">Cancel</button>
                 <button type="submit" disabled={saving} className="btn-primary flex-1 justify-center">{saving ? 'Saving...' : 'Save'}</button>

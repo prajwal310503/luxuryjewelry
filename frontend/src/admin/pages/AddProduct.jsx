@@ -56,9 +56,20 @@ export default function AdminAddProduct() {
     status: 'approved',
   });
 
+  // Separate category refresh so it can re-run when window regains focus
+  const refreshCategories = () =>
+    categoryAPI.getAll({ parent: 'null', limit: 200 })
+      .then(({ data }) => setCategories(data.data || []))
+      .catch(() => {});
+
+  useEffect(() => {
+    window.addEventListener('focus', refreshCategories);
+    return () => window.removeEventListener('focus', refreshCategories);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     const fetches = [
-      categoryAPI.getAll({ parent: 'null', limit: 100 }),
+      categoryAPI.getAll({ parent: 'null', limit: 200 }),
       attributeAPI.getAll({ limit: 100 }),
     ];
     if (isEdit) fetches.push(productAPI.adminGetById(id));
