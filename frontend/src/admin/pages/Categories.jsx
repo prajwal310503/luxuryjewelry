@@ -4,7 +4,7 @@ import { categoryAPI } from '../../services/api';
 import Pagination from '../components/Pagination';
 import { resizeImage } from '../../utils/resizeImage';
 
-const EMPTY = { name: '', description: '', parent: '', sortOrder: 0, isFeatured: false };
+const EMPTY = { name: '', description: '', parent: '', sortOrder: 0, isFeatured: false, isActive: true };
 const PAGE_SIZE = 8;
 
 // ── Tooltip wrapper ───────────────────────────────────────────────────────────
@@ -110,6 +110,7 @@ export default function AdminCategories() {
       parent: cat.parent?._id || cat.parent || '',
       sortOrder: cat.sortOrder || 0,
       isFeatured: cat.isFeatured || false,
+      isActive: cat.isActive !== false,
     });
     setImageFile(null); setImagePreview(null);
     setShowModal(true);
@@ -380,6 +381,21 @@ export default function AdminCategories() {
 
                 </>
               )}
+
+              {/* Active / Inactive toggle — always visible */}
+              <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50 border border-gray-100">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Status</p>
+                  <p className="text-xs text-gray-400">{form.isActive ? 'Visible on storefront' : 'Hidden from storefront'}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, isActive: !form.isActive })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${form.isActive ? 'bg-green-500' : 'bg-gray-300'}`}
+                >
+                  <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${form.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
 
               <div className="flex gap-3 pt-2 border-t border-gray-100">
                 <button type="button" onClick={() => setShowModal(false)} className="btn-outline flex-1 justify-center">Cancel</button>
