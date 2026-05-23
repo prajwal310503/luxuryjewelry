@@ -246,18 +246,24 @@ exports.adminCreateOrder = async (req, res, next) => {
 // @access  Admin
 exports.adminUpdateOrderStatus = async (req, res, next) => {
   try {
-    const { status, comment } = req.body;
+    const { status, paymentStatus, comment } = req.body;
     const order = await Order.findById(req.params.id);
     if (!order) return sendError(res, 404, 'Order not found');
 
-    order.status = status;
-    order.statusHistory.push({ status, comment, updatedBy: req.user.id });
+    if (status) {
+      order.status = status;
+      order.statusHistory.push({ status, comment, updatedBy: req.user.id });
+      if (status === 'delivered') order.deliveredAt = Date.now();
+      if (status === 'cancelled') order.cancelledAt = Date.now();
+    }
 
-    if (status === 'delivered') order.deliveredAt = Date.now();
-    if (status === 'cancelled') order.cancelledAt = Date.now();
+    if (paymentStatus) {
+      order.payment.status = paymentStatus;
+      if (paymentStatus === 'paid') order.paidAt = Date.now();
+    }
 
     await order.save();
-    sendSuccess(res, 200, 'Order status updated', order);
+    sendSuccess(res, 200, 'Order updated', order);
   } catch (error) {
     next(error);
   }

@@ -465,13 +465,20 @@ export default function AdminOrders() {
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
-  const openStatus = (order) => { setSelected(order); setStatusUpdate({ status: order.status, comment: '' }); };
+  const openStatus = (order) => {
+    setSelected(order);
+    setStatusUpdate({ status: order.status, paymentStatus: order.payment?.status || 'pending', comment: '' });
+  };
 
   const handleUpdateStatus = async () => {
     if (!statusUpdate.status) return;
     setStatusSaving(true);
     try {
-      await orderAPI.adminUpdateStatus(selected._id, statusUpdate);
+      await orderAPI.adminUpdateStatus(selected._id, {
+        status: statusUpdate.status,
+        paymentStatus: statusUpdate.paymentStatus,
+        comment: statusUpdate.comment,
+      });
       toast.success('Order status updated');
       setSelected(null);
       fetchOrders();
@@ -635,13 +642,23 @@ export default function AdminOrders() {
               </button>
             </div>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">New Status</label>
-                <Select value={statusUpdate.status} onChange={(e) => setStatusUpdate({ ...statusUpdate, status: e.target.value })}>
-                  {['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned', 'refunded'].map((s) => (
-                    <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                  ))}
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Order Status</label>
+                  <Select value={statusUpdate.status} onChange={(e) => setStatusUpdate({ ...statusUpdate, status: e.target.value })}>
+                    {['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned', 'refunded'].map((s) => (
+                      <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                    ))}
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Payment Status</label>
+                  <Select value={statusUpdate.paymentStatus} onChange={(e) => setStatusUpdate({ ...statusUpdate, paymentStatus: e.target.value })}>
+                    {['pending', 'paid', 'failed', 'refunded', 'cod'].map((s) => (
+                      <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                    ))}
+                  </Select>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Comment</label>
@@ -655,7 +672,7 @@ export default function AdminOrders() {
               </div>
               <div className="flex gap-3">
                 <button type="button" onClick={() => setSelected(null)} className="btn-outline flex-1 justify-center">Cancel</button>
-                <button type="button" onClick={handleUpdateStatus} disabled={statusSaving} className="btn-primary flex-1 justify-center disabled:opacity-60">{statusSaving ? 'Updating...' : 'Update Status'}</button>
+                <button type="button" onClick={handleUpdateStatus} disabled={statusSaving} className="btn-primary flex-1 justify-center disabled:opacity-60">{statusSaving ? 'Updating...' : 'Update'}</button>
               </div>
             </div>
           </div>
