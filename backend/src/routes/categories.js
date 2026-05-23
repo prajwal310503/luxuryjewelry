@@ -8,6 +8,7 @@ const {
   createCategory,
   updateCategory,
   deleteCategory,
+  permanentDeleteCategory,
 } = require('../controllers/categoryController');
 
 // Public
@@ -17,6 +18,7 @@ router.get('/:slug', getCategory);
 // Admin
 router.post('/admin', protect, authorize('admin'), uploadBanner.single('image'), createCategory);
 router.put('/admin/:id', protect, authorize('admin'), uploadBanner.single('image'), updateCategory);
+router.delete('/admin/permanent/:id', protect, authorize('admin'), permanentDeleteCategory);
 router.delete('/admin/:id', protect, authorize('admin'), deleteCategory);
 
 module.exports = router;

@@ -120,6 +120,7 @@ export const categoryAPI = {
   adminCreate: (data) => api.post('/categories/admin', data),
   adminUpdate: (id, data) => api.put(`/categories/admin/${id}`, data),
   adminDelete: (id) => api.delete(`/categories/admin/${id}`),
+  adminPermanentDelete: (id) => api.delete(`/categories/admin/permanent/${id}`),
 };
 
 // ==================== ATTRIBUTES ====================
