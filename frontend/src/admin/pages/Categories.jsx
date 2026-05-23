@@ -259,8 +259,8 @@ export default function AdminCategories() {
                 />
               </div>
 
-              {/* Rest of fields hidden when adding a subcategory */}
-              {!presetParent && (
+              {/* Rest of fields hidden when adding OR editing a subcategory */}
+              {!presetParent && !(editItem?.parent) && (
                 <>
                   {/* Image */}
                   <div>
@@ -298,8 +298,8 @@ export default function AdminCategories() {
                 </>
               )}
 
-              {/* All extra fields hidden when adding a quick subcategory */}
-              {!presetParent && (
+              {/* All extra fields hidden when adding or editing a subcategory */}
+              {!presetParent && !(editItem?.parent) && (
                 <>
                   {/* Parent */}
                   <div>
