@@ -245,83 +245,92 @@ export default function AdminCategories() {
 
             <form onSubmit={handleSave} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
 
-              {/* Image */}
-              <div>
-                <label className="label-luxury">Category Image</label>
-                <p className="text-[11px] text-gray-400 mb-2">Recommended: 600 × 400 px · JPG, PNG, WebP</p>
-                {currentPreview ? (
-                  <div className="relative rounded-xl overflow-hidden border border-gray-200">
-                    <img src={currentPreview} alt="Preview" className="w-full aspect-[3/2] object-cover" />
-                    <button type="button"
-                      onClick={() => { setImageFile(null); setImagePreview(null); if (editItem) setEditItem({ ...editItem, image: null }); }}
-                      className="absolute top-2 right-2 w-7 h-7 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    onClick={() => fileRef.current?.click()}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => { e.preventDefault(); handleFile(e.dataTransfer.files?.[0]); }}
-                    className="border-2 border-dashed border-gray-200 hover:border-primary/40 rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50/60 transition-colors"
-                  >
-                    <svg className="w-8 h-8 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                    </svg>
-                    <p className="text-sm font-medium text-gray-600">Click to upload or drag & drop</p>
-                    <p className="text-xs text-gray-400 mt-0.5">JPG, PNG, WebP — max 5 MB · auto-resized to 600 × 400 px</p>
-                  </div>
-                )}
-                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
-                  onChange={(e) => handleFile(e.target.files?.[0])} />
-              </div>
-
-              {/* Name */}
+              {/* Name — always shown */}
               <div>
                 <label className="label-luxury">Name *</label>
-                <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="input-luxury" />
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  required
+                  autoFocus
+                  placeholder={presetParent ? `e.g. Solitaire ${presetParent.name}` : 'Category name'}
+                  className="input-luxury"
+                />
               </div>
 
-              {/* Parent — locked when adding sub, editable when editing or creating root */}
-              <div>
-                <label className="label-luxury">Parent Category</label>
-                {presetParent ? (
-                  <div className="input-luxury flex items-center gap-2 bg-gray-50 cursor-not-allowed">
-                    <svg className="w-4 h-4 text-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                    </svg>
-                    <span className="text-sm font-medium text-primary">{presetParent.name}</span>
+              {/* Rest of fields hidden when adding a subcategory */}
+              {!presetParent && (
+                <>
+                  {/* Image */}
+                  <div>
+                    <label className="label-luxury">Category Image</label>
+                    <p className="text-[11px] text-gray-400 mb-2">Recommended: 600 × 400 px · JPG, PNG, WebP</p>
+                    {currentPreview ? (
+                      <div className="relative rounded-xl overflow-hidden border border-gray-200">
+                        <img src={currentPreview} alt="Preview" className="w-full aspect-[3/2] object-cover" />
+                        <button type="button"
+                          onClick={() => { setImageFile(null); setImagePreview(null); if (editItem) setEditItem({ ...editItem, image: null }); }}
+                          className="absolute top-2 right-2 w-7 h-7 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => fileRef.current?.click()}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => { e.preventDefault(); handleFile(e.dataTransfer.files?.[0]); }}
+                        className="border-2 border-dashed border-gray-200 hover:border-primary/40 rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50/60 transition-colors"
+                      >
+                        <svg className="w-8 h-8 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                        </svg>
+                        <p className="text-sm font-medium text-gray-600">Click to upload or drag & drop</p>
+                        <p className="text-xs text-gray-400 mt-0.5">JPG, PNG, WebP — max 5 MB · auto-resized to 600 × 400 px</p>
+                      </div>
+                    )}
+                    <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                      onChange={(e) => handleFile(e.target.files?.[0])} />
                   </div>
-                ) : (
-                  <Select value={form.parent} onChange={(e) => setForm({ ...form, parent: e.target.value })}>
-                    <option value="">— Root Level —</option>
-                    {rootCategories.filter((c) => !editItem || c._id !== editItem._id).map((c) => (
-                      <option key={c._id} value={c._id}>{c.name}</option>
-                    ))}
-                  </Select>
-                )}
-              </div>
+                </>
+              )}
 
-              {/* Description */}
-              <div>
-                <label className="label-luxury">Description</label>
-                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="input-luxury resize-none" />
-              </div>
+              {/* All extra fields hidden when adding a quick subcategory */}
+              {!presetParent && (
+                <>
+                  {/* Parent */}
+                  <div>
+                    <label className="label-luxury">Parent Category</label>
+                    <Select value={form.parent} onChange={(e) => setForm({ ...form, parent: e.target.value })}>
+                      <option value="">— Root Level —</option>
+                      {rootCategories.filter((c) => !editItem || c._id !== editItem._id).map((c) => (
+                        <option key={c._id} value={c._id}>{c.name}</option>
+                      ))}
+                    </Select>
+                  </div>
 
-              {/* Sort Order + Featured */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label-luxury">Sort Order</label>
-                  <input type="number" min="0" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })} className="input-luxury" />
-                </div>
-                <div className="flex items-center gap-2 mt-7">
-                  <input type="checkbox" id="featured" checked={form.isFeatured} onChange={(e) => setForm({ ...form, isFeatured: e.target.checked })} className="accent-primary w-4 h-4" />
-                  <label htmlFor="featured" className="text-sm font-medium text-gray-700">Featured</label>
-                </div>
-              </div>
+                  {/* Description */}
+                  <div>
+                    <label className="label-luxury">Description</label>
+                    <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="input-luxury resize-none" />
+                  </div>
+
+                  {/* Sort Order + Featured */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="label-luxury">Sort Order</label>
+                      <input type="number" min="0" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })} className="input-luxury" />
+                    </div>
+                    <div className="flex items-center gap-2 mt-7">
+                      <input type="checkbox" id="featured" checked={form.isFeatured} onChange={(e) => setForm({ ...form, isFeatured: e.target.checked })} className="accent-primary w-4 h-4" />
+                      <label htmlFor="featured" className="text-sm font-medium text-gray-700">Featured</label>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="flex gap-3 pt-2 border-t border-gray-100">
                 <button type="button" onClick={() => setShowModal(false)} className="btn-outline flex-1 justify-center">Cancel</button>
