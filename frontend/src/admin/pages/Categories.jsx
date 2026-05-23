@@ -2,12 +2,15 @@ import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { categoryAPI } from '../../services/api';
 import Select from '../../components/ui/Select';
+import Pagination from '../components/Pagination';
 import { resizeImage } from '../../utils/resizeImage';
 
 const EMPTY = { name: '', description: '', parent: '', sortOrder: 0, isFeatured: false };
+const PAGE_SIZE = 8; // root categories per page
 
 export default function AdminCategories() {
   const [categories, setCategories]         = useState([]);
+  const [page, setPage]                     = useState(1);
   const [loading, setLoading]               = useState(true);
   const [showModal, setShowModal]           = useState(false);
   const [editItem, setEditItem]             = useState(null);
@@ -33,6 +36,7 @@ export default function AdminCategories() {
   const subsOf = (parentId) => categories.filter(
     (c) => c.parent === parentId || c.parent?._id === parentId
   );
+  const pagedRoots = rootCategories.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // ── Open modals ──────────────────────────────────────────────────────────────
 
@@ -103,14 +107,25 @@ export default function AdminCategories() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Deactivate this category?')) return;
+  const handleDeactivate = async (id) => {
+    if (!confirm('Deactivate this category? It will be hidden from the store.')) return;
     try {
       await categoryAPI.adminDelete(id);
       toast.success('Category deactivated');
       load();
     } catch (error) {
       toast.error(error.message || 'Failed');
+    }
+  };
+
+  const handlePermanentDelete = async (cat) => {
+    if (!confirm(`Permanently delete "${cat.name}"? This cannot be undone.`)) return;
+    try {
+      await categoryAPI.adminPermanentDelete(cat._id);
+      toast.success(`"${cat.name}" deleted`);
+      load();
+    } catch (error) {
+      toast.error(error.message || 'Delete failed');
     }
   };
 
@@ -179,8 +194,9 @@ export default function AdminCategories() {
             </button>
           )}
           {cat.isActive && (
-            <button onClick={() => handleDelete(cat._id)} className="text-xs px-2.5 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">Deactivate</button>
+            <button onClick={() => handleDeactivate(cat._id)} className="text-xs px-2.5 py-1 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100">Deactivate</button>
           )}
+          <button onClick={() => handlePermanentDelete(cat)} className="text-xs px-2.5 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">Delete</button>
         </div>
       </td>
     </tr>
@@ -215,7 +231,7 @@ export default function AdminCategories() {
                 ))
               ) : rootCategories.length === 0 ? (
                 <tr><td colSpan={6} className="text-center py-10 text-gray-300">No categories</td></tr>
-              ) : rootCategories.map((root) => {
+              ) : pagedRoots.map((root) => {
                 const subs = subsOf(root._id);
                 return [
                   <CategoryRow key={root._id} cat={root} isSubcategory={false} />,
@@ -228,6 +244,16 @@ export default function AdminCategories() {
           </table>
         </div>
       </div>
+
+      {rootCategories.length > PAGE_SIZE && (
+        <Pagination
+          page={page}
+          pages={Math.ceil(rootCategories.length / PAGE_SIZE)}
+          total={rootCategories.length}
+          shown={pagedRoots.reduce((acc, r) => acc + 1 + subsOf(r._id).length, 0)}
+          onPage={(p) => setPage(p)}
+        />
+      )}
 
       {/* ── Modal ───────────────────────────────────────────────────────────── */}
       {showModal && (
