@@ -186,6 +186,7 @@ export const adminAPI = {
   changeUserRole: (id, role) => api.put(`/admin/users/${id}/role`, { role }),
   updateUserPermissions: (id, permissions) => api.put(`/admin/users/${id}/permissions`, { permissions }),
   toggleUser: (id) => api.put(`/admin/users/${id}/toggle`),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
   getReviews: (params) => api.get('/admin/reviews', { params }),
   updateReviewStatus: (id, data) => api.put(`/admin/reviews/${id}/status`, data),
   uploadPackageImages: (formData) => api.post('/admin/upload/package-images', formData),
@@ -245,7 +246,7 @@ export const blogAPI = {
   getAll: (params) => api.get('/blog', { params }),
   getBySlug: (slug) => api.get(`/blog/${slug}`),
   // Admin
-  adminGetAll: () => api.get('/blog/admin/all'),
+  adminGetAll: (params) => api.get('/blog/admin/all', { params }),
   adminCreate: (data) => blogFetch('POST', '/blog/admin', data),
   adminUpdate: (id, data) => blogFetch('PUT', `/blog/admin/${id}`, data),
   adminDelete: (id) => api.delete(`/blog/admin/${id}`),

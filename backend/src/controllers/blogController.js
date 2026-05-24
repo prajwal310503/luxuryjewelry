@@ -1,5 +1,6 @@
 const Blog = require('../models/Blog');
 const { getFileUrl } = require('../config/cloudinary');
+const { sendPaginated } = require('../utils/response');
 
 const slugify = (str) =>
   str.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
@@ -33,8 +34,20 @@ exports.getBlogBySlug = async (req, res) => {
 // ── Admin ─────────────────────────────────────────────────────────────────────
 exports.adminGetBlogs = async (req, res) => {
   try {
-    const blogs = await Blog.find().sort('-createdAt');
-    res.json({ success: true, data: blogs });
+    const page  = parseInt(req.query.page)  || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip  = (page - 1) * limit;
+
+    const filter = {};
+    if (req.query.search)    filter.title    = new RegExp(req.query.search, 'i');
+    if (req.query.status === 'published') filter.isPublished = true;
+    if (req.query.status === 'draft')     filter.isPublished = false;
+    if (req.query.category)  filter.category = req.query.category;
+
+    const total = await Blog.countDocuments(filter);
+    const blogs = await Blog.find(filter).sort('-createdAt').skip(skip).limit(limit).select('-content');
+
+    sendPaginated(res, blogs, page, limit, total);
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

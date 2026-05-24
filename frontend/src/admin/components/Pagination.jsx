@@ -6,64 +6,65 @@ function getPageNums(current, total) {
 }
 
 export default function Pagination({ page, pages, total, shown, onPage }) {
-  if (!total && !pages) return null;
+  const p    = parseInt(page)  || 1;
+  const pgs  = parseInt(pages) || 1;
+  const shwn = parseInt(shown) || 0;
+  const tot  = parseInt(total) || shwn; // fallback to shown count if total unknown
 
-  const multiPage = pages && pages > 1;
-  const nums = multiPage ? getPageNums(page, pages) : [];
+  // Only hide when there is truly nothing to show
+  if (shwn === 0 && tot === 0) return null;
+
+  const nums = getPageNums(p, pgs);
 
   return (
     <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
       <p className="text-xs text-gray-400">
-        Showing <span className="font-medium text-gray-600">{shown}</span> of{' '}
-        <span className="font-medium text-gray-600">{total}</span> results
-        {multiPage && (
-          <span className="ml-1 text-gray-300">· Page {page} of {pages}</span>
-        )}
+        Showing <span className="font-medium text-gray-600">{shwn}</span> of{' '}
+        <span className="font-medium text-gray-600">{tot}</span> results
+        <span className="ml-1 text-gray-300">· Page {p} of {pgs}</span>
       </p>
 
-      {multiPage && (
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => onPage(page - 1)}
-            disabled={page <= 1}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:border-primary hover:text-primary transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onPage(p - 1)}
+          disabled={p <= 1}
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:border-primary hover:text-primary transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
 
-          {nums.map((n, i) =>
-            n === '...' ? (
-              <span key={`e${i}`} className="w-8 h-8 flex items-center justify-center text-xs text-gray-400 select-none">
-                &hellip;
-              </span>
-            ) : (
-              <button
-                key={n}
-                onClick={() => onPage(n)}
-                className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-medium transition-colors
-                  ${n === page
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'border border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
-                  }`}
-              >
-                {n}
-              </button>
-            )
-          )}
+        {nums.map((n, i) =>
+          n === '...' ? (
+            <span key={`e${i}`} className="w-8 h-8 flex items-center justify-center text-xs text-gray-400 select-none">
+              &hellip;
+            </span>
+          ) : (
+            <button
+              key={n}
+              onClick={() => onPage(n)}
+              className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-medium transition-colors
+                ${n === p
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'border border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
+                }`}
+            >
+              {n}
+            </button>
+          )
+        )}
 
-          <button
-            onClick={() => onPage(page + 1)}
-            disabled={page >= pages}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:border-primary hover:text-primary transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-      )}
+        <button
+          onClick={() => onPage(p + 1)}
+          disabled={p >= pgs}
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 hover:border-primary hover:text-primary transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }

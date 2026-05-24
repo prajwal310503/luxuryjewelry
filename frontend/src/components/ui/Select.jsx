@@ -135,16 +135,18 @@ export default function Select({
       </button>
 
       {/* ── Chevron arrow ──────────────────────────────────────────── */}
-      <motion.span
-        animate={{ rotate: open ? 180 : 0 }}
-        transition={{ duration: 0.18, ease: 'easeInOut' }}
-        className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center"
-        style={{ color: 'rgba(90,65,63,0.55)' }}
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </motion.span>
+      <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center">
+        <motion.span
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.18, ease: 'easeInOut' }}
+          className="flex items-center justify-center"
+          style={{ color: 'rgba(90,65,63,0.55)', display: 'flex' }}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </motion.span>
+      </span>
 
       {/* ── Dropdown panel — rendered into document.body via Portal ── */}
       {createPortal(

@@ -198,6 +198,23 @@ exports.toggleUserStatus = async (req, res, next) => {
   }
 };
 
+// @desc    Admin: Delete user permanently
+// @route   DELETE /api/admin/users/:id
+// @access  Admin
+exports.deleteUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return sendError(res, 404, 'User not found');
+    if (user.role === 'admin') return sendError(res, 400, 'Cannot delete an admin account');
+    if (String(user._id) === String(req.user.id)) return sendError(res, 400, 'Cannot delete your own account');
+
+    await User.findByIdAndDelete(req.params.id);
+    sendSuccess(res, 200, 'User deleted');
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Admin: Get pending reviews
 // @route   GET /api/admin/reviews
 // @access  Admin

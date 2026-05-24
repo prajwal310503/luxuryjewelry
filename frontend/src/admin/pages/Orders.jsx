@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { orderAPI, adminAPI, productAPI } from '../../services/api';
 import Pagination from '../components/Pagination';
+import Tip from '../components/Tip';
 import Select from '../../components/ui/Select';
 
 const STATUS_COLORS = {
@@ -412,7 +413,12 @@ function OrderDetail({ order, onUpdateStatus }) {
             <div className="flex justify-between font-bold text-gray-800 border-t border-gray-100 pt-2"><span>Total</span><span>{fmt(order.total)}</span></div>
           </div>
           <div className="mt-3 pt-3 border-t border-gray-100">
-            <p className="text-xs text-gray-400">Payment: <span className="font-medium text-gray-700 capitalize">{order.paymentMethod || '—'}</span></p>
+            <p className="text-xs text-gray-400">
+              Payment method: <span className="font-medium text-gray-700 uppercase">{order.payment?.method || '—'}</span>
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Payment status: <span className={`font-semibold ${order.payment?.status === 'paid' ? 'text-green-600' : order.payment?.status === 'failed' ? 'text-red-500' : 'text-amber-600'}`}>{order.payment?.status || 'pending'}</span>
+            </p>
             <p className="text-xs text-gray-400 mt-0.5">Source: <span className="font-medium text-gray-700 capitalize">{order.source || 'direct'}</span></p>
           </div>
         </div>
@@ -471,7 +477,6 @@ export default function AdminOrders() {
   };
 
   const handleUpdateStatus = async () => {
-    if (!statusUpdate.status) return;
     setStatusSaving(true);
     try {
       await orderAPI.adminUpdateStatus(selected._id, {
@@ -479,11 +484,13 @@ export default function AdminOrders() {
         paymentStatus: statusUpdate.paymentStatus,
         comment: statusUpdate.comment,
       });
-      toast.success('Order status updated');
+      toast.success('Order updated successfully');
       setSelected(null);
       fetchOrders();
-    } catch (err) { toast.error(err.message); }
-    finally { setStatusSaving(false); }
+    } catch (err) {
+      console.error('[handleUpdateStatus]', err);
+      toast.error(err?.message || 'Failed to update order');
+    } finally { setStatusSaving(false); }
   };
 
   const setPage = (p) => setSearchParams({ status: statusFilter, search, page: p });
@@ -528,7 +535,7 @@ export default function AdminOrders() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                {['Order #', 'Customer', 'Items', 'Total', 'Payment', 'Status', 'Date', 'Actions'].map((h) => (
+                {['Order #', 'Customer', 'Items', 'Total', 'Method', 'Pay Status', 'Status', 'Date', 'Actions'].map((h) => (
                   <th key={h} className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-5 py-3">{h}</th>
                 ))}
               </tr>
@@ -541,14 +548,15 @@ export default function AdminOrders() {
                     <td className="px-5 py-4"><div className="space-y-2"><div className="shimmer-text h-3.5 w-28 rounded" /><div className="shimmer-text h-2.5 w-36 rounded" /></div></td>
                     <td className="px-5 py-4"><div className="shimmer-text h-3.5 w-6 rounded" /></td>
                     <td className="px-5 py-4"><div className="shimmer-text h-3.5 w-20 rounded" /></td>
-                    <td className="px-5 py-4"><div className="shimmer-loading h-5 w-12 rounded-full" /></td>
+                    <td className="px-5 py-4"><div className="shimmer-loading h-5 w-14 rounded-full" /></td>
+                    <td className="px-5 py-4"><div className="shimmer-loading h-5 w-16 rounded-full" /></td>
                     <td className="px-5 py-4"><div className="shimmer-loading h-5 w-20 rounded-full" /></td>
                     <td className="px-5 py-4"><div className="shimmer-text h-3.5 w-20 rounded" /></td>
                     <td className="px-5 py-4"><div className="shimmer-loading w-8 h-8 rounded-lg" /></td>
                   </tr>
                 ))
               ) : orders.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-12 text-gray-300">No orders found</td></tr>
+                <tr><td colSpan={9} className="text-center py-12 text-gray-300">No orders found</td></tr>
               ) : orders.map((order) => {
                 const firstItem = order.items?.[0];
                 const isOpen    = expanded === order._id;
@@ -589,9 +597,18 @@ export default function AdminOrders() {
                       </td>
                       <td className="px-5 py-4 text-sm font-semibold text-gray-800">₹{order.total?.toLocaleString('en-IN')}</td>
                       <td className="px-5 py-4">
-                        <span className={`badge text-xs ${order.payment?.status === 'paid' ? 'badge-success' : 'badge-warning'}`}>
-                          {order.payment?.status || 'pending'}
+                        <span className="badge text-xs" style={{ backgroundColor: '#F3F4F6', color: '#374151' }}>
+                          {({ cod: 'COD', stripe: 'Online', razorpay: 'Online', wallet: 'Wallet', bank_transfer: 'Bank', quote: 'Quote' })[order.payment?.method] || order.payment?.method || '—'}
                         </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        {(() => {
+                          const s = order.payment?.status;
+                          if (s === 'paid')     return <span className="badge text-xs" style={{ backgroundColor: '#F0FDF4', color: '#16A34A' }}>Paid</span>;
+                          if (s === 'failed')   return <span className="badge text-xs" style={{ backgroundColor: '#FEF2F2', color: '#EF4444' }}>Failed</span>;
+                          if (s === 'refunded') return <span className="badge text-xs" style={{ backgroundColor: '#F5F3FF', color: '#7C3AED' }}>Refunded</span>;
+                          return <span className="badge text-xs" style={{ backgroundColor: '#FEF3C7', color: '#D97706' }}>Pending</span>;
+                        })()}
                       </td>
                       <td className="px-5 py-4">
                         <span className="badge text-xs capitalize" style={{ backgroundColor: `${STATUS_COLORS[order.status]}20`, color: STATUS_COLORS[order.status] }}>
@@ -601,14 +618,15 @@ export default function AdminOrders() {
                       <td className="px-5 py-4 text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('en-IN')}</td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); openStatus(order); }}
-                            title="Update Status"
-                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                          >
-                            <IcEdit />
-                          </button>
+                          <Tip label="Update Status">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); openStatus(order); }}
+                              className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                            >
+                              <IcEdit />
+                            </button>
+                          </Tip>
                           <svg className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                           </svg>
@@ -617,7 +635,7 @@ export default function AdminOrders() {
                     </tr>
                     {isOpen && (
                       <tr key={`${order._id}-detail`}>
-                        <td colSpan={8} className="p-0">
+                        <td colSpan={9} className="p-0">
                           <OrderDetail order={order} onUpdateStatus={() => openStatus(order)} />
                         </td>
                       </tr>
@@ -645,7 +663,7 @@ export default function AdminOrders() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Order Status</label>
-                  <Select value={statusUpdate.status} onChange={(e) => setStatusUpdate({ ...statusUpdate, status: e.target.value })}>
+                  <Select value={statusUpdate.status} onChange={(e) => { const v = e.target.value; setStatusUpdate((p) => ({ ...p, status: v })); }}>
                     {['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned', 'refunded'].map((s) => (
                       <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
                     ))}
@@ -653,8 +671,8 @@ export default function AdminOrders() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Payment Status</label>
-                  <Select value={statusUpdate.paymentStatus} onChange={(e) => setStatusUpdate({ ...statusUpdate, paymentStatus: e.target.value })}>
-                    {['pending', 'paid', 'failed', 'refunded', 'cod'].map((s) => (
+                  <Select value={statusUpdate.paymentStatus} onChange={(e) => { const v = e.target.value; setStatusUpdate((p) => ({ ...p, paymentStatus: v })); }}>
+                    {['pending', 'paid', 'failed', 'refunded'].map((s) => (
                       <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
                     ))}
                   </Select>
@@ -664,7 +682,7 @@ export default function AdminOrders() {
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Comment</label>
                 <textarea
                   value={statusUpdate.comment}
-                  onChange={(e) => setStatusUpdate({ ...statusUpdate, comment: e.target.value })}
+                  onChange={(e) => { const v = e.target.value; setStatusUpdate((p) => ({ ...p, comment: v })); }}
                   className="input-luxury resize-none"
                   rows={2}
                   placeholder="Optional comment..."

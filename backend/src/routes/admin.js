@@ -8,6 +8,7 @@ const {
   toggleUserStatus,
   changeUserRole,
   updateUserPermissions,
+  deleteUser,
   getReviews,
   updateReviewStatus,
 } = require('../controllers/adminController');
@@ -52,6 +53,7 @@ router.post('/users',                   ...adminAuth, createUser);
 router.put('/users/:id/role',           ...adminAuth, changeUserRole);
 router.put('/users/:id/permissions',    ...adminAuth, updateUserPermissions);
 router.put('/users/:id/toggle',         ...adminAuth, toggleUserStatus);
+router.delete('/users/:id',             ...adminAuth, deleteUser);
 
 // Products — admin only
 router.post('/products/bulk-upload',                ...adminAuth, memUpload.single('file'), adminBulkUploadProducts);
