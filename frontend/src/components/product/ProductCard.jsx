@@ -134,23 +134,25 @@ export default function ProductCard({ product, className = '', index = 0 }) {
           style={{ background: 'linear-gradient(135deg, transparent 40%, rgba(201,168,76,0.08) 60%, transparent 80%)' }} />
 
         {/* Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5">
           {hasDiscount && (
-            <span className="text-[11px] font-extrabold text-white px-2.5 py-0.5 rounded-full shadow-sm"
-              style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)', boxShadow: '0 2px 8px rgba(239,68,68,0.4)' }}>
-              -{product.discount}%
+            <span className="inline-flex items-center gap-0.5 text-[11px] font-black text-white px-2.5 py-1 rounded-lg tracking-wide"
+              style={{ background: 'linear-gradient(135deg,#f43f5e,#e11d48)', boxShadow: '0 3px 10px rgba(244,63,94,0.45)' }}>
+              -{product.discount}% OFF
             </span>
           )}
           {product.isBestSeller && (
-            <span className="text-[11px] font-extrabold text-white px-2.5 py-0.5 rounded-full shadow-sm"
-              style={{ background: 'linear-gradient(135deg,#C9A84C,#9C7E2A)', boxShadow: '0 2px 8px rgba(201,168,76,0.5)' }}>
-              Best Seller
+            <span className="inline-flex items-center gap-1 text-[10px] font-black text-white px-2.5 py-1 rounded-lg tracking-wide uppercase"
+              style={{ background: 'linear-gradient(135deg,#C9A84C,#a07828)', boxShadow: '0 3px 10px rgba(201,168,76,0.5)' }}>
+              <svg className="w-2.5 h-2.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              Bestseller
             </span>
           )}
           {product.isNewArrival && (
-            <span className="text-[11px] font-extrabold text-white px-2.5 py-0.5 rounded-full shadow-sm"
-              style={{ background: 'linear-gradient(135deg,#5a413f,#3a2927)', boxShadow: '0 2px 8px rgba(90,65,63,0.45)' }}>
-              New
+            <span className="inline-flex items-center gap-1 text-[10px] font-black text-white px-2.5 py-1 rounded-lg tracking-wide uppercase"
+              style={{ background: 'linear-gradient(135deg,#10b981,#059669)', boxShadow: '0 3px 10px rgba(16,185,129,0.45)' }}>
+              <svg className="w-2.5 h-2.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
+              New Arrival
             </span>
           )}
         </div>

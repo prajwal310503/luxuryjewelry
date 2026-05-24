@@ -612,29 +612,53 @@ exports.adminBulkUploadProducts = async (req, res, next) => {
           approvedBy: req.user.id, approvedAt: new Date(),
         };
 
-        // ── Core scalar fields ─────────────────────────────
-        const sku = str(pick(row, 'sku', 'SKU'));               if (sku)                         data.sku               = sku;
-        const cp  = num(pick(row, 'comparePrice', 'compare_price')); if (cp != null)             data.comparePrice      = cp;
-        const cst = num(pick(row, 'costPrice', 'cost_price'));       if (cst != null)             data.costPrice         = cst;
-        const disc= num(pick(row, 'discount'));                      if (disc != null)            data.discount          = disc;
-        const stk = int(pick(row, 'stock', 'Stock'));                if (stk != null)             data.stock             = stk;
-        const lst = int(pick(row, 'lowStockThreshold', 'low_stock_threshold')); if (lst != null) data.lowStockThreshold = lst;
-        const wt  = num(pick(row, 'weight', 'Weight'));              if (wt != null)              data.weight            = wt;
-        const sd  = num(pick(row, 'shippingDays', 'shipping_days')); if (sd != null)              data.shippingDays      = sd;
-        const fs  = bool(pick(row, 'freeShipping', 'free_shipping')); if (fs !== undefined)       data.freeShipping      = fs;
+        // ── Basic Information ──────────────────────────────
+        const sku       = str(pick(row, 'sku', 'SKU'));
+        const shortDesc = str(pick(row, 'shortDescription', 'short_description'));
+        const desc      = str(pick(row, 'description', 'Description'));
+        if (sku)       data.sku              = sku;
+        if (shortDesc) data.shortDescription = shortDesc;
+        if (desc)      data.description      = desc;
 
-        const shortDesc   = str(pick(row, 'shortDescription', 'short_description')); if (shortDesc)   data.shortDescription = shortDesc;
-        const description = str(pick(row, 'description', 'Description'));             if (description) data.description      = description;
+        // ── Category (subcategory optional) ───────────────
+        const subRaw = str(pick(row, 'subcategory', 'Subcategory'));
+        if (subRaw) {
+          const subId = catMap[subRaw.toLowerCase()];
+          if (subId) data.subcategory = subId;
+        }
 
-        // ── Visibility flags ───────────────────────────────
-        const isFeat = bool(pick(row, 'isFeatured',   'is_featured'));   if (isFeat !== undefined)  data.isFeatured   = isFeat;
-        const isNA   = bool(pick(row, 'isNewArrival', 'is_new_arrival')); if (isNA !== undefined)   data.isNewArrival  = isNA;
-        const isBS   = bool(pick(row, 'isBestSeller', 'is_best_seller')); if (isBS !== undefined)   data.isBestSeller  = isBS;
+        // ── Pricing & Stock ────────────────────────────────
+        const cst  = num(pick(row, 'costPrice',  'cost_price')); if (cst  != null) data.costPrice = cst;
+        const disc = num(pick(row, 'discount'));                  if (disc != null) data.discount  = disc;
+        const stk  = int(pick(row, 'stock', 'Stock'));            if (stk  != null) data.stock     = stk;
 
-        // ── Images (image1 … image5 — each a full URL) ────
+        // ── Jewelry Details ────────────────────────────────
+        const purity   = str(pick(row, 'purity'));       data.purity = purity || '22kt';
+        const mw       = num(pick(row, 'metalWeight', 'metal_weight'));   if (mw  != null) data.metalWeight  = mw;
+        const dd       = int(pick(row, 'deliveryDays', 'delivery_days')); if (dd  != null) data.deliveryDays = dd;
+
+        const dc = str(pick(row, 'diamondClarity', 'diamond_clarity'));
+        if (dc) data.diamondClarity = dc;
+
+        const sc = arr(pick(row, 'stoneColors', 'stone_colors'));
+        if (sc.length) data.stoneColors = sc;
+
+        const sizesEn  = bool(pick(row, 'sizesEnabled',   'sizes_enabled'));
+        const sizesAv  = arr(pick(row, 'sizesAvailable',  'sizes_available')).map(Number).filter((n) => !isNaN(n));
+        if (sizesEn !== undefined || sizesAv.length) {
+          data.sizes = { enabled: sizesEn || false, available: sizesAv };
+        }
+
+        const lenEn  = bool(pick(row, 'lengthEnabled',   'length_enabled'));
+        const lenAv  = arr(pick(row, 'lengthAvailable',  'length_available')).map(Number).filter((n) => !isNaN(n));
+        if (lenEn !== undefined || lenAv.length) {
+          data.lengths = { enabled: lenEn || false, available: lenAv };
+        }
+
+        // ── Product Images (image1…image4 — full URLs) ────
         const imageUrls = [];
-        for (let n = 1; n <= 5; n++) {
-          const u = str(pick(row, `image${n}`, `Image${n}`, `IMAGE${n}`));
+        for (let n = 1; n <= 4; n++) {
+          const u = str(pick(row, `image${n}`, `Image${n}`));
           if (u && /^https?:\/\/.+/.test(u)) imageUrls.push(u);
         }
         if (imageUrls.length) {
@@ -643,64 +667,14 @@ exports.adminBulkUploadProducts = async (req, res, next) => {
           }));
         }
 
-        // ── Merchandising tag arrays (comma-separated) ─────
-        const segs  = arr(pick(row, 'segments'));                              if (segs.length)  data.segments        = segs;
-        const occ   = arr(pick(row, 'occasions'));                             if (occ.length)   data.occasions       = occ;
-        const cols  = arr(pick(row, 'collectionStyles', 'collection_styles')); if (cols.length)  data.collectionStyles = cols;
-        const thm   = arr(pick(row, 'themes'));                                if (thm.length)   data.themes          = thm;
-        const pp    = arr(pick(row, 'productPersonas', 'product_personas'));   if (pp.length)    data.productPersonas = pp;
-        const wt2   = arr(pick(row, 'wearingTypes', 'wearing_types'));         if (wt2.length)   data.wearingTypes    = wt2;
-        const gt    = arr(pick(row, 'giftTags', 'gift_tags'));                 if (gt.length)    data.giftTags        = gt;
-
-        // ── Dimensions ─────────────────────────────────────
-        const dL = num(pick(row, 'dimensionLength', 'dimension_length'));
-        const dW = num(pick(row, 'dimensionWidth',  'dimension_width'));
-        const dH = num(pick(row, 'dimensionHeight', 'dimension_height'));
-        const dU = str(pick(row, 'dimensionUnit',   'dimension_unit'));
-        if (dL != null || dW != null || dH != null) {
-          data.dimensions = {};
-          if (dL != null) data.dimensions.length = dL;
-          if (dW != null) data.dimensions.width  = dW;
-          if (dH != null) data.dimensions.height = dH;
-          if (['mm','cm','inch'].includes(dU)) data.dimensions.unit = dU;
+        // ── Product Videos (video1…video2 — full URLs) ────
+        const videoUrls = [];
+        for (let n = 1; n <= 2; n++) {
+          const u = str(pick(row, `video${n}`, `Video${n}`));
+          if (u && /^https?:\/\/.+/.test(u)) videoUrls.push(u);
         }
-
-        // ── SEO ────────────────────────────────────────────
-        const seoTitle = str(pick(row, 'seoTitle', 'seo_title'));
-        const seoDesc  = str(pick(row, 'seoDescription', 'seo_description'));
-        const seoKeys  = arr(pick(row, 'seoKeywords', 'seo_keywords'));
-        if (seoTitle || seoDesc || seoKeys.length) {
-          data.seo = {};
-          if (seoTitle)       data.seo.metaTitle       = seoTitle;
-          if (seoDesc)        data.seo.metaDescription = seoDesc;
-          if (seoKeys.length) data.seo.metaKeywords    = seoKeys;
-        }
-
-        // ── Price breakup ──────────────────────────────────
-        const pb = {
-          metalType:            str(pick(row, 'metalType',         'metal_type')),
-          grossWeight:          num(pick(row, 'grossWeight',        'gross_weight')),
-          netWeight:            num(pick(row, 'netWeight',          'net_weight')),
-          metalRate:            num(pick(row, 'metalRate',          'metal_rate')),
-          metalAmount:          num(pick(row, 'metalAmount',        'metal_amount')),
-          diamondPieces:        int(pick(row, 'diamondPieces',      'diamond_pieces')),
-          diamondCarat:         num(pick(row, 'diamondCarat',       'diamond_carat')),
-          diamondClarity:       str(pick(row, 'diamondClarity',     'diamond_clarity')),
-          diamondCut:           str(pick(row, 'diamondCut',         'diamond_cut')),
-          diamondColor:         str(pick(row, 'diamondColor',       'diamond_color')),
-          diamondAmount:        num(pick(row, 'diamondAmount',      'diamond_amount')),
-          makingCharges:        num(pick(row, 'makingCharges',      'making_charges')),
-          gstPct:               num(pick(row, 'gstPct',             'gst_pct')),
-        };
-        const pbClean = Object.fromEntries(Object.entries(pb).filter(([, v]) => v !== undefined && v !== ''));
-        if (Object.keys(pbClean).length) data.priceBreakup = pbClean;
-
-        // ── Certification ──────────────────────────────────
-        const certLab    = str(pick(row, 'certLab',    'cert_lab'));
-        const certNumber = str(pick(row, 'certNumber', 'cert_number'));
-        const certImage  = str(pick(row, 'certImage',  'cert_image'));
-        if (certLab || certNumber) {
-          data.certifications = [{ lab: certLab, certNumber, certImage }];
+        if (videoUrls.length) {
+          data.videos = videoUrls.map((url, idx) => ({ url, publicId: '', sortOrder: idx }));
         }
 
         const product = await Product.create(data);
@@ -727,5 +701,38 @@ exports.adminBulkUploadProducts = async (req, res, next) => {
     if (!res.headersSent) return next(error);
     res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
     res.end();
+  }
+};
+
+// @desc    Apply jewelry field defaults to all existing products
+// @route   POST /api/admin/products/set-jewelry-defaults
+// @access  Admin
+exports.adminSetJewelryDefaults = async (req, res, next) => {
+  try {
+    const result = await Product.updateMany(
+      {},
+      {
+        $set: {
+          purity: '22kt',
+        },
+        $setOnInsert: {},
+      }
+    );
+    // Only set array fields / nested objects when they are missing (avoid overwriting existing data)
+    await Product.updateMany(
+      { 'sizes.enabled': { $exists: false } },
+      { $set: { 'sizes.enabled': false, 'sizes.available': [] } }
+    );
+    await Product.updateMany(
+      { 'lengths.enabled': { $exists: false } },
+      { $set: { 'lengths.enabled': false, 'lengths.available': [] } }
+    );
+    await Product.updateMany(
+      { stoneColors: { $exists: false } },
+      { $set: { stoneColors: [] } }
+    );
+    sendSuccess(res, 200, `Jewelry defaults applied to ${result.modifiedCount} products`);
+  } catch (error) {
+    next(error);
   }
 };

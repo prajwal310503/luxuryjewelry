@@ -7,138 +7,87 @@ import Pagination from '../components/Pagination';
 import Tip from '../components/Tip';
 import Select from '../../components/ui/Select';
 
-// ── CSV template — all product fields ─────────────────────────
+// ── CSV template ───────────────────────────────────────────────
 const CSV_COLUMNS = [
-  // Required
-  { key: 'title',              group: 'required',     label: 'title *' },
-  { key: 'price',              group: 'required',     label: 'price *' },
-  { key: 'category',           group: 'required',     label: 'category *' },
-  // Core
-  { key: 'sku',                group: 'core',         label: 'sku' },
-  { key: 'comparePrice',       group: 'core',         label: 'comparePrice' },
-  { key: 'costPrice',          group: 'core',         label: 'costPrice' },
-  { key: 'discount',           group: 'core',         label: 'discount' },
-  { key: 'stock',              group: 'core',         label: 'stock' },
-  { key: 'lowStockThreshold',  group: 'core',         label: 'lowStockThreshold' },
-  { key: 'shortDescription',   group: 'core',         label: 'shortDescription' },
-  { key: 'description',        group: 'core',         label: 'description' },
-  { key: 'weight',             group: 'core',         label: 'weight' },
-  { key: 'status',             group: 'core',         label: 'status' },
-  { key: 'freeShipping',       group: 'core',         label: 'freeShipping' },
-  { key: 'shippingDays',       group: 'core',         label: 'shippingDays' },
-  // Images
-  { key: 'image1',             group: 'images',       label: 'image1' },
-  { key: 'image2',             group: 'images',       label: 'image2' },
-  { key: 'image3',             group: 'images',       label: 'image3' },
-  { key: 'image4',             group: 'images',       label: 'image4' },
-  { key: 'image5',             group: 'images',       label: 'image5' },
-  // Flags
-  { key: 'isFeatured',         group: 'flags',        label: 'isFeatured' },
-  { key: 'isNewArrival',       group: 'flags',        label: 'isNewArrival' },
-  { key: 'isBestSeller',       group: 'flags',        label: 'isBestSeller' },
-  // Tags (comma-separated inside each cell)
-  { key: 'segments',           group: 'tags',         label: 'segments' },
-  { key: 'occasions',          group: 'tags',         label: 'occasions' },
-  { key: 'collectionStyles',   group: 'tags',         label: 'collectionStyles' },
-  { key: 'themes',             group: 'tags',         label: 'themes' },
-  { key: 'productPersonas',    group: 'tags',         label: 'productPersonas' },
-  { key: 'wearingTypes',       group: 'tags',         label: 'wearingTypes' },
-  { key: 'giftTags',           group: 'tags',         label: 'giftTags' },
-  // Dimensions
-  { key: 'dimensionLength',    group: 'dimensions',   label: 'dimensionLength' },
-  { key: 'dimensionWidth',     group: 'dimensions',   label: 'dimensionWidth' },
-  { key: 'dimensionHeight',    group: 'dimensions',   label: 'dimensionHeight' },
-  { key: 'dimensionUnit',      group: 'dimensions',   label: 'dimensionUnit' },
-  // SEO
-  { key: 'seoTitle',           group: 'seo',          label: 'seoTitle' },
-  { key: 'seoDescription',     group: 'seo',          label: 'seoDescription' },
-  { key: 'seoKeywords',        group: 'seo',          label: 'seoKeywords' },
-  // Price breakup
-  { key: 'metalType',          group: 'priceBreakup', label: 'metalType' },
-  { key: 'grossWeight',        group: 'priceBreakup', label: 'grossWeight' },
-  { key: 'netWeight',          group: 'priceBreakup', label: 'netWeight' },
-  { key: 'metalRate',          group: 'priceBreakup', label: 'metalRate' },
-  { key: 'metalAmount',        group: 'priceBreakup', label: 'metalAmount' },
-  { key: 'diamondPieces',      group: 'priceBreakup', label: 'diamondPieces' },
-  { key: 'diamondCarat',       group: 'priceBreakup', label: 'diamondCarat' },
-  { key: 'diamondClarity',     group: 'priceBreakup', label: 'diamondClarity' },
-  { key: 'diamondCut',         group: 'priceBreakup', label: 'diamondCut' },
-  { key: 'diamondColor',       group: 'priceBreakup', label: 'diamondColor' },
-  { key: 'diamondAmount',      group: 'priceBreakup', label: 'diamondAmount' },
-  { key: 'makingCharges',      group: 'priceBreakup', label: 'makingCharges' },
-  { key: 'gstPct',             group: 'priceBreakup', label: 'gstPct' },
-  // Certification
-  { key: 'certLab',            group: 'certification',label: 'certLab' },
-  { key: 'certNumber',         group: 'certification',label: 'certNumber' },
-  { key: 'certImage',          group: 'certification',label: 'certImage' },
+  // Basic Information
+  { key: 'title',                group: 'basic',   label: 'title *' },
+  { key: 'sku',                  group: 'basic',   label: 'sku' },
+  { key: 'shortDescription',     group: 'basic',   label: 'shortDescription' },
+  { key: 'description',          group: 'basic',   label: 'description' },
+  { key: 'status',               group: 'basic',   label: 'status' },
+  // Category
+  { key: 'category',             group: 'category', label: 'category *' },
+  { key: 'subcategory',          group: 'category', label: 'subcategory' },
+  // Pricing & Stock
+  { key: 'price',                group: 'pricing', label: 'price *' },
+  { key: 'costPrice',            group: 'pricing', label: 'costPrice' },
+  { key: 'discount',             group: 'pricing', label: 'discount (%)' },
+  { key: 'stock',                group: 'pricing', label: 'stock' },
+  // Jewelry Details
+  { key: 'purity',               group: 'jewelry', label: 'purity' },
+  { key: 'metalWeight',          group: 'jewelry', label: 'metalWeight (g)' },
+  { key: 'deliveryDays',         group: 'jewelry', label: 'deliveryDays' },
+  { key: 'diamondClarity',        group: 'jewelry', label: 'diamondClarity (Natural/CZ)' },
+  { key: 'stoneColors',          group: 'jewelry', label: 'stoneColors (comma-sep)' },
+  { key: 'sizesEnabled',         group: 'jewelry', label: 'sizesEnabled (true/false)' },
+  { key: 'sizesAvailable',       group: 'jewelry', label: 'sizesAvailable (comma-sep)' },
+  { key: 'lengthEnabled',        group: 'jewelry', label: 'lengthEnabled (true/false)' },
+  { key: 'lengthAvailable',      group: 'jewelry', label: 'lengthAvailable (comma-sep)' },
+  // Product Images
+  { key: 'image1',               group: 'images',  label: 'image1 (URL)' },
+  { key: 'image2',               group: 'images',  label: 'image2 (URL)' },
+  { key: 'image3',               group: 'images',  label: 'image3 (URL)' },
+  { key: 'image4',               group: 'images',  label: 'image4 (URL)' },
+  // Product Videos
+  { key: 'video1',               group: 'videos',  label: 'video1 (URL)' },
+  { key: 'video2',               group: 'videos',  label: 'video2 (URL)' },
 ];
 
 const CSV_GROUPS = [
-  { id: 'required',     label: 'Required',       color: 'bg-red-100 text-red-700' },
-  { id: 'core',         label: 'Core Fields',    color: 'bg-blue-100 text-blue-700' },
-  { id: 'images',       label: 'Images (URLs)',  color: 'bg-purple-100 text-purple-700' },
-  { id: 'flags',        label: 'Flags (true/false)', color: 'bg-amber-100 text-amber-700' },
-  { id: 'tags',         label: 'Tags (comma-separated)', color: 'bg-green-100 text-green-700' },
-  { id: 'dimensions',   label: 'Dimensions',     color: 'bg-teal-100 text-teal-700' },
-  { id: 'seo',          label: 'SEO',            color: 'bg-indigo-100 text-indigo-700' },
-  { id: 'priceBreakup', label: 'Price Breakup',  color: 'bg-orange-100 text-orange-700' },
-  { id: 'certification',label: 'Certification',  color: 'bg-pink-100 text-pink-700' },
+  { id: 'basic',    label: 'Basic Information', color: 'bg-blue-100 text-blue-700' },
+  { id: 'category', label: 'Category',          color: 'bg-purple-100 text-purple-700' },
+  { id: 'pricing',  label: 'Pricing & Stock',   color: 'bg-red-100 text-red-700' },
+  { id: 'jewelry',  label: 'Jewelry Details',   color: 'bg-amber-100 text-amber-700' },
+  { id: 'images',   label: 'Product Images',    color: 'bg-green-100 text-green-700' },
+  { id: 'videos',   label: 'Product Videos',    color: 'bg-teal-100 text-teal-700' },
 ];
 
 const CSV_HEADERS = CSV_COLUMNS.map((c) => c.key);
 
 // Sample row — only fills meaningful fields, rest blank
 const CSV_SAMPLE = {
+  // Basic Information
   title: 'Diamond Solitaire Ring',
-  price: '24999',
-  category: 'Rings',
   sku: 'DSR-001',
-  comparePrice: '28000',
+  shortDescription: 'Elegant solitaire diamond ring',
+  description: '24kt diamond ring handcrafted in gold',
+  status: 'approved',
+  // Category
+  category: 'Rings',
+  subcategory: '',
+  // Pricing & Stock
+  price: '24999',
   costPrice: '18000',
   discount: '0',
   stock: '10',
-  lowStockThreshold: '3',
-  shortDescription: 'Elegant solitaire diamond ring',
-  description: '24kt diamond ring handcrafted in gold',
-  weight: '5',
-  status: 'approved',
-  freeShipping: 'false',
-  shippingDays: '7',
+  // Jewelry Details
+  purity: '22kt',
+  metalWeight: '3.2',
+  deliveryDays: '7',
+  diamondClarity: 'Natural',
+  stoneColors: '',
+  sizesEnabled: 'false',
+  sizesAvailable: '',
+  lengthEnabled: 'false',
+  lengthAvailable: '',
+  // Product Images
   image1: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=800',
   image2: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800',
-  isFeatured: 'false',
-  isNewArrival: 'true',
-  isBestSeller: 'false',
-  segments: 'Women',
-  occasions: 'Wedding,Anniversary',
-  collectionStyles: 'Modern,Classic',
-  themes: 'Love',
-  productPersonas: 'Bride',
-  wearingTypes: 'Ring',
-  giftTags: 'Gift',
-  dimensionLength: '15',
-  dimensionWidth: '15',
-  dimensionHeight: '5',
-  dimensionUnit: 'mm',
-  seoTitle: 'Diamond Solitaire Ring | VK Jewellers',
-  seoDescription: 'Buy elegant 24kt diamond solitaire ring online',
-  seoKeywords: 'diamond ring,solitaire ring,gold ring',
-  metalType: '14KT Yellow Gold',
-  grossWeight: '3.2',
-  netWeight: '2.8',
-  metalRate: '5500',
-  metalAmount: '15400',
-  diamondPieces: '1',
-  diamondCarat: '0.5',
-  diamondClarity: 'VVS-VS',
-  diamondCut: 'Round',
-  diamondColor: 'F',
-  diamondAmount: '8500',
-  makingCharges: '6800',
-  gstPct: '3',
-  certLab: 'IGI',
-  certNumber: 'IGI123456',
-  certImage: '',
+  image3: '',
+  image4: '',
+  // Product Videos
+  video1: '',
+  video2: '',
 };
 
 function csvEscape(v) {
@@ -433,9 +382,9 @@ function BulkUploadModal({ onClose, onSuccess }) {
                 <p className="text-[11px] text-gray-400 pt-1 border-t border-gray-200">
                   <span className="text-red-500 font-semibold">*</span> Required &nbsp;·&nbsp;
                   <strong>category</strong>: exact name or slug &nbsp;·&nbsp;
-                  <strong>images</strong>: full https:// URL &nbsp;·&nbsp;
-                  <strong>tags</strong>: comma-separated &nbsp;·&nbsp;
-                  <strong>flags</strong>: true / false
+                  <strong>images / videos</strong>: full https:// URL &nbsp;·&nbsp;
+                  <strong>stoneColors / sizesAvailable / lengthAvailable</strong>: comma-separated &nbsp;·&nbsp;
+                  <strong>sizesEnabled / lengthEnabled</strong>: true / false
                 </p>
               </div>
 

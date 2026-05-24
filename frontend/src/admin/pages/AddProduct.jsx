@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { productAPI, categoryAPI, attributeAPI, adminAPI } from '../../services/api';
@@ -10,6 +10,66 @@ const SectionTitle = ({ children }) => (
     {children}
   </h3>
 );
+
+function DescriptionEditor({ value, onChange }) {
+  const taRef = useRef(null);
+
+  const wrap = (openTag, closeTag) => {
+    const ta = taRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end   = ta.selectionEnd;
+    const selected = value.slice(start, end);
+    const before = value.slice(0, start);
+    const after  = value.slice(end);
+    const newVal = before + openTag + selected + closeTag + after;
+    onChange(newVal);
+    // restore cursor after React re-render
+    requestAnimationFrame(() => {
+      ta.focus();
+      const cursor = start + openTag.length + selected.length + closeTag.length;
+      ta.setSelectionRange(cursor, cursor);
+    });
+  };
+
+  const TOOLS = [
+    { label: 'B', title: 'Bold',        open: '<strong>', close: '</strong>', cls: 'font-extrabold' },
+    { label: 'I', title: 'Italic',      open: '<em>',     close: '</em>',     cls: 'italic' },
+    { label: 'U', title: 'Underline',   open: '<u>',      close: '</u>',      cls: 'underline' },
+    { label: 'H3', title: 'Heading',    open: '<h3>',     close: '</h3>',     cls: 'font-bold text-[11px]' },
+    { label: 'UL', title: 'List item',  open: '<li>',     close: '</li>',     cls: 'text-xs' },
+    { label: 'P',  title: 'Paragraph',  open: '<p>',      close: '</p>',      cls: 'text-xs' },
+  ];
+
+  return (
+    <div className="border border-gray-200 rounded-xl overflow-hidden focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 transition">
+      {/* Toolbar */}
+      <div className="flex items-center gap-0.5 px-2 py-1.5 bg-gray-50 border-b border-gray-200">
+        {TOOLS.map(({ label, title, open, close, cls }) => (
+          <button
+            key={label}
+            type="button"
+            title={title}
+            onMouseDown={(e) => { e.preventDefault(); wrap(open, close); }}
+            className={`px-2.5 py-1 rounded text-xs text-gray-600 hover:bg-white hover:text-gray-900 hover:shadow-sm transition-all select-none ${cls}`}
+          >
+            {label}
+          </button>
+        ))}
+        <span className="ml-2 text-[10px] text-gray-400">Select text then click a style</span>
+      </div>
+      {/* Textarea */}
+      <textarea
+        ref={taRef}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={7}
+        placeholder="Detailed product description... (supports HTML)"
+        className="w-full px-4 py-3 text-sm text-gray-800 placeholder-gray-400 resize-y focus:outline-none bg-white font-mono leading-relaxed"
+      />
+    </div>
+  );
+}
 
 export default function AdminAddProduct() {
   const navigate = useNavigate();
@@ -41,10 +101,6 @@ export default function AdminAddProduct() {
     costPrice: '',
     discount: 0,
     stock: 0,
-    weight: '',
-    length: '',
-    color: '',
-    metalColor: '',
     isFeatured: false,
     isNewArrival: false,
     isBestSeller: false,
@@ -54,6 +110,16 @@ export default function AdminAddProduct() {
     seoTitle: '',
     seoDescription: '',
     status: 'approved',
+    // Jewelry details
+    purity: '22kt',
+    metalWeight: '',
+    deliveryDays: '',
+    sizesEnabled: false,
+    sizesAvailable: [],
+    lengthEnabled: false,
+    lengthAvailable: [],
+    stoneColors: [],
+    diamondClarity: '',
   });
 
   // Separate category refresh so it can re-run when window regains focus
@@ -95,10 +161,8 @@ export default function AdminAddProduct() {
             costPrice: p.costPrice || '',
             discount: p.discount || 0,
             stock: p.stock || 0,
-            weight: p.weight || '',
-            length: p.length || '',
-            color: p.color || '',
-            metalColor: p.metalColor || '',
+            lengthEnabled: p.lengths?.enabled || false,
+            lengthAvailable: p.lengths?.available || [],
             isFeatured: p.isFeatured || false,
             isNewArrival: p.isNewArrival || false,
             isBestSeller: p.isBestSeller || false,
@@ -108,6 +172,15 @@ export default function AdminAddProduct() {
             seoTitle: p.seo?.metaTitle || '',
             seoDescription: p.seo?.metaDescription || '',
             status: p.status || 'approved',
+            purity: p.purity || '22kt',
+            metalWeight: p.metalWeight || '',
+            deliveryDays: p.deliveryDays || '',
+            sizesEnabled: p.sizes?.enabled || false,
+            sizesAvailable: p.sizes?.available || [],
+            lengthEnabled: p.lengths?.enabled || false,
+            lengthAvailable: p.lengths?.available || [],
+            stoneColors: p.stoneColors || [],
+            diamondClarity: typeof p.diamondClarity === 'string' ? p.diamondClarity : '',
           });
         }
       }
@@ -149,10 +222,6 @@ export default function AdminAddProduct() {
     costPrice: form.costPrice ? parseFloat(form.costPrice) : undefined,
     discount: parseInt(form.discount) || 0,
     stock: parseInt(form.stock) || 0,
-    weight: form.weight ? parseFloat(form.weight) : undefined,
-    length: form.length || undefined,
-    color: form.color || undefined,
-    metalColor: form.metalColor || undefined,
     isFeatured: form.isFeatured,
     isNewArrival: form.isNewArrival,
     isBestSeller: form.isBestSeller,
@@ -161,6 +230,13 @@ export default function AdminAddProduct() {
     attributes: form.attributes.filter((a) => a.customValue),
     seo: { metaTitle: form.seoTitle || form.title, metaDescription: form.seoDescription },
     status: form.status,
+    purity: form.purity || '22kt',
+    metalWeight: form.metalWeight ? parseFloat(form.metalWeight) : undefined,
+    deliveryDays: form.deliveryDays ? parseInt(form.deliveryDays) : undefined,
+    sizes: { enabled: form.sizesEnabled, available: form.sizesAvailable },
+    lengths: { enabled: form.lengthEnabled, available: form.lengthAvailable },
+    stoneColors: form.stoneColors,
+    diamondClarity: form.diamondClarity || undefined,
   });
 
   const handleSave = async () => {
@@ -363,7 +439,7 @@ export default function AdminAddProduct() {
               </div>
               <div>
                 <label className="label-luxury">Full Description</label>
-                <textarea value={form.description} onChange={(e) => set('description', e.target.value)} rows={5} placeholder="Detailed product description..." className="input-luxury resize-none" />
+                <DescriptionEditor value={form.description} onChange={(v) => set('description', v)} />
               </div>
             </div>
           </div>
@@ -397,43 +473,6 @@ export default function AdminAddProduct() {
               <div><label className="label-luxury">Cost Price (₹)</label><input type="number" value={form.costPrice} onChange={(e) => set('costPrice', e.target.value)} min="0" className="input-luxury" /></div>
               <div><label className="label-luxury">Discount (%)</label><input type="number" value={form.discount} onChange={(e) => set('discount', e.target.value)} min="0" max="100" className="input-luxury" /></div>
               <div><label className="label-luxury">Stock Quantity</label><input type="number" value={form.stock} onChange={(e) => set('stock', e.target.value)} min="0" className="input-luxury" /></div>
-              <div><label className="label-luxury">Weight (g)</label><input type="number" value={form.weight} onChange={(e) => set('weight', e.target.value)} min="0" step="0.1" className="input-luxury" /></div>
-            </div>
-          </div>
-
-          {/* Product Details */}
-          <div className="card-luxury p-6">
-            <SectionTitle>Product Details</SectionTitle>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label-luxury">Length</label>
-                <input type="text" value={form.length} onChange={(e) => set('length', e.target.value)} placeholder="e.g. 18 inches" className="input-luxury" />
-              </div>
-              <div>
-                <label className="label-luxury">Color</label>
-                <input type="text" value={form.color} onChange={(e) => set('color', e.target.value)} placeholder="e.g. Red, Green" className="input-luxury" />
-              </div>
-              <div className="col-span-2">
-                <label className="label-luxury">Metal Color</label>
-                <div className="flex gap-3 mt-1">
-                  {['Gold', 'Silver', 'Platinum'].map((mc) => (
-                    <label key={mc} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="metalColor"
-                        value={mc}
-                        checked={form.metalColor === mc}
-                        onChange={() => set('metalColor', mc)}
-                        className="accent-primary"
-                      />
-                      <span className="text-sm text-gray-700">{mc}</span>
-                    </label>
-                  ))}
-                  {form.metalColor && (
-                    <button type="button" onClick={() => set('metalColor', '')} className="text-xs text-gray-400 hover:text-red-400 ml-2">Clear</button>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
 
@@ -476,6 +515,125 @@ export default function AdminAddProduct() {
               </div>
             ) : null;
           })()}
+
+          {/* Jewelry Details */}
+          <div className="card-luxury p-6">
+            <SectionTitle>Jewelry Details</SectionTitle>
+            <div className="space-y-5">
+
+              {/* Purity + Metal Weight + Delivery Days */}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="label-luxury">Purity</label>
+                  <input type="text" value={form.purity} disabled className="input-luxury bg-gray-50 text-gray-500 cursor-not-allowed" />
+                </div>
+                <div>
+                  <label className="label-luxury">Metal Weight (g)</label>
+                  <input type="number" value={form.metalWeight} onChange={(e) => set('metalWeight', e.target.value)} min="0" step="0.01" placeholder="e.g. 5.2" className="input-luxury" />
+                </div>
+                <div>
+                  <label className="label-luxury">Delivery Days</label>
+                  <input type="number" value={form.deliveryDays} onChange={(e) => set('deliveryDays', e.target.value)} min="0" placeholder="e.g. 7" className="input-luxury" />
+                </div>
+              </div>
+
+              {/* Diamond Clarity */}
+              <div>
+                <label className="label-luxury mb-2">Diamond Clarity</label>
+                <Select value={form.diamondClarity} onChange={(e) => set('diamondClarity', e.target.value)} compact className="w-48">
+                  <option value="">Not applicable</option>
+                  <option value="Natural">Natural</option>
+                  <option value="CZ">CZ</option>
+                </Select>
+              </div>
+
+              {/* Stone Colors */}
+              <div>
+                <label className="label-luxury mb-2">Stone Colors <span className="text-gray-400 font-normal">(customer selects on product page)</span></label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {['White', 'Yellow', 'Pink', 'Red', 'Blue', 'Green', 'Purple', 'Black', 'Orange', 'Brown', 'Champagne', 'Rose', 'Teal', 'Multi-color'].map((color) => {
+                    const active = form.stoneColors.includes(color);
+                    return (
+                      <button key={color} type="button"
+                        onClick={() => set('stoneColors', active ? form.stoneColors.filter((c) => c !== color) : [...form.stoneColors, color])}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${active ? 'bg-primary text-white border-primary' : 'border-gray-200 text-gray-600 hover:border-primary/40 hover:text-primary'}`}
+                      >
+                        {color}
+                      </button>
+                    );
+                  })}
+                </div>
+                {form.stoneColors.length > 0 && (
+                  <p className="text-[11px] text-primary mt-1.5 font-medium">{form.stoneColors.length} color{form.stoneColors.length > 1 ? 's' : ''} selected</p>
+                )}
+              </div>
+
+              {/* Sizes */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="label-luxury mb-0">Sizes (5–25)</label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <span className="text-xs text-gray-500">{form.sizesEnabled ? 'Enabled — shown on website' : 'Disabled — hidden'}</span>
+                    <button type="button" onClick={() => set('sizesEnabled', !form.sizesEnabled)}
+                      className={`relative w-9 h-5 rounded-full transition-colors ${form.sizesEnabled ? 'bg-primary' : 'bg-gray-200'}`}>
+                      <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.sizesEnabled ? 'translate-x-4' : ''}`} />
+                    </button>
+                  </label>
+                </div>
+                {form.sizesEnabled && (
+                  <div className="flex flex-wrap gap-1.5 mt-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                    {Array.from({ length: 41 }, (_, i) => 5 + i * 0.5).map((sz) => {
+                      const active = form.sizesAvailable.includes(sz);
+                      return (
+                        <button key={sz} type="button"
+                          onClick={() => set('sizesAvailable', active ? form.sizesAvailable.filter((s) => s !== sz) : [...form.sizesAvailable, sz].sort((a, b) => a - b))}
+                          className={`w-10 h-8 rounded-lg text-xs font-bold border transition-colors ${active ? 'bg-primary text-white border-primary' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/40'}`}
+                        >
+                          {sz % 1 === 0 ? sz : sz}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {form.sizesEnabled && form.sizesAvailable.length > 0 && (
+                  <p className="text-[11px] text-primary mt-1.5 font-medium">{form.sizesAvailable.length} sizes selected: {form.sizesAvailable.join(', ')}</p>
+                )}
+              </div>
+
+              {/* Length */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="label-luxury mb-0">Length (inches)</label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <span className="text-xs text-gray-500">{form.lengthEnabled ? 'Enabled — shown on website' : 'Disabled — hidden'}</span>
+                    <button type="button" onClick={() => set('lengthEnabled', !form.lengthEnabled)}
+                      className={`relative w-9 h-5 rounded-full transition-colors ${form.lengthEnabled ? 'bg-primary' : 'bg-gray-200'}`}>
+                      <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.lengthEnabled ? 'translate-x-4' : ''}`} />
+                    </button>
+                  </label>
+                </div>
+                {form.lengthEnabled && (
+                  <div className="flex flex-wrap gap-1.5 mt-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                    {Array.from({ length: 41 }, (_, i) => 5 + i).map((len) => {
+                      const active = form.lengthAvailable.includes(len);
+                      return (
+                        <button key={len} type="button"
+                          onClick={() => set('lengthAvailable', active ? form.lengthAvailable.filter((l) => l !== len) : [...form.lengthAvailable, len].sort((a, b) => a - b))}
+                          className={`w-10 h-8 rounded-lg text-xs font-bold border transition-colors ${active ? 'bg-primary text-white border-primary' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/40'}`}
+                        >
+                          {len}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {form.lengthEnabled && form.lengthAvailable.length > 0 && (
+                  <p className="text-[11px] text-primary mt-1.5 font-medium">{form.lengthAvailable.length} length{form.lengthAvailable.length > 1 ? 's' : ''} selected: {form.lengthAvailable.join(', ')} inches</p>
+                )}
+              </div>
+
+            </div>
+          </div>
 
           {/* SEO */}
           <div className="card-luxury p-6">

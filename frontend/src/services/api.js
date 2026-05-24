@@ -109,8 +109,9 @@ export const productAPI = {
   adminToggleLifestyle2: (id) => api.put(`/admin/products/${id}/lifestyle2`),
   adminDelete: (id) => api.delete(`/admin/products/${id}`),
   adminRemoveImage: (id, imageIndex) => api.delete(`/admin/products/${id}/images/${imageIndex}`),
-  adminBulkDelete:  (ids) => api.delete('/admin/products/bulk', { data: { ids } }),
-  adminBulkArchive: (ids) => api.put('/admin/products/bulk-archive', { ids }),
+  adminBulkDelete:         (ids) => api.delete('/admin/products/bulk', { data: { ids } }),
+  adminBulkArchive:        (ids) => api.put('/admin/products/bulk-archive', { ids }),
+  adminSetJewelryDefaults: ()    => api.post('/admin/products/set-jewelry-defaults'),
 };
 
 // ==================== CATEGORIES ====================
@@ -200,7 +201,9 @@ export const adminAPI = {
 // ==================== REVIEWS ====================
 export const reviewAPI = {
   getProductReviews: (productId, params) => api.get(`/reviews/product/${productId}`, { params }),
-  create: (data) => api.post('/reviews', data),
+  create: (formData) => api.post('/reviews', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
   update: (id, data) => api.put(`/reviews/${id}`, data),
   delete: (id) => api.delete(`/reviews/${id}`),
 };

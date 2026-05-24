@@ -2,9 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
-import { productAPI, reviewAPI, pincodeAPI } from '../services/api';
+import toast from 'react-hot-toast';
+import { productAPI, reviewAPI } from '../services/api';
 import useCartStore from '../store/cartStore';
 import useWishlistStore from '../store/wishlistStore';
+import useAuthStore from '../store/authStore';
 import ProductCard from '../components/product/ProductCard';
 
 const fmt = (p) => `₹${Math.round(p).toLocaleString('en-IN')}`;
@@ -23,11 +25,315 @@ const Stars = ({ rating, size = 'sm' }) => {
 };
 
 
-const METAL_COLOR_MAP = {
-  Gold:     { bg: 'bg-amber-50',  border: 'border-amber-300', text: 'text-amber-700', dot: 'bg-amber-400' },
-  Silver:   { bg: 'bg-slate-50',  border: 'border-slate-300', text: 'text-slate-600', dot: 'bg-slate-400' },
-  Platinum: { bg: 'bg-gray-50',   border: 'border-gray-400',  text: 'text-gray-700',  dot: 'bg-gray-500'  },
-};
+// ─── Review write form + list ─────────────────────────────────────────────
+const AVATAR_COLORS = [
+  'from-rose-400 to-pink-500',
+  'from-amber-400 to-orange-500',
+  'from-emerald-400 to-teal-500',
+  'from-violet-400 to-purple-500',
+  'from-sky-400 to-blue-500',
+  'from-fuchsia-400 to-pink-500',
+];
+
+function ReviewCard({ rev, idx }) {
+  const gradClass = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+  const ratingColors = ['', 'bg-red-50 border-red-100', 'bg-orange-50 border-orange-100', 'bg-yellow-50 border-yellow-100', 'bg-lime-50 border-lime-100', 'bg-emerald-50 border-emerald-100'];
+  const cardBg = ratingColors[rev.rating] || 'bg-white border-gray-100';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: idx * 0.05 }}
+      className={`rounded-2xl border p-5 ${cardBg} shadow-sm hover:shadow-md transition-shadow`}
+    >
+      <div className="flex gap-4">
+        {/* Avatar */}
+        <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${gradClass} flex items-center justify-center font-bold text-white text-base flex-shrink-0 shadow-sm uppercase`}>
+          {rev.user?.name?.[0] || '?'}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          {/* Top row */}
+          <div className="flex items-start justify-between gap-2 mb-2 flex-wrap">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-sm text-gray-900">{rev.user?.name || 'Customer'}</span>
+                {rev.isVerifiedPurchase && (
+                  <span className="inline-flex items-center gap-1 text-[10px] bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full border border-green-200">
+                    <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
+                    Verified
+                  </span>
+                )}
+              </div>
+              {/* Stars */}
+              <div className="flex gap-0.5 mt-1">
+                {[1,2,3,4,5].map((s) => (
+                  <svg key={s} className={`w-3.5 h-3.5 ${s <= rev.rating ? 'text-amber-400' : 'text-gray-200'}`} fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                  </svg>
+                ))}
+              </div>
+            </div>
+            <span className="text-[11px] text-gray-400 flex-shrink-0 mt-0.5">
+              {new Date(rev.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </span>
+          </div>
+
+          {/* Title + comment */}
+          {rev.title && (
+            <p className="text-sm font-bold text-gray-800 mb-1">{rev.title}</p>
+          )}
+          <p className="text-sm text-gray-600 leading-relaxed">{rev.comment}</p>
+
+          {/* Photos */}
+          {rev.images?.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {rev.images.map((img, i) => (
+                <a key={i} href={img.url} target="_blank" rel="noreferrer"
+                  className="w-18 h-18 rounded-xl overflow-hidden border-2 border-white shadow-md block hover:scale-105 transition-transform">
+                  <img src={img.url} alt="" className="w-full h-full object-cover" />
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function ReviewList({ reviews }) {
+  const [showAll, setShowAll] = useState(false);
+  const LIMIT = 4;
+  const visible = showAll ? reviews : reviews.slice(0, LIMIT);
+  const hasMore = reviews.length > LIMIT;
+
+  return (
+    <div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {visible.map((rev, idx) => (
+          <ReviewCard key={rev._id} rev={rev} idx={idx} />
+        ))}
+      </div>
+
+      {hasMore && (
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => setShowAll((v) => !v)}
+            className="inline-flex items-center gap-2 px-6 py-2.5 border-2 border-primary/30 text-primary text-sm font-bold rounded-full hover:bg-primary/5 hover:border-primary/60 transition-all"
+          >
+            {showAll ? (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg>
+                Show Less
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                See All {reviews.length} Reviews
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReviewsSection({ product, reviews, setReviews }) {
+  const { isAuthenticated, user } = useAuthStore();
+  const [showForm, setShowForm]   = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [photoPreviews, setPhotoPreviews] = useState([]);
+  const [photoFiles, setPhotoFiles]       = useState([]);
+  const [form, setForm] = useState({ rating: 0, hoverRating: 0, title: '', comment: '' });
+  const fileRef = useRef(null);
+
+  const alreadyReviewed = reviews.some((r) => r.user?._id === user?._id || r.user?.id === user?._id);
+
+  const handlePhotos = (e) => {
+    const files = Array.from(e.target.files).slice(0, 5);
+    setPhotoFiles(files);
+    setPhotoPreviews(files.map((f) => URL.createObjectURL(f)));
+  };
+
+  const removePhoto = (idx) => {
+    setPhotoFiles((p) => p.filter((_, i) => i !== idx));
+    setPhotoPreviews((p) => p.filter((_, i) => i !== idx));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.rating) return toast.error('Please select a star rating');
+    if (!form.comment.trim()) return toast.error('Please write a review comment');
+    setSubmitting(true);
+    try {
+      const fd = new FormData();
+      fd.append('product', product._id);
+      fd.append('rating', form.rating);
+      fd.append('title', form.title);
+      fd.append('comment', form.comment);
+      photoFiles.forEach((f) => fd.append('photos', f));
+      const { data } = await reviewAPI.create(fd);
+      setReviews((prev) => [data.data, ...prev]);
+      setShowForm(false);
+      setForm({ rating: 0, hoverRating: 0, title: '', comment: '' });
+      setPhotoFiles([]); setPhotoPreviews([]);
+      toast.success('Review submitted!');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to submit review');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mt-14">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
+        <h2 className="font-heading text-xl font-bold text-gray-900">Customer Reviews</h2>
+        {product.totalReviews > 0 && (
+          <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-full px-3 py-1">
+            <Stars rating={product.rating} />
+            <span className="text-xs font-bold text-amber-700">{product.rating.toFixed(1)}</span>
+            <span className="text-xs text-amber-600/60">/ 5 · {product.totalReviews} reviews</span>
+          </div>
+        )}
+        <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent hidden sm:block" />
+        {isAuthenticated() && !alreadyReviewed && !showForm && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-1.5 text-xs font-bold text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 px-4 py-2 rounded-full transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+            Write a Review
+          </button>
+        )}
+      </div>
+
+      {/* Write review form */}
+      <AnimatePresence>
+        {showForm && (
+          <motion.form
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.2 }}
+            onSubmit={handleSubmit}
+            className="mb-8 bg-white border border-[#e8d5bc] rounded-2xl p-6 shadow-sm space-y-4"
+          >
+            <h3 className="font-heading font-bold text-gray-900 text-base">Share Your Experience</h3>
+
+            {/* Star picker */}
+            <div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Your Rating</p>
+              <div className="flex gap-1.5">
+                {[1,2,3,4,5].map((s) => (
+                  <button key={s} type="button"
+                    onMouseEnter={() => setForm((f) => ({ ...f, hoverRating: s }))}
+                    onMouseLeave={() => setForm((f) => ({ ...f, hoverRating: 0 }))}
+                    onClick={() => setForm((f) => ({ ...f, rating: s }))}
+                  >
+                    <svg className={`w-8 h-8 transition-colors ${s <= (form.hoverRating || form.rating) ? 'text-amber-400' : 'text-gray-200'}`} fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                    </svg>
+                  </button>
+                ))}
+                {form.rating > 0 && (
+                  <span className="ml-2 text-sm font-semibold text-amber-600 self-center">
+                    {['','Poor','Fair','Good','Very Good','Excellent'][form.rating]}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Title */}
+            <div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Review Title <span className="font-normal normal-case text-gray-400">(optional)</span></p>
+              <input
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="Summarise your experience..."
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition"
+              />
+            </div>
+
+            {/* Comment */}
+            <div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Your Review</p>
+              <textarea
+                value={form.comment}
+                onChange={(e) => setForm((f) => ({ ...f, comment: e.target.value }))}
+                placeholder="Tell others about the quality, design, and your overall experience..."
+                rows={4}
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition resize-none"
+              />
+            </div>
+
+            {/* Photo upload */}
+            <div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Add Photos <span className="font-normal normal-case text-gray-400">(up to 5)</span></p>
+              <div className="flex flex-wrap gap-2 items-center">
+                {photoPreviews.map((src, i) => (
+                  <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-gray-200 group">
+                    <img src={src} alt="" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => removePhoto(i)}
+                      className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                  </div>
+                ))}
+                {photoPreviews.length < 5 && (
+                  <button type="button" onClick={() => fileRef.current?.click()}
+                    className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-primary/50 hover:text-primary transition-colors">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    <span className="text-[10px] font-semibold">Add Photo</span>
+                  </button>
+                )}
+                <input ref={fileRef} type="file" multiple accept="image/*" className="hidden" onChange={handlePhotos} />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-1">
+              <button type="submit" disabled={submitting}
+                className="px-6 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-md shadow-primary/20">
+                {submitting ? 'Submitting...' : 'Submit Review'}
+              </button>
+              <button type="button" onClick={() => setShowForm(false)}
+                className="px-6 py-2.5 border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors">
+                Cancel
+              </button>
+            </div>
+          </motion.form>
+        )}
+      </AnimatePresence>
+
+      {/* Review list */}
+      {reviews.length === 0 ? (
+        <div className="text-center py-14 bg-[#faf6f2] rounded-2xl border border-[#eedfd8]">
+          <div className="w-14 h-14 rounded-full bg-white border border-[#e4d0c8] flex items-center justify-center mx-auto mb-4 shadow-sm">
+            <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+          </div>
+          <p className="text-gray-600 font-semibold">No reviews yet</p>
+          <p className="text-xs text-gray-400 mt-1">Be the first to share your experience</p>
+        </div>
+      ) : (
+        <ReviewList reviews={reviews} />
+      )}
+
+      {/* Prompt to log in */}
+      {!isAuthenticated() && (
+        <p className="text-center text-sm text-gray-400 mt-6">
+          <Link to="/login" className="text-primary font-semibold hover:underline">Log in</Link> to write a review
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default function ProductPage() {
   const { slug } = useParams();
@@ -39,11 +345,11 @@ export default function ProductPage() {
   const [selectedAttrs, setSelectedAttrs] = useState({});
   const [qty, setQty]                     = useState(1);
   const [stickyVisible, setStickyVisible] = useState(false);
-  const [pincode, setPincode]             = useState('');
-  const [pinMsg, setPinMsg]               = useState('');
-  const [pinAvailable, setPinAvailable]   = useState(null);
-  const [pinChecking, setPinChecking]     = useState(false);
   const [paused, setPaused]               = useState(false);
+  const [selectedSize, setSelectedSize]             = useState('');
+  const [selectedLength, setSelectedLength]         = useState('');
+  const [selectedStoneColor, setSelectedStoneColor] = useState('');
+  const [selectedPayment, setSelectedPayment]       = useState('');
   const titleRef    = useRef(null);
   const thumbsRef   = useRef(null);
   const mediaLenRef = useRef(0);
@@ -158,9 +464,16 @@ export default function ProductPage() {
   const salePrice   = product.discountedPrice ?? product.price;
   const hasDiscount = product.discount > 0;
   const inWishlist  = isInWishlist(product._id);
-  const mc          = METAL_COLOR_MAP[product.metalColor];
+
+  const needsSize   = product.sizes?.enabled && product.sizes?.available?.length > 0;
+  const needsLength = product.lengths?.enabled && product.lengths?.available?.length > 0;
+  const needsColor  = product.stoneColors?.length > 0;
 
   const handleAddToCart = () => {
+    if (needsSize && !selectedSize) return toast.error('Please select a size');
+    if (needsLength && !selectedLength) return toast.error('Please select a length');
+    if (needsColor && !selectedStoneColor) return toast.error('Please select a stone color');
+    if (!selectedPayment) return toast.error('Please select a payment method');
     addItem(product, qty, Object.keys(selectedAttrs).length ? selectedAttrs : null);
   };
 
@@ -169,26 +482,6 @@ export default function ProductPage() {
       await navigator.share({ title: product.title, url: window.location.href });
     } else {
       await navigator.clipboard.writeText(window.location.href);
-    }
-  };
-
-  const handlePincode = async () => {
-    if (pincode.length !== 6) { setPinAvailable(null); return setPinMsg('Enter a valid 6-digit pincode'); }
-    setPinChecking(true);
-    setPinMsg('');
-    try {
-      const { data } = await pincodeAPI.check(pincode);
-      setPinAvailable(data.available);
-      setPinMsg(
-        data.available
-          ? `Delivery available to ${pincode} — delivered within 2 weeks`
-          : `Sorry, we do not deliver to this area`
-      );
-    } catch {
-      setPinAvailable(null);
-      setPinMsg('Could not check. Please try again.');
-    } finally {
-      setPinChecking(false);
     }
   };
 
@@ -251,7 +544,7 @@ export default function ProductPage() {
 
             {/* Main viewer */}
             <div
-              className="relative aspect-square rounded-xl overflow-hidden bg-[#f8f5f2] group"
+              className="relative aspect-square rounded-2xl overflow-hidden bg-[#f8f5f2] group shadow-md"
               onMouseEnter={() => setPaused(true)}
               onMouseLeave={() => setPaused(false)}
             >
@@ -267,9 +560,9 @@ export default function ProductPage() {
                 >
                   {currentMedia?.type === 'video' ? (
                     <video src={currentMedia.url} controls autoPlay muted loop
-                      className="w-full h-full object-contain bg-black" />
+                      className="w-full h-full object-cover bg-black" />
                   ) : currentMedia?.type === 'image' ? (
-                    <img src={currentMedia.url} alt={product.title} className="w-full h-full object-contain" />
+                    <img src={currentMedia.url} alt={product.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-luxury-cream">
                       <svg className="w-16 h-16 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1}>
@@ -335,10 +628,10 @@ export default function ProductPage() {
                     <button
                       key={i}
                       onClick={() => goTo(i)}
-                      className={`flex-shrink-0 w-[64px] h-[64px] rounded-md overflow-hidden border transition-colors duration-150 ${
+                      className={`flex-shrink-0 w-[72px] h-[72px] rounded-xl overflow-hidden border-2 transition-all duration-150 ${
                         imgIdx === i
-                          ? 'border-primary border-2'
-                          : 'border-gray-200 hover:border-gray-400'
+                          ? 'border-primary shadow-md shadow-primary/20 scale-[1.04]'
+                          : 'border-transparent hover:border-gray-300'
                       }`}
                     >
                       {item.type === 'video' ? (
@@ -370,29 +663,39 @@ export default function ProductPage() {
           </div>
 
           {/* RIGHT — Product Info */}
-          <div className="space-y-6">
+          <div className="space-y-5">
 
-            {/* Category + badges row */}
+            {/* Category + status badges */}
             <div className="flex items-center gap-2 flex-wrap">
               {product.category && (
                 <Link to={`/collections/${product.category.slug}`}
-                  className="text-[11px] font-bold text-[#C9A84C] uppercase tracking-widest border border-[#C9A84C]/40 bg-[#C9A84C]/8 px-3 py-1 rounded-full hover:bg-[#C9A84C]/15 transition-colors">
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#A0824A] uppercase tracking-widest border border-[#C9A84C]/50 bg-gradient-to-r from-[#fdf6e3] to-[#fef9ec] px-3.5 py-1.5 rounded-full shadow-sm hover:shadow-md hover:border-[#C9A84C]/80 hover:from-[#fef3cc] hover:to-[#fdf6e3] transition-all duration-200">
+                  <svg className="w-2.5 h-2.5 text-[#C9A84C]" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"/></svg>
                   {product.category.name}
                 </Link>
               )}
-              {product.isNewArrival && <span className="text-[11px] font-bold bg-emerald-500 text-white px-2.5 py-1 rounded-full">NEW ARRIVAL</span>}
-              {product.isBestSeller && <span className="text-[11px] font-bold bg-amber-500 text-white px-2.5 py-1 rounded-full">BESTSELLER</span>}
+              {product.isNewArrival && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-3.5 py-1.5 rounded-full shadow-sm tracking-wide">
+                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
+                  NEW ARRIVAL
+                </span>
+              )}
+              {product.isBestSeller && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-gradient-to-r from-amber-500 to-orange-400 text-white px-3.5 py-1.5 rounded-full shadow-sm tracking-wide">
+                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  BESTSELLER
+                </span>
+              )}
             </div>
 
             {/* Title */}
             <div>
-              <h1 ref={titleRef} className="font-heading text-2xl md:text-[1.85rem] font-bold text-gray-900 leading-snug tracking-tight">
+              <h1 ref={titleRef} className="font-heading text-[1.75rem] md:text-[2rem] font-bold text-gray-900 leading-tight tracking-tight">
                 {product.title}
               </h1>
-              {/* Gold accent line */}
-              <div className="flex items-center gap-2 mt-2">
-                <div className="h-[2px] w-10 bg-[#C9A84C] rounded-full" />
-                <div className="h-[2px] w-3 bg-[#C9A84C]/40 rounded-full" />
+              <div className="flex items-center gap-2 mt-2.5">
+                <div className="h-[2px] w-12 bg-[#C9A84C] rounded-full" />
+                <div className="h-[2px] w-4 bg-[#C9A84C]/40 rounded-full" />
               </div>
             </div>
 
@@ -408,81 +711,83 @@ export default function ProductPage() {
                 <span className="text-xs text-gray-400 italic">Be the first to review</span>
               )}
               {product.sku && (
-                <div className="ml-auto flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 shadow-sm">
-                  <svg className="w-3 h-3 text-[#C9A84C] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                  </svg>
-                  <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">SKU</span>
-                  <span className="text-[11px] font-bold font-mono text-gray-700">{product.sku}</span>
+                <span className="ml-auto flex items-center gap-1.5 text-[11px] font-mono font-bold text-gray-700 bg-white border border-gray-300 px-3 py-1.5 rounded-lg shadow-sm">
+                  <svg className="w-3 h-3 text-[#C9A84C] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                  SKU: {product.sku}
+                </span>
+              )}
+            </div>
+
+            {/* Price */}
+            <div className="pb-1">
+              <div className="flex items-baseline gap-3 flex-wrap">
+                <span className="text-[2.4rem] font-bold font-heading text-gray-900 leading-none tracking-tight">
+                  <span className="text-lg text-gray-400 font-normal mr-0.5">₹</span>{Math.round(salePrice).toLocaleString('en-IN')}
+                </span>
+                {hasDiscount && (
+                  <span className="text-lg text-gray-400 line-through font-normal">{fmt(product.price)}</span>
+                )}
+                {hasDiscount && (
+                  <span className="text-xs font-bold text-green-700 bg-green-100 px-3 py-1 rounded-full">
+                    Save {fmt(product.price - salePrice)}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-400 mt-1.5">Inclusive of all taxes &nbsp;·&nbsp; Free shipping</p>
+              <div className="h-px bg-gradient-to-r from-[#C9A84C]/50 via-[#C9A84C]/20 to-transparent mt-4" />
+            </div>
+
+            {/* Jewelry spec grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="flex flex-col items-center justify-center gap-0.5 py-3 px-2 rounded-xl bg-amber-50 border border-amber-100">
+                <svg className="w-4 h-4 text-amber-600 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
+                <p className="text-[10px] text-amber-600 uppercase tracking-wider font-semibold">Purity</p>
+                <p className="text-sm font-bold text-amber-900">{product.purity || '22kt'}</p>
+              </div>
+              {product.metalWeight > 0 && (
+                <div className="flex flex-col items-center justify-center gap-0.5 py-3 px-2 rounded-xl bg-gray-50 border border-gray-200">
+                  <svg className="w-4 h-4 text-gray-400 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Metal</p>
+                  <p className="text-sm font-bold text-gray-800">{product.metalWeight} g</p>
+                </div>
+              )}
+              {product.diamondClarity && (() => {
+                const label = typeof product.diamondClarity === 'string'
+                  ? product.diamondClarity
+                  : product.diamondClarity?.natural ? 'Natural' : product.diamondClarity?.cz ? 'CZ' : null;
+                return label ? (
+                  <div className="flex flex-col items-center justify-center gap-0.5 py-3 px-2 rounded-xl bg-blue-50 border border-blue-100">
+                    <svg className="w-4 h-4 text-blue-500 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                    <p className="text-[10px] text-blue-600 uppercase tracking-wider font-semibold">Diamond</p>
+                    <p className="text-sm font-bold text-blue-900">{label}</p>
+                  </div>
+                ) : null;
+              })()}
+              {product.deliveryDays > 0 && (
+                <div className="flex flex-col items-center justify-center gap-0.5 py-3 px-2 rounded-xl bg-green-50 border border-green-100">
+                  <svg className="w-4 h-4 text-green-600 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  <p className="text-[10px] text-green-600 uppercase tracking-wider font-semibold">Delivery</p>
+                  <p className="text-sm font-bold text-green-900">{product.deliveryDays} days</p>
                 </div>
               )}
             </div>
 
-            {/* Price block */}
-            <div className="bg-gradient-to-br from-[#fdf8f3] to-[#f9f2ea] border border-[#e8d5bc] rounded-2xl px-5 py-4">
-              <div className="flex items-baseline gap-3 flex-wrap">
-                <span className="text-[2.2rem] md:text-[2.5rem] font-bold font-heading text-gray-900 leading-none">
-                  <span className="text-xl text-gray-500 font-medium mr-0.5">₹</span>
-                  {Math.round(salePrice).toLocaleString('en-IN')}
-                </span>
-                {hasDiscount && (
-                  <span className="text-lg text-gray-400 line-through font-medium">{fmt(product.price)}</span>
-                )}
-              </div>
-              <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                <p className="text-xs text-gray-500">Inclusive of all taxes · Free shipping</p>
-                {hasDiscount && (
-                  <span className="text-xs font-bold text-green-700 bg-green-100 px-2.5 py-0.5 rounded-full">
-                    You save {fmt(product.price - salePrice)}
-                  </span>
-                )}
-              </div>
-            </div>
-
             {/* Short description */}
             {product.shortDescription && (
-              <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 rounded-xl px-4 py-3 border-l-4 border-primary/40">
+              <p className="text-sm text-gray-500 leading-relaxed">
                 {product.shortDescription}
               </p>
             )}
 
-            {/* Detail pills */}
-            {(product.metalColor || product.color || product.length || product.weight) && (
-              <div className="flex flex-wrap gap-2">
-                {product.metalColor && mc && (
-                  <span className={`flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl border shadow-sm ${mc.bg} ${mc.border} ${mc.text}`}>
-                    <span className={`w-2.5 h-2.5 rounded-full ${mc.dot}`} />
-                    {product.metalColor}
-                  </span>
-                )}
-                {product.color && (
-                  <span className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 shadow-sm">
-                    <span className="w-2.5 h-2.5 rounded-full bg-gray-300 border border-gray-400" />
-                    {product.color}
-                  </span>
-                )}
-                {product.length && (
-                  <span className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 shadow-sm">
-                    <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
-                    {product.length}
-                  </span>
-                )}
-                {product.weight && (
-                  <span className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 shadow-sm">
-                    <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>
-                    {product.weight} g
-                  </span>
-                )}
-              </div>
-            )}
+            {/* Selectors */}
+            {(product.attributes?.filter((a) => a.attribute?.isVariant).length > 0 || needsSize || needsLength || needsColor) && (
+              <div className="space-y-4 bg-[#faf7f4] rounded-2xl p-4 border border-[#eedfd8]">
 
-            {/* Variant attributes */}
-            {product.attributes?.filter((a) => a.attribute?.isVariant).length > 0 && (
-              <div className="space-y-4 bg-[#fdf8f5] rounded-2xl p-4 border border-[#eedfd8]">
-                {product.attributes.filter((a) => a.attribute?.isVariant).map(({ attribute: attr, values }) => (
+                {/* Variant attributes */}
+                {product.attributes?.filter((a) => a.attribute?.isVariant).map(({ attribute: attr, values }) => (
                   <div key={attr._id}>
                     <div className="flex items-center justify-between mb-2.5">
-                      <span className="text-xs font-bold text-gray-700 uppercase tracking-widest">{attr.name}</span>
+                      <span className="text-xs font-bold text-gray-600 uppercase tracking-widest">{attr.name}</span>
                       {selectedAttrs[attr._id] && (
                         <span className="text-xs font-semibold text-primary bg-primary/8 px-2 py-0.5 rounded-full">
                           {values.find((v) => v._id === selectedAttrs[attr._id])?.value}
@@ -496,7 +801,7 @@ export default function ProductPage() {
                           className={`px-4 py-2 rounded-xl text-xs font-bold border-2 transition-all duration-150 ${
                             selectedAttrs[attr._id] === val._id
                               ? 'bg-primary text-white border-primary shadow-md scale-[1.03]'
-                              : 'border-gray-200 bg-white text-gray-600 hover:border-primary/50 hover:text-primary'
+                              : 'border-[#e0d0c8] bg-white text-gray-600 hover:border-primary/50 hover:text-primary'
                           }`}
                         >
                           {val.value}
@@ -505,118 +810,168 @@ export default function ProductPage() {
                     </div>
                   </div>
                 ))}
-              </div>
-            )}
 
-            {/* Low stock warning */}
-            {product.stock > 0 && product.stock <= 10 && (
-              <div className="flex items-center gap-2.5 text-xs text-amber-800 bg-amber-50 border border-amber-200 px-4 py-3 rounded-xl font-semibold">
-                <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <span>Only <strong>{product.stock}</strong> left — order soon!</span>
-              </div>
-            )}
-
-            {/* Qty + Add to Cart */}
-            <div className="flex gap-3 items-stretch">
-              {/* Qty stepper */}
-              <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden bg-white flex-shrink-0">
-                <button onClick={() => setQty(Math.max(1, qty - 1))}
-                  className="w-11 h-12 flex items-center justify-center text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors font-bold text-lg select-none">
-                  −
-                </button>
-                <span className="w-11 text-center text-base font-bold text-gray-900 border-x-2 border-gray-200 h-12 flex items-center justify-center">
-                  {qty}
-                </span>
-                <button onClick={() => setQty(Math.min(product.stock || 99, qty + 1))}
-                  className="w-11 h-12 flex items-center justify-center text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors font-bold text-lg select-none">
-                  +
-                </button>
-              </div>
-
-              {/* Add to Cart */}
-              <button
-                onClick={handleAddToCart}
-                disabled={product.stock === 0}
-                className="flex-1 flex items-center justify-center bg-primary hover:bg-primary/90 active:scale-[0.99] text-white font-bold text-sm tracking-widest uppercase h-12 rounded-xl transition-all duration-150 shadow-lg shadow-primary/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
-              >
-                {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
-              </button>
-            </div>
-
-            {/* Wishlist + Share */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => toggleItem(product)}
-                className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-semibold transition-all duration-150 ${
-                  inWishlist
-                    ? 'border-red-300 bg-red-50 text-red-500 shadow-sm'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-red-200 hover:bg-red-50/50 hover:text-red-500'
-                }`}
-              >
-                <svg className="w-4 h-4 flex-shrink-0" fill={inWishlist ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-                {inWishlist ? 'Wishlisted' : 'Wishlist'}
-              </button>
-              <button
-                onClick={handleShare}
-                className="flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800 transition-all duration-150"
-              >
-                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-                Share
-              </button>
-            </div>
-
-            {/* Delivery card */}
-            <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden shadow-sm">
-              {/* Dispatch strip */}
-              <div className="flex items-center gap-3 px-4 py-3 bg-green-50 border-b border-green-100">
-                <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <span className="text-xs text-green-800 font-semibold">
-                  Free dispatch — delivered within <strong>2 weeks</strong>
-                </span>
-              </div>
-
-              {/* Pincode check */}
-              <div className="px-4 py-3">
-                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2">Check Delivery Availability</p>
-                <div className="flex items-stretch border border-gray-200 rounded-xl overflow-hidden focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all bg-gray-50">
-                  <svg className="w-4 h-4 text-gray-400 ml-3 self-center flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <input type="text" value={pincode}
-                    onChange={(e) => { setPincode(e.target.value.replace(/\D/g, '').slice(0, 6)); setPinMsg(''); setPinAvailable(null); }}
-                    placeholder="Enter 6-digit pincode"
-                    className="flex-1 px-3 py-2.5 text-sm outline-none bg-transparent" />
-                  <button onClick={handlePincode} disabled={pinChecking}
-                    className="px-4 text-[11px] font-bold text-primary hover:bg-primary/5 border-l border-gray-200 transition-colors whitespace-nowrap disabled:opacity-50 tracking-wider">
-                    {pinChecking ? (
-                      <svg className="w-3.5 h-3.5 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                    ) : 'CHECK'}
-                  </button>
-                </div>
-                {pinMsg && (
-                  <div className={`mt-2 flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg ${
-                    pinAvailable === true ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-600 border border-red-100'
-                  }`}>
-                    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d={pinAvailable === true ? 'M5 13l4 4L19 7' : 'M6 18L18 6M6 6l12 12'} />
-                    </svg>
-                    {pinMsg}
+                {/* Size Selector */}
+                {needsSize && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="text-xs font-bold text-gray-600 uppercase tracking-widest">Size</span>
+                      {selectedSize && <span className="text-xs font-semibold text-primary bg-white border border-primary/20 px-2 py-0.5 rounded-full">{selectedSize}</span>}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {product.sizes.available.sort((a, b) => a - b).map((sz) => (
+                        <button key={sz} type="button" onClick={() => setSelectedSize(sz)}
+                          className={`w-11 h-10 rounded-xl text-xs font-bold border-2 transition-all duration-150 ${
+                            selectedSize === sz
+                              ? 'bg-primary text-white border-primary shadow-md'
+                              : 'border-[#e0d0c8] bg-white text-gray-600 hover:border-primary/60 hover:text-primary'
+                          }`}
+                        >{sz}</button>
+                      ))}
+                    </div>
                   </div>
                 )}
+
+                {/* Length Selector */}
+                {needsLength && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="text-xs font-bold text-gray-600 uppercase tracking-widest">Length (inches)</span>
+                      {selectedLength && <span className="text-xs font-semibold text-primary bg-white border border-primary/20 px-2 py-0.5 rounded-full">{selectedLength}"</span>}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {product.lengths.available.sort((a, b) => a - b).map((len) => (
+                        <button key={len} type="button" onClick={() => setSelectedLength(len)}
+                          className={`w-11 h-10 rounded-xl text-xs font-bold border-2 transition-all duration-150 ${
+                            selectedLength === len
+                              ? 'bg-primary text-white border-primary shadow-md'
+                              : 'border-[#e0d0c8] bg-white text-gray-600 hover:border-primary/60 hover:text-primary'
+                          }`}
+                        >{len}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Stone Color Selector */}
+                {needsColor && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="text-xs font-bold text-gray-600 uppercase tracking-widest">Stone Color</span>
+                      {selectedStoneColor && <span className="text-xs font-semibold text-primary bg-white border border-primary/20 px-2 py-0.5 rounded-full">{selectedStoneColor}</span>}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {product.stoneColors.map((color) => (
+                        <button key={color} type="button" onClick={() => setSelectedStoneColor(color)}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold border-2 transition-all duration-150 ${
+                            selectedStoneColor === color
+                              ? 'bg-primary text-white border-primary shadow-md scale-[1.03]'
+                              : 'border-[#e0d0c8] bg-white text-gray-600 hover:border-primary/60 hover:text-primary'
+                          }`}
+                        >{color}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Payment Mode — 2×2 compact grid */}
+            <div>
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">Payment Mode</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: 'cash',   label: 'Cash' },
+                  { value: 'gold',   label: 'Gold' },
+                  { value: 'rtgs',   label: 'RTGS' },
+                  { value: 'online', label: 'Advanced / Online' },
+                ].map(({ value, label }) => (
+                  <button key={value} type="button" onClick={() => setSelectedPayment(value)}
+                    className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all duration-150 ${
+                      selectedPayment === value
+                        ? 'border-primary bg-primary/6 text-primary shadow-sm'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-primary/40 hover:bg-primary/3'
+                    }`}
+                  >
+                    <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedPayment === value ? 'border-primary' : 'border-gray-300'}`}>
+                      {selectedPayment === value && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                    </span>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* CTA — Qty + Add to Cart */}
+            <div className="space-y-3">
+              {product.stock > 0 && product.stock <= 5 && (
+                <p className="text-xs font-bold text-red-500 flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                  Only {product.stock} left in stock
+                </p>
+              )}
+              <div className="flex gap-3 items-stretch">
+                <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden bg-white flex-shrink-0">
+                  <button onClick={() => setQty(Math.max(1, qty - 1))}
+                    className="w-11 h-13 flex items-center justify-center text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors font-bold text-lg select-none px-3 py-3.5">
+                    −
+                  </button>
+                  <span className="w-11 text-center text-base font-bold text-gray-900 border-x-2 border-gray-200 h-13 flex items-center justify-center py-3.5">
+                    {qty}
+                  </span>
+                  <button onClick={() => setQty(Math.min(product.stock || 99, qty + 1))}
+                    className="w-11 h-13 flex items-center justify-center text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-colors font-bold text-lg select-none px-3 py-3.5">
+                    +
+                  </button>
+                </div>
+                <button
+                  onClick={handleAddToCart}
+                  disabled={product.stock === 0}
+                  className="flex-1 flex items-center justify-center gap-2.5 bg-primary hover:bg-primary/90 active:scale-[0.99] text-white font-bold text-sm tracking-widest uppercase rounded-xl transition-all duration-150 shadow-lg shadow-primary/25 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none py-4"
+                >
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                  {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                </button>
+              </div>
+
+              {/* Wishlist + Share */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => toggleItem(product)}
+                  className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-semibold transition-all duration-150 ${
+                    inWishlist
+                      ? 'border-red-300 bg-red-50 text-red-500'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-red-200 hover:bg-red-50/40 hover:text-red-500'
+                  }`}
+                >
+                  <svg className="w-4 h-4 flex-shrink-0" fill={inWishlist ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                  {inWishlist ? 'Wishlisted' : 'Wishlist'}
+                </button>
+                <button
+                  onClick={handleShare}
+                  className="flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800 transition-all duration-150"
+                >
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  </svg>
+                  Share
+                </button>
+              </div>
+
+              {/* Trust strip */}
+              <div className="flex items-center justify-center gap-5 pt-1 border-t border-gray-100">
+                {[
+                  { icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', label: 'BIS Certified' },
+                  { icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z', label: 'Free Returns' },
+                  { icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z', label: 'Secure Payment' },
+                ].map(({ icon, label }) => (
+                  <div key={label} className="flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d={icon} /></svg>
+                    <span className="text-[11px] text-gray-500 font-medium">{label}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -665,86 +1020,13 @@ export default function ProductPage() {
           </div>
         )}
 
-        {/* ── Specifications ────────────────────────────────────────────────── */}
-        {(product.attributes?.length > 0 || product.weight || product.length || product.color || product.metalColor) && (
-          <div className="mt-14">
-            <div className="flex items-center gap-3 mb-6">
-              <h2 className="font-heading text-xl font-bold text-gray-900">Specifications</h2>
-              <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent" />
-            </div>
-            <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
-              {[
-                product.metalColor && ['Metal Color', product.metalColor],
-                product.color      && ['Color',       product.color],
-                product.length     && ['Length',      product.length],
-                product.weight     && ['Weight',      `${product.weight} g`],
-                ...(product.attributes || [])
-                  .filter((a) => a.attribute)
-                  .map(({ attribute: attr, values, customValue }) => [
-                    attr.name,
-                    values?.map((v) => v.value).join(', ') || customValue || null,
-                  ])
-                  .filter(([, v]) => v),
-              ].filter(Boolean).map(([label, value], idx) => (
-                <div key={label} className={`flex items-center gap-4 px-6 py-3.5 ${idx % 2 === 0 ? 'bg-white' : 'bg-[#faf6f2]'} border-b border-gray-100 last:border-0`}>
-                  <span className="text-sm text-gray-400 w-40 flex-shrink-0 font-medium">{label}</span>
-                  <span className="text-sm font-bold text-gray-800">{value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* ── Reviews ───────────────────────────────────────────────────────── */}
-        <div className="mt-14">
-          <div className="flex items-center gap-3 mb-6 flex-wrap">
-            <h2 className="font-heading text-xl font-bold text-gray-900">Customer Reviews</h2>
-            {product.totalReviews > 0 && (
-              <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-full px-3 py-1">
-                <Stars rating={product.rating} />
-                <span className="text-xs font-bold text-amber-700">{product.rating.toFixed(1)}</span>
-                <span className="text-xs text-amber-600/60">/ 5 · {product.totalReviews} reviews</span>
-              </div>
-            )}
-            <div className="flex-1 h-px bg-gradient-to-r from-gray-200 to-transparent hidden sm:block" />
-          </div>
-
-          {reviews.length === 0 ? (
-            <div className="text-center py-14 bg-[#faf6f2] rounded-2xl border border-[#eedfd8]">
-              <div className="w-14 h-14 rounded-full bg-white border border-[#e4d0c8] flex items-center justify-center mx-auto mb-4 shadow-sm">
-                <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                </svg>
-              </div>
-              <p className="text-gray-600 font-semibold">No reviews yet</p>
-              <p className="text-xs text-gray-400 mt-1">Be the first to share your experience</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {reviews.map((rev) => (
-                <div key={rev._id} className="flex gap-4 p-5 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center font-bold text-primary text-sm flex-shrink-0 uppercase border border-primary/20">
-                    {rev.user?.name?.[0] || '?'}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                      <span className="font-bold text-sm text-gray-900">{rev.user?.name}</span>
-                      <Stars rating={rev.rating} />
-                      {rev.isVerifiedPurchase && (
-                        <span className="text-[10px] bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full border border-green-200">Verified</span>
-                      )}
-                      <span className="text-[11px] text-gray-400 ml-auto">
-                        {new Date(rev.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </span>
-                    </div>
-                    {rev.title && <p className="text-sm font-bold text-gray-800 mb-1">{rev.title}</p>}
-                    <p className="text-sm text-gray-600 leading-relaxed">{rev.comment}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ReviewsSection
+          product={product}
+          reviews={reviews}
+          setReviews={setReviews}
+        />
 
         {/* ── Related Products ──────────────────────────────────────────────── */}
         {related.length > 0 && (

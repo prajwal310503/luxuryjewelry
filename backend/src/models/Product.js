@@ -154,6 +154,27 @@ const ProductSchema = new mongoose.Schema(
 
     // Optional promo/offer strip image shown on product page
     promoBannerImage: String,
+
+    // ── Jewelry-specific product details ──────────────────────────────────────
+    purity:       { type: String, default: '22kt' },
+    metalWeight:  { type: Number, min: 0 },
+    deliveryDays: { type: Number, min: 0 },
+
+    sizes: {
+      enabled:   { type: Boolean, default: false },
+      available: { type: [Number], default: [] },
+    },
+
+    lengths: {
+      enabled:   { type: Boolean, default: false },
+      available: { type: [Number], default: [] },
+    },
+
+    stoneColors: { type: [String], default: [] },
+
+    diamondClarity: String,   // 'Natural' | 'CZ'
+
+    paymentMethods: { type: [String], default: [] },
   },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );

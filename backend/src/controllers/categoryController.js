@@ -95,8 +95,8 @@ exports.updateCategory = async (req, res, next) => {
   }
 };
 
-// @desc    Admin: Delete category
-// @route   DELETE /api/admin/categories/:id
+// @desc    Admin: Deactivate category (soft delete)
+// @route   DELETE /api/categories/admin/:id
 // @access  Admin
 exports.deleteCategory = async (req, res, next) => {
   try {
@@ -104,12 +104,30 @@ exports.deleteCategory = async (req, res, next) => {
     if (!category) return sendError(res, 404, 'Category not found');
 
     const hasChildren = await Category.countDocuments({ parent: req.params.id });
-    if (hasChildren > 0) return sendError(res, 400, 'Cannot delete category with subcategories');
+    if (hasChildren > 0) return sendError(res, 400, 'Cannot deactivate category with subcategories');
 
     category.isActive = false;
     await category.save();
 
     sendSuccess(res, 200, 'Category deactivated');
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Admin: Permanently delete category
+// @route   DELETE /api/categories/admin/:id/permanent
+// @access  Admin
+exports.permanentDeleteCategory = async (req, res, next) => {
+  try {
+    const category = await Category.findById(req.params.id);
+    if (!category) return sendError(res, 404, 'Category not found');
+
+    const hasChildren = await Category.countDocuments({ parent: req.params.id });
+    if (hasChildren > 0) return sendError(res, 400, 'Remove all subcategories before deleting this category');
+
+    await Category.findByIdAndDelete(req.params.id);
+    sendSuccess(res, 200, 'Category permanently deleted');
   } catch (error) {
     next(error);
   }

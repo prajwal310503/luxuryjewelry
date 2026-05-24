@@ -35,6 +35,7 @@ const {
   adminBulkUploadProducts,
   adminBulkDeleteProducts,
   adminBulkArchiveProducts,
+  adminSetJewelryDefaults,
 } = require('../controllers/productController');
 const { uploadProduct, uploadSiteImage, uploadVideo } = require('../config/cloudinary');
 const multer = require('multer');
@@ -57,6 +58,7 @@ router.delete('/users/:id',             ...adminAuth, deleteUser);
 
 // Products — admin only
 router.post('/products/bulk-upload',                ...adminAuth, memUpload.single('file'), adminBulkUploadProducts);
+router.post('/products/set-jewelry-defaults',       ...adminAuth, adminSetJewelryDefaults);
 router.delete('/products/bulk',                     ...adminAuth, adminBulkDeleteProducts);
 router.put('/products/bulk-archive',                ...adminAuth, adminBulkArchiveProducts);
 router.get('/products',                             ...adminAuth, adminGetProducts);

@@ -77,7 +77,7 @@ exports.createOrder = async (req, res, next) => {
       customer: req.user.id,
       items: orderItems,
       shippingAddress,
-      payment: { method: payment.method },
+      payment: { method: payment.method, status: 'pending' },
       subtotal,
       shippingCost,
       couponCode: usedCoupon ? couponCode : null,
@@ -247,24 +247,42 @@ exports.adminCreateOrder = async (req, res, next) => {
 exports.adminUpdateOrderStatus = async (req, res, next) => {
   try {
     const { status, paymentStatus, comment } = req.body;
-    const order = await Order.findById(req.params.id);
-    if (!order) return sendError(res, 404, 'Order not found');
+
+    const setFields = {};
+    const pushFields = {};
 
     if (status) {
-      order.status = status;
-      order.statusHistory.push({ status, comment, updatedBy: req.user.id });
-      if (status === 'delivered') order.deliveredAt = Date.now();
-      if (status === 'cancelled') order.cancelledAt = Date.now();
+      setFields.status = status;
+      if (status === 'delivered') setFields.deliveredAt = new Date();
+      if (status === 'cancelled') setFields.cancelledAt = new Date();
+      pushFields.statusHistory = {
+        status,
+        comment: comment || '',
+        updatedBy: req.user._id,
+        timestamp: new Date(),
+      };
     }
 
-    if (paymentStatus) {
-      order.payment.status = paymentStatus;
-      if (paymentStatus === 'paid') order.paidAt = Date.now();
+    if (paymentStatus && ['pending', 'paid', 'failed', 'refunded'].includes(paymentStatus)) {
+      setFields['payment.status'] = paymentStatus;
+      if (paymentStatus === 'paid') setFields.paidAt = new Date();
     }
 
-    await order.save();
-    sendSuccess(res, 200, 'Order updated', order);
+    if (!Object.keys(setFields).length && !Object.keys(pushFields).length) {
+      return sendError(res, 400, 'Nothing to update');
+    }
+
+    const mongoUpdate = {};
+    if (Object.keys(setFields).length) mongoUpdate['$set'] = setFields;
+    if (pushFields.statusHistory) mongoUpdate['$push'] = { statusHistory: pushFields.statusHistory };
+
+    const updated = await Order.findByIdAndUpdate(req.params.id, mongoUpdate, { new: true });
+
+    if (!updated) return sendError(res, 404, 'Order not found');
+
+    sendSuccess(res, 200, 'Order updated', updated);
   } catch (error) {
+    console.error('[adminUpdateOrderStatus]', error.message);
     next(error);
   }
 };
