@@ -201,9 +201,7 @@ export const adminAPI = {
 // ==================== REVIEWS ====================
 export const reviewAPI = {
   getProductReviews: (productId, params) => api.get(`/reviews/product/${productId}`, { params }),
-  create: (formData) => api.post('/reviews', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
+  create: (formData) => api.post('/reviews', formData),
   update: (id, data) => api.put(`/reviews/${id}`, data),
   delete: (id) => api.delete(`/reviews/${id}`),
 };

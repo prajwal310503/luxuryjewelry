@@ -562,7 +562,7 @@ export default function ProductPage() {
                     <video src={currentMedia.url} controls autoPlay muted loop
                       className="w-full h-full object-cover bg-black" />
                   ) : currentMedia?.type === 'image' ? (
-                    <img src={currentMedia.url} alt={product.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+                    <img src={currentMedia.url} alt={product.title} className="w-full h-full object-contain" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-luxury-cream">
                       <svg className="w-16 h-16 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1}>
