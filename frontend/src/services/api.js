@@ -36,18 +36,33 @@ const FALLBACK_MAP = [
 ];
 const GENERIC_FALLBACK = 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=600&fit=crop&q=80&auto=format';
 
+// Convert Google Drive sharing/viewer URLs to direct-serve URLs
+const GDRIVE_RE = /https?:\/\/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?[^"'\s]*id=)([a-zA-Z0-9_-]+)[^"'\s]*/g;
+
 function sanitiseResponse(data) {
   try {
-    const raw = JSON.stringify(data);
-    if (!raw.includes('localhost')) return data;
-    const cleaned = raw.replace(LOCAL_URL_RE, (match) => {
-      const filename = match.split('/uploads/')[1]?.replace(/\.[^.]+$/, '') || '';
-      for (const [hint, url] of FALLBACK_MAP) {
-        if (filename.includes(hint)) return url;
-      }
-      return GENERIC_FALLBACK;
-    });
-    return JSON.parse(cleaned);
+    let raw = JSON.stringify(data);
+    let changed = false;
+
+    // Fix localhost URLs → Unsplash fallbacks
+    if (raw.includes('localhost')) {
+      raw = raw.replace(LOCAL_URL_RE, (match) => {
+        const filename = match.split('/uploads/')[1]?.replace(/\.[^.]+$/, '') || '';
+        for (const [hint, url] of FALLBACK_MAP) {
+          if (filename.includes(hint)) return url;
+        }
+        return GENERIC_FALLBACK;
+      });
+      changed = true;
+    }
+
+    // Fix Google Drive sharing/viewer links → direct image/video URLs
+    if (raw.includes('drive.google.com')) {
+      raw = raw.replace(GDRIVE_RE, (_, id) => `https://drive.google.com/uc?export=view&id=${id}`);
+      changed = true;
+    }
+
+    return changed ? JSON.parse(raw) : data;
   } catch (_) {
     return data;
   }

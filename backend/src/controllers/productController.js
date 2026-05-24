@@ -656,10 +656,16 @@ exports.adminBulkUploadProducts = async (req, res, next) => {
         }
 
         // ── Product Images (image1…image4 — full URLs) ────
+        // Convert Google Drive sharing links to direct-serve URLs automatically
+        const toDirectUrl = (u) => {
+          const m = u.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?.*id=)([a-zA-Z0-9_-]+)/);
+          if (m) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+          return u;
+        };
         const imageUrls = [];
         for (let n = 1; n <= 4; n++) {
           const u = str(pick(row, `image${n}`, `Image${n}`));
-          if (u && /^https?:\/\/.+/.test(u)) imageUrls.push(u);
+          if (u && /^https?:\/\/.+/.test(u)) imageUrls.push(toDirectUrl(u));
         }
         if (imageUrls.length) {
           data.images = imageUrls.map((url, idx) => ({
@@ -671,7 +677,7 @@ exports.adminBulkUploadProducts = async (req, res, next) => {
         const videoUrls = [];
         for (let n = 1; n <= 2; n++) {
           const u = str(pick(row, `video${n}`, `Video${n}`));
-          if (u && /^https?:\/\/.+/.test(u)) videoUrls.push(u);
+          if (u && /^https?:\/\/.+/.test(u)) videoUrls.push(toDirectUrl(u));
         }
         if (videoUrls.length) {
           data.videos = videoUrls.map((url, idx) => ({ url, publicId: '', sortOrder: idx }));
