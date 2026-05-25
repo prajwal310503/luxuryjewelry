@@ -79,16 +79,17 @@ exports.createCategory = async (req, res, next) => {
 // @access  Admin
 exports.updateCategory = async (req, res, next) => {
   try {
-    const data = { ...req.body };
-
-    if (req.file) {
-      data.image = getFileUrl(req.file);
-      data.imagePublicId = req.file.filename || req.file.public_id;
-    }
-
-    const category = await Category.findByIdAndUpdate(req.params.id, data, { new: true, runValidators: true });
+    const category = await Category.findById(req.params.id);
     if (!category) return sendError(res, 404, 'Category not found');
 
+    Object.assign(category, req.body);
+
+    if (req.file) {
+      category.image = getFileUrl(req.file);
+      category.imagePublicId = req.file.filename || req.file.public_id;
+    }
+
+    await category.save();
     sendSuccess(res, 200, 'Category updated', category);
   } catch (error) {
     next(error);
