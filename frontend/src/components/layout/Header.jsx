@@ -554,90 +554,6 @@ const PRICE_COL = {
 
 // ─── Nav fallback data ────────────────────────────────────────────────────────
 const NAV_FALLBACK = [
-  { label: 'VK Express', url: '/collections/express', type: 'link' },
-
-  /* ── FAVORITES ──────────────────────────────────────────────────────── */
-  {
-    label: 'Favorites',
-    url:   '/collections/favorites',
-    type:  'mega',
-    children: [{
-      columns: [
-        {
-          heading: 'New Arrivals',
-          items: [
-            { label: 'Rings',     url: '/collections/new/rings' },
-            { label: 'Earrings',  url: '/collections/new/earrings' },
-            { label: 'Nose Pins', url: '/collections/new/nose-pins' },
-            { label: 'Bracelets', url: '/collections/new/bracelets' },
-            { label: 'Necklaces', url: '/collections/new/necklaces' },
-          ],
-        },
-        {
-          heading: 'Trending',
-          items: [
-            { label: 'Rings',     url: '/collections/trending/rings' },
-            { label: 'Earrings',  url: '/collections/trending/earrings' },
-            { label: 'Nose Pins', url: '/collections/trending/nose-pins' },
-            { label: 'Bracelets', url: '/collections/trending/bracelets' },
-            { label: 'Necklaces', url: '/collections/trending/necklaces' },
-          ],
-        },
-        {
-          heading: 'Education',
-          items: [
-            { label: 'Online Shopping Tips',    url: '/blog/online-shopping-tips' },
-            { label: 'How to read IGI Certificate', url: '/blog/igi-certificate' },
-          ],
-        },
-      ],
-      featuredImages: [],
-    }],
-  },
-
-  /* ── ENGAGEMENT & BRIDAL ─────────────────────────────────────────────── */
-  {
-    label: 'Engagement & Bridal',
-    url:   '/collections/engagement-bridal',
-    type:  'mega',
-    children: [{
-      columns: [
-        {
-          heading: 'Shop By Style',
-          items: [
-            { label: 'Solitaire',    url: '/collections/solitaire',    icon: 'solitaire' },
-            { label: 'Halo',         url: '/collections/halo',         icon: 'halo' },
-            { label: 'Side-Stone',   url: '/collections/side-stone',   icon: 'side-stone' },
-            { label: 'Trilogy',      url: '/collections/trilogy',      icon: 'trilogy' },
-            { label: 'Toi et Moi',   url: '/collections/toi-et-moi',  icon: 'toi-et-moi' },
-            { label: 'Eternity',     url: '/collections/eternity',     icon: 'eternity' },
-            { label: 'Stackable',    url: '/collections/stackable',    icon: 'stackable' },
-            { label: 'Couple Bands', url: '/collections/couple-bands', icon: 'couple' },
-            { label: "Men's",        url: '/collections/mens',         icon: 'mens' },
-          ],
-        },
-        {
-          heading: 'Shop By Shape',
-          items: [
-            { label: 'Emerald',      url: '/collections/emerald',      icon: 'emerald' },
-            { label: 'Marquise',     url: '/collections/marquise',     icon: 'marquise' },
-            { label: 'Oval',         url: '/collections/oval',         icon: 'oval' },
-            { label: 'Pear',         url: '/collections/pear',         icon: 'pear' },
-            { label: 'Princess',     url: '/collections/princess',     icon: 'princess' },
-            { label: 'Round',        url: '/collections/round',        icon: 'round' },
-            { label: 'Heart',        url: '/collections/heart',        icon: 'heart' },
-            { label: 'Cushion',      url: '/collections/cushion',      icon: 'cushion' },
-            { label: 'Special Cuts', url: '/collections/special-cuts', icon: 'special' },
-          ],
-        },
-        MAT_4,
-        PRICE_COL,
-      ],
-      featuredTitle: 'Engagement & Bridal',
-      featuredLink:  '/collections/engagement-bridal',
-      featuredBg:    '#f0e6dc',
-    }],
-  },
 
   /* ── RINGS ───────────────────────────────────────────────────────────── */
   {
@@ -647,32 +563,19 @@ const NAV_FALLBACK = [
     children: [{
       columns: [
         {
-          heading: 'Shop By Style',
+          heading: 'Rings',
           items: [
-            { label: 'Solitaire Rings',  url: '/collections/rings?collectionStyles=Solitaire', icon: 'solitaire' },
-            { label: 'Halo Rings',       url: '/collections/rings?collectionStyles=Halo',      icon: 'halo' },
-            { label: 'Eternity Rings',   url: '/collections/rings?collectionStyles=Eternity',  icon: 'eternity' },
-            { label: 'Stackable Rings',  url: '/collections/rings?collectionStyles=Stackable', icon: 'stackable' },
-            { label: 'Couple Bands',     url: '/collections/rings?collectionStyles=Couple+Bands', icon: 'couple' },
-            { label: 'Cocktail Rings',   url: '/collections/rings?collectionStyles=Cocktail',  icon: 'trilogy' },
-            { label: 'Statement Rings',  url: '/collections/rings?collectionStyles=Statement', icon: 'side-stone' },
+            { label: 'Engagement Rings',        url: '/collections/engagement-rings' },
+            { label: 'Solitaire Rings',         url: '/collections/solitaire-rings' },
+            { label: 'Couple Bands',            url: '/collections/couple-bands' },
+            { label: 'Casual Rings',            url: '/collections/casual-rings' },
+            { label: 'Eternity Rings',          url: '/collections/eternity-rings' },
+            { label: 'Cocktail / Statement',    url: '/collections/cocktail-rings' },
+            { label: 'Bands',                   url: '/collections/bands' },
+            { label: 'Mens Rings',              url: '/collections/mens-rings' },
+            { label: 'Religious Rings',         url: '/collections/religious-rings' },
           ],
         },
-        {
-          heading: 'Shop By Shape',
-          items: [
-            { label: 'Round',    url: '/collections/rings?themes=Round',    icon: 'round' },
-            { label: 'Oval',     url: '/collections/rings?themes=Oval',     icon: 'oval' },
-            { label: 'Princess', url: '/collections/rings?themes=Princess', icon: 'princess' },
-            { label: 'Cushion',  url: '/collections/rings?themes=Cushion',  icon: 'cushion' },
-            { label: 'Pear',     url: '/collections/rings?themes=Pear',     icon: 'pear' },
-            { label: 'Emerald',  url: '/collections/rings?themes=Emerald',  icon: 'emerald' },
-            { label: 'Heart',    url: '/collections/rings?themes=Heart',    icon: 'heart' },
-            { label: 'Marquise', url: '/collections/rings?themes=Marquise', icon: 'marquise' },
-          ],
-        },
-        MAT_4,
-        PRICE_COL,
       ],
       featuredTitle: 'Rings',
       featuredLink:  '/collections/rings',
@@ -688,30 +591,19 @@ const NAV_FALLBACK = [
     children: [{
       columns: [
         {
-          heading: 'Shop By Style',
+          heading: 'Earrings',
           items: [
-            { label: 'Stud Earrings',      url: '/collections/earrings?collectionStyles=Studs',       icon: 'round' },
-            { label: 'Hoop Earrings',      url: '/collections/earrings?collectionStyles=Hoops',       icon: 'eternity' },
-            { label: 'Drop Earrings',      url: '/collections/earrings?collectionStyles=Drops',       icon: 'pear' },
-            { label: 'Chandelier',         url: '/collections/earrings?collectionStyles=Chandelier',  icon: 'special' },
-            { label: 'Huggie Earrings',    url: '/collections/earrings?collectionStyles=Huggies',     icon: 'cushion' },
-            { label: 'Jhumka Earrings',    url: '/collections/earrings?collectionStyles=Jhumka',      icon: 'marquise' },
-            { label: 'Statement Earrings', url: '/collections/earrings?collectionStyles=Statement',   icon: 'side-stone' },
+            { label: 'Studs',               url: '/collections/studs' },
+            { label: 'Drops & Danglers',    url: '/collections/drops-danglers' },
+            { label: 'Hoops & Balis',       url: '/collections/hoops-balis' },
+            { label: 'Solitaire Earrings',  url: '/collections/solitaire-earrings' },
+            { label: 'Cocktail Earrings',   url: '/collections/cocktail-earrings' },
+            { label: 'Suidhaga Earrings',   url: '/collections/suidhaga-earrings' },
+            { label: 'Jhumka',              url: '/collections/jhumka' },
+            { label: 'Mens Earrings',       url: '/collections/mens-earrings' },
+            { label: 'Kids Earrings',       url: '/collections/kids-earrings' },
           ],
         },
-        {
-          heading: 'Shop By Shape',
-          items: [
-            { label: 'Round',    url: '/collections/earrings?themes=Round',    icon: 'round' },
-            { label: 'Oval',     url: '/collections/earrings?themes=Oval',     icon: 'oval' },
-            { label: 'Pear',     url: '/collections/earrings?themes=Pear',     icon: 'pear' },
-            { label: 'Heart',    url: '/collections/earrings?themes=Heart',    icon: 'heart' },
-            { label: 'Princess', url: '/collections/earrings?themes=Princess', icon: 'princess' },
-            { label: 'Cushion',  url: '/collections/earrings?themes=Cushion',  icon: 'cushion' },
-          ],
-        },
-        MAT_4,
-        PRICE_COL,
       ],
       featuredTitle: 'Earrings',
       featuredLink:  '/collections/earrings',
@@ -719,162 +611,141 @@ const NAV_FALLBACK = [
     }],
   },
 
-  /* ── MORE JEWELRY ────────────────────────────────────────────────────── */
+  /* ── PENDANTS ────────────────────────────────────────────────────────── */
   {
-    label: 'More Jewelry',
-    url:   '/collections',
+    label: 'Pendants',
+    url:   '/collections/pendants',
+    type:  'mega',
+    children: [{
+      columns: [
+        {
+          heading: 'Pendants',
+          items: [
+            { label: 'Alphabet Pendants',   url: '/collections/alphabet-pendants' },
+            { label: 'Daily Wear',          url: '/collections/daily-wear-pendants' },
+            { label: 'Party Wear',          url: '/collections/party-wear-pendants' },
+            { label: 'Pendant with Chain',  url: '/collections/pendant-with-chain' },
+            { label: 'Solitaire Pendants',  url: '/collections/solitaire-pendants' },
+            { label: 'Tanmaniya Pendants',  url: '/collections/tanmaniya-pendants' },
+            { label: 'Cocktail Pendants',   url: '/collections/cocktail-pendants' },
+            { label: 'Mens Pendants',       url: '/collections/mens-pendants' },
+            { label: 'Kids Pendants',       url: '/collections/kids-pendants' },
+          ],
+        },
+      ],
+      featuredTitle: 'Pendants',
+      featuredLink:  '/collections/pendants',
+      featuredBg:    '#e8e0d8',
+    }],
+  },
+
+  /* ── NECKLACES ───────────────────────────────────────────────────────── */
+  {
+    label: 'Necklaces',
+    url:   '/collections/necklaces',
+    type:  'mega',
+    children: [{
+      columns: [
+        {
+          heading: 'Necklaces',
+          items: [
+            { label: 'Bridal Necklaces',  url: '/collections/bridal-necklaces' },
+            { label: 'Tennis Necklaces',  url: '/collections/tennis-necklaces' },
+            { label: 'Daily Wear',        url: '/collections/daily-wear-necklaces' },
+            { label: 'Layered Necklaces', url: '/collections/layered-necklaces' },
+            { label: 'Lariats',           url: '/collections/lariats' },
+          ],
+        },
+      ],
+      featuredTitle: 'Necklaces',
+      featuredLink:  '/collections/necklaces',
+      featuredBg:    '#e5dbd2',
+    }],
+  },
+
+  /* ── BRACELETS ───────────────────────────────────────────────────────── */
+  {
+    label: 'Bracelets',
+    url:   '/collections/bracelets',
     type:  'mega',
     children: [{
       columns: [
         {
           heading: 'Bracelets',
           items: [
-            { label: 'Chain Bracelets',  url: '/collections/bracelets?collectionStyles=Chain' },
-            { label: 'Cuff Bracelets',   url: '/collections/bracelets?collectionStyles=Cuff' },
-            { label: 'Tennis Bracelets', url: '/collections/bracelets?collectionStyles=Tennis' },
-            { label: 'All Bracelets',    url: '/collections/bracelets' },
-          ],
-        },
-        {
-          heading: 'Necklaces',
-          items: [
-            { label: 'Chain Necklaces',   url: '/collections/necklaces?collectionStyles=Chain' },
-            { label: 'Pendant Necklaces', url: '/collections/necklaces?collectionStyles=Pendant' },
-            { label: 'Tennis Necklaces',  url: '/collections/necklaces?collectionStyles=Tennis' },
-          ],
-        },
-        {
-          heading: 'Mangalsutra',
-          items: [
-            { label: 'Gold Mangalsutra',    url: '/collections/mangalsutra?collectionStyles=Gold' },
-            { label: 'Diamond Mangalsutra', url: '/collections/mangalsutra?collectionStyles=Diamond' },
-          ],
-        },
-        {
-          heading: 'Plain Gold',
-          items: [
-            { label: 'Gold Rings',    url: '/collections/rings?collectionStyles=Plain+Gold' },
-            { label: 'Gold Chains',   url: '/collections/chains' },
-            { label: 'Gold Earrings', url: '/collections/earrings?collectionStyles=Plain+Gold' },
-          ],
-        },
-        {
-          heading: 'Others',
-          items: [
-            { label: 'Nosepins', url: '/collections/nosepins' },
-            { label: 'Pendants', url: '/collections/pendants' },
-          ],
-        },
-        {
-          heading: 'Education',
-          items: [
-            { label: 'Hoop Earring Styles',       url: '/blog/hoop-earring-styles' },
-            { label: 'Different types of Diamond', url: '/blog/diamond-types' },
-            { label: 'Jewelry Trends 2026',        url: '/blog/jewelry-trends-2026' },
-            { label: 'How to read certificate',    url: '/blog/read-certificate' },
+            { label: 'Tennis Bracelet',         url: '/collections/tennis-bracelet' },
+            { label: 'Chain Bracelet',           url: '/collections/chain-bracelet' },
+            { label: 'Flexible Bracelet',        url: '/collections/flexible-bracelet' },
+            { label: 'Kada Bracelet',            url: '/collections/kada-bracelet' },
+            { label: 'Mangalsutra Bracelet',     url: '/collections/mangalsutra-bracelet' },
+            { label: 'Daily Wear',               url: '/collections/daily-wear-bracelets' },
+            { label: 'Occasion Wear',            url: '/collections/occasion-wear-bracelets' },
+            { label: 'Mens Bracelets',           url: '/collections/mens-bracelets' },
+            { label: 'Kids Kada / Bracelets',    url: '/collections/kids-bracelets' },
           ],
         },
       ],
-      featuredImages: [],
+      featuredTitle: 'Bracelets',
+      featuredLink:  '/collections/bracelets',
+      featuredBg:    '#ece0d6',
     }],
   },
 
-  /* ── SOLITAIRE ───────────────────────────────────────────────────────── */
+  /* ── BANGLES ─────────────────────────────────────────────────────────── */
   {
-    label: 'Solitaire',
-    url:   '/collections/solitaire',
+    label: 'Bangles',
+    url:   '/collections/bangles',
     type:  'mega',
     children: [{
       columns: [
         {
-          heading: 'Shop By Category',
+          heading: 'Bangles',
           items: [
-            { label: 'Rings',          url: '/collections/solitaire-rings' },
-            { label: 'Earrings',       url: '/collections/solitaire-earrings' },
-            { label: 'Bracelets',      url: '/collections/solitaire-bracelets' },
-            { label: 'Necklaces',      url: '/collections/solitaire-necklaces' },
-            { label: 'Chain Pendants', url: '/collections/solitaire-pendants' },
-            { label: "Men's",          url: '/collections/solitaire-mens' },
-          ],
-        },
-        {
-          heading: 'Shop By Shape',
-          items: [
-            { label: 'Round',    url: '/collections/solitaire/round',    icon: 'round' },
-            { label: 'Heart',    url: '/collections/solitaire/heart',    icon: 'heart' },
-            { label: 'Oval',     url: '/collections/solitaire/oval',     icon: 'oval' },
-            { label: 'Marquise', url: '/collections/solitaire/marquise', icon: 'marquise' },
-            { label: 'Princess', url: '/collections/solitaire/princess', icon: 'princess' },
-            { label: 'Emerald',  url: '/collections/solitaire/emerald',  icon: 'emerald' },
-            { label: 'Pear',     url: '/collections/solitaire/pear',     icon: 'pear' },
-            { label: 'Cushion',  url: '/collections/solitaire/cushion',  icon: 'cushion' },
-          ],
-        },
-        MAT_3,
-        PRICE_COL,
-        {
-          heading: 'Education',
-          items: [
-            { label: 'The Ultimate Showdown',  url: '/blog/lab-grown-vs-mined' },
-            { label: 'Lab Grown vs. Mined',    url: '/blog/lab-grown-vs-mined' },
+            { label: 'Round Bangles',       url: '/collections/round-bangles' },
+            { label: 'Openable Bangles',    url: '/collections/openable-bangles' },
+            { label: 'Solitaire Bangles',   url: '/collections/solitaire-bangles' },
+            { label: 'Daily Wear',          url: '/collections/daily-wear-bangles' },
+            { label: 'Occasion Wear',       url: '/collections/occasion-wear-bangles' },
           ],
         },
       ],
-      featuredTitle: 'Solitaires',
-      featuredLink:  '/collections/solitaire',
-      featuredBg:    '#e8e0d8',
+      featuredTitle: 'Bangles',
+      featuredLink:  '/collections/bangles',
+      featuredBg:    '#ede3da',
+    }],
+  },
+
+  /* ── ACCESSORIES ─────────────────────────────────────────────────────── */
+  {
+    label: 'Accessories',
+    url:   '/collections/accessories',
+    type:  'mega',
+    children: [{
+      columns: [
+        {
+          heading: 'Accessories',
+          items: [
+            { label: 'Nosepins',          url: '/collections/nosepins' },
+            { label: 'Anklets',           url: '/collections/anklets' },
+            { label: 'Cufflinks',         url: '/collections/cufflinks' },
+            { label: 'Kurti Buttons',     url: '/collections/kurti-buttons' },
+            { label: 'Tie Pins',          url: '/collections/tie-pins' },
+            { label: 'Brooches',          url: '/collections/brooches' },
+            { label: 'Watch Accessories', url: '/collections/watch-accessories' },
+          ],
+        },
+      ],
+      featuredTitle: 'Accessories',
+      featuredLink:  '/collections/accessories',
+      featuredBg:    '#e6dbd0',
     }],
   },
 
   /* ── COLLECTIONS ─────────────────────────────────────────────────────── */
-  {
-    label: 'Collections',
-    url:   '/collections',
-    type:  'mega',
-    children: [{
-      columns: [],
-      featuredImages: [
-        { title: 'Cotton Candy', subtitle: 'Savour Your Sweet Memories', link: '/collections/cotton-candy', bg: '#e8c4a4' },
-        { title: 'On The Move',  subtitle: 'For Life In Constant Motion', link: '/collections/on-the-move',  bg: '#7a8c5c' },
-        { title: 'Hexa',         subtitle: 'An Ode To Transformation',    link: '/collections/hexa',         bg: '#2c1c2c' },
-      ],
-    }],
-  },
+  { label: 'Collections', url: '/collections', type: 'link' },
 
   /* ── GIFTING ─────────────────────────────────────────────────────────── */
-  {
-    label: 'Gifting',
-    url:   '/gifting',
-    type:  'mega',
-    children: [{
-      columns: [
-        {
-          heading: 'Gifts',
-          items: [
-            { label: "Women's Day Gifts",  url: '/gifting/womens-day' },
-            { label: "Valentine's Gift",   url: '/gifting/valentine' },
-            { label: 'Birthday Gifts',     url: '/gifting/birthday' },
-            { label: 'Anniversary Gifts',  url: '/gifting/anniversary' },
-            { label: 'Gifts for Mother',   url: '/gifting/mother' },
-            { label: 'Gifts for Her',      url: '/gifting/her' },
-            { label: 'Gifts for Him',      url: '/gifting/him' },
-          ],
-        },
-        {
-          heading: 'Price',
-          items: [
-            { label: 'Gifts Under 30K',  url: '/gifting?maxPrice=30000' },
-            { label: 'Gifts Under 50K',  url: '/gifting?maxPrice=50000' },
-            { label: 'Gifts Under 100K', url: '/gifting?maxPrice=100000' },
-          ],
-        },
-      ],
-      featuredImages: [
-        { title: 'Couple Bands', link: '/collections/couple-bands', bg: '#e0d0c4' },
-        { title: 'Gifting',      link: '/gifting',                  bg: '#c4b4a8' },
-      ],
-    }],
-  },
+  { label: 'Gifting', url: '/gifting', type: 'link' },
 
   { label: '9KT Collection', url: '/collections/9kt', type: 'link', badge: 'NEW' },
 ];
