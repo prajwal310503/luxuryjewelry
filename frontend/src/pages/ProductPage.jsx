@@ -644,7 +644,7 @@ export default function ProductPage() {
                           </div>
                         </div>
                       ) : (
-                        <img src={item.url} alt="" className="w-full h-full object-contain bg-[#f8f5f2]" />
+                        <img src={item.url} alt="" className="w-full h-full object-cover object-top" />
                       )}
                     </button>
                   ))}
