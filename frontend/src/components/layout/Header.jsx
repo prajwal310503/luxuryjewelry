@@ -741,13 +741,6 @@ const NAV_FALLBACK = [
     }],
   },
 
-  /* ── COLLECTIONS ─────────────────────────────────────────────────────── */
-  { label: 'Collections', url: '/collections', type: 'link' },
-
-  /* ── GIFTING ─────────────────────────────────────────────────────────── */
-  { label: 'Gifting', url: '/gifting', type: 'link' },
-
-  { label: '9KT Collection', url: '/collections/9kt', type: 'link', badge: 'NEW' },
 ];
 
 // ─── Main Component ───────────────────────────────────────────────────────────
