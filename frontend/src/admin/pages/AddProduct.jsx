@@ -570,66 +570,38 @@ export default function AdminAddProduct() {
 
               {/* Sizes */}
               <div>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between">
                   <label className="label-luxury mb-0">Sizes (5–25)</label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <span className="text-xs text-gray-500">{form.sizesEnabled ? 'Enabled — shown on website' : 'Disabled — hidden'}</span>
-                    <button type="button" onClick={() => set('sizesEnabled', !form.sizesEnabled)}
+                    <button type="button" onClick={() => setForm((prev) => ({
+                      ...prev,
+                      sizesEnabled: !prev.sizesEnabled,
+                      sizesAvailable: !prev.sizesEnabled ? Array.from({ length: 41 }, (_, i) => 5 + i * 0.5) : [],
+                    }))}
                       className={`relative w-9 h-5 rounded-full transition-colors ${form.sizesEnabled ? 'bg-primary' : 'bg-gray-200'}`}>
                       <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.sizesEnabled ? 'translate-x-4' : ''}`} />
                     </button>
                   </label>
                 </div>
-                {form.sizesEnabled && (
-                  <div className="flex flex-wrap gap-1.5 mt-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                    {Array.from({ length: 41 }, (_, i) => 5 + i * 0.5).map((sz) => {
-                      const active = form.sizesAvailable.includes(sz);
-                      return (
-                        <button key={sz} type="button"
-                          onClick={() => set('sizesAvailable', active ? form.sizesAvailable.filter((s) => s !== sz) : [...form.sizesAvailable, sz].sort((a, b) => a - b))}
-                          className={`w-10 h-8 rounded-lg text-xs font-bold border transition-colors ${active ? 'bg-primary text-white border-primary' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/40'}`}
-                        >
-                          {sz % 1 === 0 ? sz : sz}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-                {form.sizesEnabled && form.sizesAvailable.length > 0 && (
-                  <p className="text-[11px] text-primary mt-1.5 font-medium">{form.sizesAvailable.length} sizes selected: {form.sizesAvailable.join(', ')}</p>
-                )}
               </div>
 
               {/* Length */}
               <div>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between">
                   <label className="label-luxury mb-0">Length (inches)</label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <span className="text-xs text-gray-500">{form.lengthEnabled ? 'Enabled — shown on website' : 'Disabled — hidden'}</span>
-                    <button type="button" onClick={() => set('lengthEnabled', !form.lengthEnabled)}
+                    <button type="button" onClick={() => setForm((prev) => ({
+                      ...prev,
+                      lengthEnabled: !prev.lengthEnabled,
+                      lengthAvailable: !prev.lengthEnabled ? Array.from({ length: 41 }, (_, i) => 5 + i) : [],
+                    }))}
                       className={`relative w-9 h-5 rounded-full transition-colors ${form.lengthEnabled ? 'bg-primary' : 'bg-gray-200'}`}>
                       <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.lengthEnabled ? 'translate-x-4' : ''}`} />
                     </button>
                   </label>
                 </div>
-                {form.lengthEnabled && (
-                  <div className="flex flex-wrap gap-1.5 mt-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                    {Array.from({ length: 41 }, (_, i) => 5 + i).map((len) => {
-                      const active = form.lengthAvailable.includes(len);
-                      return (
-                        <button key={len} type="button"
-                          onClick={() => set('lengthAvailable', active ? form.lengthAvailable.filter((l) => l !== len) : [...form.lengthAvailable, len].sort((a, b) => a - b))}
-                          className={`w-10 h-8 rounded-lg text-xs font-bold border transition-colors ${active ? 'bg-primary text-white border-primary' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/40'}`}
-                        >
-                          {len}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-                {form.lengthEnabled && form.lengthAvailable.length > 0 && (
-                  <p className="text-[11px] text-primary mt-1.5 font-medium">{form.lengthAvailable.length} length{form.lengthAvailable.length > 1 ? 's' : ''} selected: {form.lengthAvailable.join(', ')} inches</p>
-                )}
               </div>
 
             </div>
