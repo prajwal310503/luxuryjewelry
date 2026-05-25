@@ -194,12 +194,15 @@ ProductSchema.virtual('discountedPrice').get(function () {
 });
 
 ProductSchema.pre('save', async function (next) {
-  if (this.isModified('title') && !this.slug) {
+  if (this.isModified('title')) {
     const baseSlug = this.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
-    const count = await mongoose.model('Product').countDocuments({ slug: new RegExp(`^${baseSlug}`) });
+    const count = await mongoose.model('Product').countDocuments({
+      slug: new RegExp(`^${baseSlug}`),
+      _id: { $ne: this._id },
+    });
     this.slug = count > 0 ? `${baseSlug}-${Date.now()}` : baseSlug;
   }
   next();

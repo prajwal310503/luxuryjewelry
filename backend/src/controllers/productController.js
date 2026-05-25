@@ -397,12 +397,10 @@ exports.adminCreateProduct = async (req, res, next) => {
 // @access  Admin
 exports.adminUpdateProduct = async (req, res, next) => {
   try {
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
+    const product = await Product.findById(req.params.id);
     if (!product) return sendError(res, 404, 'Product not found');
+    Object.assign(product, req.body);
+    await product.save();
     sendSuccess(res, 200, 'Product updated', product);
   } catch (error) {
     next(error);
