@@ -2,7 +2,29 @@ const Product = require('../models/Product');
 const Category = require('../models/Category');
 const APIFeatures = require('../utils/apiFeatures');
 const { sendSuccess, sendError, sendPaginated } = require('../utils/response');
-const { getFileUrl } = require('../config/cloudinary');
+const { getFileUrl, cloudinary, isCloudinaryConfigured } = require('../config/cloudinary');
+
+// Upload an external image/video URL to Cloudinary; falls back to the converted URL on any error
+async function uploadExternalUrl(rawUrl, resourceType = 'image') {
+  // Normalise Google Drive sharing URLs to a direct-download URL
+  const m = rawUrl.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?[^?]*id=)([a-zA-Z0-9_-]+)/);
+  const url = m ? `https://drive.google.com/uc?export=download&id=${m[1]}` : rawUrl;
+
+  if (!isCloudinaryConfigured()) return url;
+
+  try {
+    const result = await cloudinary.uploader.upload(url, {
+      folder: resourceType === 'video' ? 'luxury_jewelry/videos' : 'luxury_jewelry/products',
+      resource_type: resourceType,
+      ...(resourceType === 'image'
+        ? { transformation: [{ width: 1200, height: 1200, crop: 'limit', quality: 'auto' }] }
+        : {}),
+    });
+    return result.secure_url;
+  } catch (_) {
+    return url; // if Cloudinary upload fails, store the direct URL as-is
+  }
+}
 
 // @desc    Get all products (storefront with filters)
 // @route   GET /api/products
@@ -655,32 +677,32 @@ exports.adminBulkUploadProducts = async (req, res, next) => {
           data.lengths = { enabled: lenEn || false, available: lenAv };
         }
 
-        // ── Product Images (image1…image4 — full URLs) ────
-        // Convert Google Drive sharing links to direct-serve URLs automatically
-        const toDirectUrl = (u) => {
-          const m = u.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?.*id=)([a-zA-Z0-9_-]+)/);
-          if (m) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
-          return u;
-        };
-        const imageUrls = [];
+        // ── Product Images (image1…image4) — upload external URLs to Cloudinary ──
+        const rawImageUrls = [];
         for (let n = 1; n <= 4; n++) {
           const u = str(pick(row, `image${n}`, `Image${n}`));
-          if (u && /^https?:\/\/.+/.test(u)) imageUrls.push(toDirectUrl(u));
+          if (u && /^https?:\/\/.+/.test(u)) rawImageUrls.push(u);
         }
-        if (imageUrls.length) {
-          data.images = imageUrls.map((url, idx) => ({
+        if (rawImageUrls.length) {
+          const uploadedImages = await Promise.all(
+            rawImageUrls.map((u) => uploadExternalUrl(u, 'image'))
+          );
+          data.images = uploadedImages.map((url, idx) => ({
             url, publicId: '', alt: title, isPrimary: idx === 0, sortOrder: idx,
           }));
         }
 
-        // ── Product Videos (video1…video2 — full URLs) ────
-        const videoUrls = [];
+        // ── Product Videos (video1…video2) — upload external URLs to Cloudinary ──
+        const rawVideoUrls = [];
         for (let n = 1; n <= 2; n++) {
           const u = str(pick(row, `video${n}`, `Video${n}`));
-          if (u && /^https?:\/\/.+/.test(u)) videoUrls.push(toDirectUrl(u));
+          if (u && /^https?:\/\/.+/.test(u)) rawVideoUrls.push(u);
         }
-        if (videoUrls.length) {
-          data.videos = videoUrls.map((url, idx) => ({ url, publicId: '', sortOrder: idx }));
+        if (rawVideoUrls.length) {
+          const uploadedVideos = await Promise.all(
+            rawVideoUrls.map((u) => uploadExternalUrl(u, 'video'))
+          );
+          data.videos = uploadedVideos.map((url, idx) => ({ url, publicId: '', sortOrder: idx }));
         }
 
         const product = await Product.create(data);

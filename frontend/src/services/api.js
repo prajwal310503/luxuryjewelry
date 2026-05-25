@@ -36,7 +36,7 @@ const FALLBACK_MAP = [
 ];
 const GENERIC_FALLBACK = 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=600&fit=crop&q=80&auto=format';
 
-// Convert Google Drive sharing/viewer URLs to direct-serve URLs
+// Convert Google Drive sharing/viewer URLs to thumbnail URLs (CORS-safe)
 const GDRIVE_RE = /https?:\/\/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?[^"'\s]*id=)([a-zA-Z0-9_-]+)[^"'\s]*/g;
 
 function sanitiseResponse(data) {
@@ -56,9 +56,9 @@ function sanitiseResponse(data) {
       changed = true;
     }
 
-    // Fix Google Drive sharing/viewer links → direct image/video URLs
+    // Fix Google Drive sharing/viewer links → thumbnail URLs (served by lh3, CORS-safe)
     if (raw.includes('drive.google.com')) {
-      raw = raw.replace(GDRIVE_RE, (_, id) => `https://drive.google.com/uc?export=view&id=${id}`);
+      raw = raw.replace(GDRIVE_RE, (_, id) => `https://drive.google.com/thumbnail?id=${id}&sz=w1200`);
       changed = true;
     }
 
