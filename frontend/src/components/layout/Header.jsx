@@ -523,34 +523,65 @@ const MegaMenuDropdown = ({ item, onClose }) => {
   );
 };
 
-// ─── Shared column helpers ────────────────────────────────────────────────────
-const MAT_4 = {
-  heading: 'Shop By Material',
+// ─── Shared column builder helpers ───────────────────────────────────────────
+const regionCol = (base) => ({
+  heading: 'By Region',
   items: [
-    { label: 'Yellow Gold', url: '/collections/yellow-gold', color: '#E8C96B' },
-    { label: 'Rose Gold',   url: '/collections/rose-gold',   color: '#E8A98A' },
-    { label: 'White Gold',  url: '/collections/white-gold',  color: '#D8D8D8' },
-    { label: 'Platinum',    url: '/collections/platinum',    color: '#B8BCC4' },
+    { label: 'South India', url: `${base}?region=south` },
+    { label: 'North India', url: `${base}?region=north` },
+    { label: 'Pan India',   url: `${base}?region=pan-india` },
   ],
-};
-const MAT_3 = {
-  heading: 'Shop By Material',
+});
+
+const materialCol = (base) => ({
+  heading: 'By Material',
   items: [
-    { label: 'Yellow Gold', url: '/collections/yellow-gold', color: '#E8C96B' },
-    { label: 'Rose Gold',   url: '/collections/rose-gold',   color: '#E8A98A' },
-    { label: 'White Gold',  url: '/collections/white-gold',  color: '#D8D8D8' },
+    { label: '22 Kt Gold',  url: `${base}?material=22kt` },
+    { label: '18 Kt Gold',  url: `${base}?material=18kt` },
+    { label: '14 Kt Gold',  url: `${base}?material=14kt` },
+    { label: 'Color Stone', url: `${base}?material=color-stone` },
+    { label: 'Ceramic',     url: `${base}?material=ceramic` },
+    { label: 'Pearl / MOP', url: `${base}?material=pearl-mop` },
+    { label: 'Diamond',     url: `${base}?material=diamond` },
+    { label: 'Only Gold',   url: `${base}?material=only-gold` },
   ],
-};
-const PRICE_COL = {
-  heading: 'Shop By Price',
+});
+
+const genderCol = (base, includeKids = false) => ({
+  heading: 'By Gender',
   items: [
-    { label: 'Below 50K',     url: '/collections?maxPrice=50000' },
-    { label: '50K – 100K',    url: '/collections?minPrice=50000&maxPrice=100000' },
-    { label: '100K – 150K',   url: '/collections?minPrice=100000&maxPrice=150000' },
-    { label: '150K – 200K',   url: '/collections?minPrice=150000&maxPrice=200000' },
-    { label: '200K and above',url: '/collections?minPrice=200000' },
+    { label: 'Female', url: `${base}?gender=female` },
+    { label: 'Male',   url: `${base}?gender=male` },
+    ...(includeKids ? [{ label: 'Kids', url: `${base}?gender=kids` }] : []),
   ],
-};
+});
+
+const shapeCol = (base) => ({
+  heading: 'By Shape',
+  items: [
+    { label: 'Round',    url: `${base}?shape=round`,    icon: 'round' },
+    { label: 'Princess', url: `${base}?shape=princess`, icon: 'princess' },
+    { label: 'Oval',     url: `${base}?shape=oval`,     icon: 'oval' },
+    { label: 'Heart',    url: `${base}?shape=heart`,    icon: 'heart' },
+    { label: 'Emerald',  url: `${base}?shape=emerald`,  icon: 'emerald' },
+    { label: 'Pear',     url: `${base}?shape=pear`,     icon: 'pear' },
+    { label: 'Marquise', url: `${base}?shape=marquise`, icon: 'marquise' },
+    { label: 'Baguette', url: `${base}?shape=baguette` },
+  ],
+});
+
+const stoneCol = (base) => ({
+  heading: 'By Color Stone',
+  items: [
+    { label: 'Navratna', url: `${base}?colorStone=navratna` },
+    { label: 'Ruby',     url: `${base}?colorStone=ruby` },
+    { label: 'Emerald',  url: `${base}?colorStone=emerald` },
+    { label: 'Topaz',    url: `${base}?colorStone=topaz` },
+    { label: 'Pearl',    url: `${base}?colorStone=pearl` },
+    { label: 'Sapphire', url: `${base}?colorStone=sapphire` },
+    { label: 'Citrine',  url: `${base}?colorStone=citrine` },
+  ],
+});
 
 // ─── Nav fallback data ────────────────────────────────────────────────────────
 const NAV_FALLBACK = [
@@ -563,19 +594,24 @@ const NAV_FALLBACK = [
     children: [{
       columns: [
         {
-          heading: 'Rings',
+          heading: 'By Style',
           items: [
-            { label: 'Engagement Rings',        url: '/collections/engagement-rings' },
-            { label: 'Solitaire Rings',         url: '/collections/solitaire-rings' },
-            { label: 'Couple Bands',            url: '/collections/couple-bands' },
-            { label: 'Casual Rings',            url: '/collections/casual-rings' },
-            { label: 'Eternity Rings',          url: '/collections/eternity-rings' },
-            { label: 'Cocktail / Statement',    url: '/collections/cocktail-rings' },
-            { label: 'Bands',                   url: '/collections/bands' },
-            { label: 'Mens Rings',              url: '/collections/mens-rings' },
-            { label: 'Religious Rings',         url: '/collections/religious-rings' },
+            { label: 'Engagement Rings',     url: '/collections/engagement-rings' },
+            { label: 'Solitaire Rings',      url: '/collections/solitaire-rings' },
+            { label: 'Couple Bands',         url: '/collections/couple-bands' },
+            { label: 'Casual Rings',         url: '/collections/casual-rings' },
+            { label: 'Eternity Rings',       url: '/collections/eternity-rings' },
+            { label: 'Cocktail / Statement', url: '/collections/cocktail-rings' },
+            { label: 'Bands',                url: '/collections/bands' },
+            { label: 'Mens Rings',           url: '/collections/mens-rings' },
+            { label: 'Religious Rings',      url: '/collections/religious-rings' },
           ],
         },
+        regionCol('/collections/rings'),
+        materialCol('/collections/rings'),
+        genderCol('/collections/rings', false),
+        shapeCol('/collections/rings'),
+        stoneCol('/collections/rings'),
       ],
       featuredTitle: 'Rings',
       featuredLink:  '/collections/rings',
@@ -591,19 +627,24 @@ const NAV_FALLBACK = [
     children: [{
       columns: [
         {
-          heading: 'Earrings',
+          heading: 'By Style',
           items: [
-            { label: 'Studs',               url: '/collections/studs' },
-            { label: 'Drops & Danglers',    url: '/collections/drops-danglers' },
-            { label: 'Hoops & Balis',       url: '/collections/hoops-balis' },
-            { label: 'Solitaire Earrings',  url: '/collections/solitaire-earrings' },
-            { label: 'Cocktail Earrings',   url: '/collections/cocktail-earrings' },
-            { label: 'Suidhaga Earrings',   url: '/collections/suidhaga-earrings' },
-            { label: 'Jhumka',              url: '/collections/jhumka' },
-            { label: 'Mens Earrings',       url: '/collections/mens-earrings' },
-            { label: 'Kids Earrings',       url: '/collections/kids-earrings' },
+            { label: 'Studs',              url: '/collections/studs' },
+            { label: 'Drops & Danglers',   url: '/collections/drops-danglers' },
+            { label: 'Hoops & Balis',      url: '/collections/hoops-balis' },
+            { label: 'Solitaire Earrings', url: '/collections/solitaire-earrings' },
+            { label: 'Cocktail Earrings',  url: '/collections/cocktail-earrings' },
+            { label: 'Suidhaga Earrings',  url: '/collections/suidhaga-earrings' },
+            { label: 'Jhumka',             url: '/collections/jhumka' },
+            { label: 'Mens Earrings',      url: '/collections/mens-earrings' },
+            { label: 'Kids Earrings',      url: '/collections/kids-earrings' },
           ],
         },
+        regionCol('/collections/earrings'),
+        materialCol('/collections/earrings'),
+        genderCol('/collections/earrings', true),
+        shapeCol('/collections/earrings'),
+        stoneCol('/collections/earrings'),
       ],
       featuredTitle: 'Earrings',
       featuredLink:  '/collections/earrings',
@@ -619,19 +660,24 @@ const NAV_FALLBACK = [
     children: [{
       columns: [
         {
-          heading: 'Pendants',
+          heading: 'By Style',
           items: [
-            { label: 'Alphabet Pendants',   url: '/collections/alphabet-pendants' },
-            { label: 'Daily Wear',          url: '/collections/daily-wear-pendants' },
-            { label: 'Party Wear',          url: '/collections/party-wear-pendants' },
-            { label: 'Pendant with Chain',  url: '/collections/pendant-with-chain' },
-            { label: 'Solitaire Pendants',  url: '/collections/solitaire-pendants' },
-            { label: 'Tanmaniya Pendants',  url: '/collections/tanmaniya-pendants' },
-            { label: 'Cocktail Pendants',   url: '/collections/cocktail-pendants' },
-            { label: 'Mens Pendants',       url: '/collections/mens-pendants' },
-            { label: 'Kids Pendants',       url: '/collections/kids-pendants' },
+            { label: 'Alphabet Pendants',  url: '/collections/alphabet-pendants' },
+            { label: 'Daily Wear',         url: '/collections/daily-wear-pendants' },
+            { label: 'Party Wear',         url: '/collections/party-wear-pendants' },
+            { label: 'Pendant with Chain', url: '/collections/pendant-with-chain' },
+            { label: 'Solitaire Pendants', url: '/collections/solitaire-pendants' },
+            { label: 'Tanmaniya Pendants', url: '/collections/tanmaniya-pendants' },
+            { label: 'Cocktail Pendants',  url: '/collections/cocktail-pendants' },
+            { label: 'Mens Pendants',      url: '/collections/mens-pendants' },
+            { label: 'Kids Pendants',      url: '/collections/kids-pendants' },
           ],
         },
+        regionCol('/collections/pendants'),
+        materialCol('/collections/pendants'),
+        genderCol('/collections/pendants', true),
+        shapeCol('/collections/pendants'),
+        stoneCol('/collections/pendants'),
       ],
       featuredTitle: 'Pendants',
       featuredLink:  '/collections/pendants',
@@ -647,7 +693,7 @@ const NAV_FALLBACK = [
     children: [{
       columns: [
         {
-          heading: 'Necklaces',
+          heading: 'By Style',
           items: [
             { label: 'Bridal Necklaces',  url: '/collections/bridal-necklaces' },
             { label: 'Tennis Necklaces',  url: '/collections/tennis-necklaces' },
@@ -656,6 +702,11 @@ const NAV_FALLBACK = [
             { label: 'Lariats',           url: '/collections/lariats' },
           ],
         },
+        regionCol('/collections/necklaces'),
+        materialCol('/collections/necklaces'),
+        genderCol('/collections/necklaces', false),
+        shapeCol('/collections/necklaces'),
+        stoneCol('/collections/necklaces'),
       ],
       featuredTitle: 'Necklaces',
       featuredLink:  '/collections/necklaces',
@@ -671,19 +722,24 @@ const NAV_FALLBACK = [
     children: [{
       columns: [
         {
-          heading: 'Bracelets',
+          heading: 'By Style',
           items: [
-            { label: 'Tennis Bracelet',         url: '/collections/tennis-bracelet' },
-            { label: 'Chain Bracelet',           url: '/collections/chain-bracelet' },
-            { label: 'Flexible Bracelet',        url: '/collections/flexible-bracelet' },
-            { label: 'Kada Bracelet',            url: '/collections/kada-bracelet' },
-            { label: 'Mangalsutra Bracelet',     url: '/collections/mangalsutra-bracelet' },
-            { label: 'Daily Wear',               url: '/collections/daily-wear-bracelets' },
-            { label: 'Occasion Wear',            url: '/collections/occasion-wear-bracelets' },
-            { label: 'Mens Bracelets',           url: '/collections/mens-bracelets' },
-            { label: 'Kids Kada / Bracelets',    url: '/collections/kids-bracelets' },
+            { label: 'Tennis Bracelet',      url: '/collections/tennis-bracelet' },
+            { label: 'Chain Bracelet',       url: '/collections/chain-bracelet' },
+            { label: 'Flexible Bracelet',    url: '/collections/flexible-bracelet' },
+            { label: 'Kada Bracelet',        url: '/collections/kada-bracelet' },
+            { label: 'Mangalsutra Bracelet', url: '/collections/mangalsutra-bracelet' },
+            { label: 'Daily Wear',           url: '/collections/daily-wear-bracelets' },
+            { label: 'Occasion Wear',        url: '/collections/occasion-wear-bracelets' },
+            { label: 'Mens Bracelets',       url: '/collections/mens-bracelets' },
+            { label: 'Kids Kada / Bracelets',url: '/collections/kids-bracelets' },
           ],
         },
+        regionCol('/collections/bracelets'),
+        materialCol('/collections/bracelets'),
+        genderCol('/collections/bracelets', true),
+        shapeCol('/collections/bracelets'),
+        stoneCol('/collections/bracelets'),
       ],
       featuredTitle: 'Bracelets',
       featuredLink:  '/collections/bracelets',
@@ -699,15 +755,20 @@ const NAV_FALLBACK = [
     children: [{
       columns: [
         {
-          heading: 'Bangles',
+          heading: 'By Style',
           items: [
-            { label: 'Round Bangles',       url: '/collections/round-bangles' },
-            { label: 'Openable Bangles',    url: '/collections/openable-bangles' },
-            { label: 'Solitaire Bangles',   url: '/collections/solitaire-bangles' },
-            { label: 'Daily Wear',          url: '/collections/daily-wear-bangles' },
-            { label: 'Occasion Wear',       url: '/collections/occasion-wear-bangles' },
+            { label: 'Round Bangles',     url: '/collections/round-bangles' },
+            { label: 'Openable Bangles',  url: '/collections/openable-bangles' },
+            { label: 'Solitaire Bangles', url: '/collections/solitaire-bangles' },
+            { label: 'Daily Wear',        url: '/collections/daily-wear-bangles' },
+            { label: 'Occasion Wear',     url: '/collections/occasion-wear-bangles' },
           ],
         },
+        regionCol('/collections/bangles'),
+        materialCol('/collections/bangles'),
+        genderCol('/collections/bangles', false),
+        shapeCol('/collections/bangles'),
+        stoneCol('/collections/bangles'),
       ],
       featuredTitle: 'Bangles',
       featuredLink:  '/collections/bangles',
@@ -723,7 +784,7 @@ const NAV_FALLBACK = [
     children: [{
       columns: [
         {
-          heading: 'Accessories',
+          heading: 'By Type',
           items: [
             { label: 'Nosepins',          url: '/collections/nosepins' },
             { label: 'Anklets',           url: '/collections/anklets' },
@@ -734,6 +795,11 @@ const NAV_FALLBACK = [
             { label: 'Watch Accessories', url: '/collections/watch-accessories' },
           ],
         },
+        regionCol('/collections/accessories'),
+        materialCol('/collections/accessories'),
+        genderCol('/collections/accessories', false),
+        shapeCol('/collections/accessories'),
+        stoneCol('/collections/accessories'),
       ],
       featuredTitle: 'Accessories',
       featuredLink:  '/collections/accessories',
