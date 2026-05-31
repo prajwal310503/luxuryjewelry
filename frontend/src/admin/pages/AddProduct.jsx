@@ -157,8 +157,8 @@ export default function AdminAddProduct() {
             description: p.description || '',
             category: p.category?._id || p.category || '',
             subcategory: p.subcategory?._id || p.subcategory || '',
-            price: p.price || '',
-            costPrice: p.costPrice || '',
+            price: p.price ?? '',
+            costPrice: p.costPrice ?? '',
             discount: p.discount || 0,
             stock: p.stock || 0,
             lengthEnabled: p.lengths?.enabled || false,
@@ -242,7 +242,7 @@ export default function AdminAddProduct() {
   const handleSave = async () => {
     if (!form.title.trim()) return toast.error('Product title is required');
     if (!form.category) return toast.error('Category is required');
-    if (!form.price) return toast.error('Price is required');
+    if (form.price === '' || form.price === null || form.price === undefined) return toast.error('Price is required');
 
     setSaving(true);
     try {
@@ -773,7 +773,7 @@ export default function AdminAddProduct() {
           </div>
 
           {/* Price preview */}
-          {form.price && (
+          {form.price !== '' && (
             <div className="card-luxury p-6">
               <SectionTitle>Price Preview</SectionTitle>
               <div className="space-y-2 text-sm">
