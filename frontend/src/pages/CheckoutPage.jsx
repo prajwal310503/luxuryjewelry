@@ -22,28 +22,48 @@ const FIELDS = [
   { field: 'country', label: 'Country', col: 1, required: false },
 ];
 
+const EMPTY_ADDR = { fullName: '', phone: '', addressLine1: '', addressLine2: '', city: '', state: '', pincode: '', country: 'India' };
+
 export default function CheckoutPage() {
   const { items, getSubtotal, getShipping, getTotal, clearCart } = useCartStore();
   const { user } = useAuthStore();
   const navigate = useNavigate();
+
+  const ADDR_KEY = `vk_saved_addresses_${user?._id || 'guest'}`;
 
   const [currentStep, setCurrentStep] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const [address, setAddress] = useState({
-    fullName: user?.name || '',
-    phone: user?.phone || '',
-    addressLine1: '',
-    addressLine2: '',
-    city: '',
-    state: '',
-    pincode: '',
-    country: 'India',
-  });
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [showNewForm, setShowNewForm] = useState(false);
+  const [addrModalOpen, setAddrModalOpen] = useState(false);
+  const [modalSelected, setModalSelected] = useState(0);
 
-  useEffect(() => { window.scrollTo(0, 0); }, []);
+  const [address, setAddress] = useState({ ...EMPTY_ADDR, fullName: user?.name || '', phone: user?.phone || '' });
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    try {
+      const stored = JSON.parse(localStorage.getItem(ADDR_KEY) || '[]');
+      if (stored.length > 0) {
+        setSavedAddresses(stored);
+        setAddress(stored[0]);
+      } else {
+        setShowNewForm(true);
+      }
+    } catch { setShowNewForm(true); }
+  }, []);
+
+  const persistAddress = (addr) => {
+    const deduped = savedAddresses.filter(
+      (a) => !(a.addressLine1 === addr.addressLine1 && a.pincode === addr.pincode)
+    );
+    const updated = [addr, ...deduped].slice(0, 4);
+    setSavedAddresses(updated);
+    localStorage.setItem(ADDR_KEY, JSON.stringify(updated));
+  };
 
   if (items.length === 0) {
     return (
@@ -74,6 +94,8 @@ export default function CheckoutPage() {
   const handleAddressSubmit = (e) => {
     e.preventDefault();
     if (validateAddress()) {
+      persistAddress(address);
+      setShowNewForm(false);
       setCurrentStep(1);
       window.scrollTo(0, 0);
     } else {
@@ -179,47 +201,87 @@ export default function CheckoutPage() {
 
               {/* Step 0: Address */}
               {currentStep === 0 && (
-                <motion.form
+                <motion.div
                   key="address"
                   initial={{ opacity: 0, x: -16 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 16 }}
                   transition={{ duration: 0.2 }}
-                  onSubmit={handleAddressSubmit}
                   className="card-luxury p-6"
                 >
                   <h2 className="font-heading text-xl font-semibold mb-6">Shipping Address</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {FIELDS.map(({ field, label, col, required }) => (
-                      <div key={field} className={col === 2 ? 'sm:col-span-2' : ''}>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                          {label}
-                          {required && <span className="text-red-500 ml-0.5">*</span>}
-                        </label>
-                        <input
-                          type="text"
-                          value={address[field]}
-                          onChange={(e) => {
-                            setAddress({ ...address, [field]: e.target.value });
-                            if (errors[field]) setErrors({ ...errors, [field]: '' });
-                          }}
-                          placeholder={label}
-                          className={`input-luxury transition-all ${errors[field] ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : ''
-                            }`}
-                        />
-                        {errors[field] && (
-                          <p className="text-xs text-red-500 mt-1">{errors[field]}</p>
-                        )}
+
+                  {/* Saved address selected — show card */}
+                  {savedAddresses.length > 0 && !showNewForm ? (
+                    <div>
+                      <div className="border-2 border-primary rounded-xl p-4 mb-4 bg-primary/5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-800">{address.fullName} &bull; {address.phone}</p>
+                            <p className="text-sm text-gray-600 mt-1 leading-relaxed">
+                              {address.addressLine1}{address.addressLine2 && `, ${address.addressLine2}`}<br />
+                              {address.city}, {address.state} – {address.pincode}, {address.country}
+                            </p>
+                          </div>
+                          <span className="text-[10px] font-bold bg-primary text-white px-2 py-0.5 rounded-full flex-shrink-0">DEFAULT</span>
+                        </div>
+                        <div className="flex gap-3 mt-4">
+                          <button type="button" onClick={() => { setModalSelected(0); setAddrModalOpen(true); }}
+                            className="text-xs font-medium text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary/5 transition-colors">
+                            Change Address
+                          </button>
+                          {savedAddresses.length < 4 && (
+                            <button type="button" onClick={() => { setAddress({ ...EMPTY_ADDR }); setShowNewForm(true); }}
+                              className="text-xs font-medium text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors">
+                              + Add New
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                  <button type="submit" className="btn-primary mt-6 w-full justify-center py-3.5 text-sm">
-                    Continue to Review
-                    <svg className="w-4 h-4 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </motion.form>
+                      <button type="button" onClick={() => { if (validateAddress()) { setCurrentStep(1); window.scrollTo(0, 0); } else toast.error('Please select a valid address'); }}
+                        className="btn-primary w-full justify-center py-3.5 text-sm">
+                        Continue to Review
+                        <svg className="w-4 h-4 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    /* New address form */
+                    <form onSubmit={handleAddressSubmit}>
+                      {savedAddresses.length > 0 && (
+                        <button type="button" onClick={() => setShowNewForm(false)}
+                          className="flex items-center gap-1.5 text-xs text-primary font-medium mb-4 hover:underline">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                          Back to saved addresses
+                        </button>
+                      )}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {FIELDS.map(({ field, label, col, required }) => (
+                          <div key={field} className={col === 2 ? 'sm:col-span-2' : ''}>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                              {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+                            </label>
+                            <input
+                              type="text"
+                              value={address[field]}
+                              onChange={(e) => { setAddress({ ...address, [field]: e.target.value }); if (errors[field]) setErrors({ ...errors, [field]: '' }); }}
+                              placeholder={label}
+                              className={`input-luxury transition-all ${errors[field] ? 'border-red-400 focus:border-red-500 focus:ring-red-100' : ''}`}
+                            />
+                            {errors[field] && <p className="text-xs text-red-500 mt-1">{errors[field]}</p>}
+                          </div>
+                        ))}
+                      </div>
+                      <button type="submit" className="btn-primary mt-6 w-full justify-center py-3.5 text-sm">
+                        Save & Continue
+                        <svg className="w-4 h-4 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </form>
+                  )}
+                </motion.div>
               )}
 
               {/* Step 1: Review */}
@@ -353,23 +415,6 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* Contextual info note */}
-                  {paymentMethod === 'cod' ? (
-                    <div className="flex gap-3 bg-green-50 border border-green-200 rounded-xl p-4 mb-6 text-sm text-green-800">
-                      <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p>Pay <strong>{formatPrice(total)}</strong> in cash when delivered to <strong>{address.fullName}</strong> at {address.city}.</p>
-                    </div>
-                  ) : (
-                    <div className="flex gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-sm text-amber-800">
-                      <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p>No payment required now. Our team will contact you at <strong>{address.phone}</strong> to confirm your quote.</p>
-                    </div>
-                  )}
-
                   <div className="flex gap-3">
                     <button type="button" onClick={() => setCurrentStep(1)} className="btn-outline flex-1 justify-center">
                       <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
@@ -475,6 +520,75 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Address selection modal ───────────────────────────────────────── */}
+      <AnimatePresence>
+        {addrModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            onClick={() => setAddrModalOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-heading text-lg font-semibold">Select Address</h3>
+                <button type="button" onClick={() => setAddrModalOpen(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-3 mb-5">
+                {savedAddresses.map((addr, idx) => (
+                  <button key={idx} type="button"
+                    onClick={() => setModalSelected(idx)}
+                    className={`w-full text-left p-4 rounded-xl border-2 transition-all ${modalSelected === idx ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${modalSelected === idx ? 'border-primary' : 'border-gray-300'}`}>
+                        {modalSelected === idx && <div className="w-2 h-2 rounded-full bg-primary" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-800">{addr.fullName} &bull; {addr.phone}</p>
+                        <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                          {addr.addressLine1}{addr.addressLine2 && `, ${addr.addressLine2}`}, {addr.city}, {addr.state} – {addr.pincode}
+                        </p>
+                        {idx === 0 && <span className="text-[10px] font-bold text-primary mt-1 inline-block">DEFAULT</span>}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex gap-3">
+                {savedAddresses.length < 4 && (
+                  <button type="button"
+                    onClick={() => { setAddrModalOpen(false); setAddress({ ...EMPTY_ADDR }); setShowNewForm(true); }}
+                    className="btn-outline flex-1 justify-center text-sm">
+                    + Add New
+                  </button>
+                )}
+                <button type="button"
+                  onClick={() => { setAddress(savedAddresses[modalSelected]); setAddrModalOpen(false); }}
+                  className="btn-primary flex-1 justify-center text-sm">
+                  Use This Address
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

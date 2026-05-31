@@ -21,16 +21,6 @@ const ADDR_FIELDS = [
 
 const PAYMENT_METHODS = [
   {
-    id:    'cod',
-    label: 'Cash on Delivery',
-    desc:  'Pay in cash when your order is delivered to your doorstep.',
-    icon: (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    ),
-  },
-  {
     id:    'bank_transfer',
     label: 'Bank Transfer',
     desc:  'Transfer the amount directly to our bank account before delivery.',
@@ -50,7 +40,7 @@ export default function QuotePaymentPage() {
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
   const [step,    setStep]    = useState(0);
-  const [method,  setMethod]  = useState('cod');
+  const [method,  setMethod]  = useState('bank_transfer');
 
   const [address, setAddress] = useState({
     fullName: '', phone: '', addressLine1: '', addressLine2: '',
@@ -218,7 +208,7 @@ export default function QuotePaymentPage() {
                   </div>
 
                   <button type="button" onClick={goNext} className="btn-primary mt-6 w-full justify-center py-3.5 text-sm">
-                    Continue to Payment
+                    Continue
                     <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                     </svg>
