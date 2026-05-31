@@ -32,6 +32,7 @@ const MyQuotesPage      = lazy(() => import('./pages/MyQuotesPage'));
 const QuoteSuccessPage  = lazy(() => import('./pages/QuoteSuccessPage'));
 const QuotePaymentPage  = lazy(() => import('./pages/QuotePaymentPage'));
 const QuoteDetailPage   = lazy(() => import('./pages/QuoteDetailPage'));
+const MyAddressesPage   = lazy(() => import('./pages/MyAddressesPage'));
 
 // Auth Pages
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
@@ -112,6 +113,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <AccountPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-addresses"
+            element={
+              <ProtectedRoute>
+                <MyAddressesPage />
               </ProtectedRoute>
             }
           />
