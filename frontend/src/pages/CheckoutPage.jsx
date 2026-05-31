@@ -32,7 +32,7 @@ export default function CheckoutPage() {
   const ADDR_KEY = `vk_saved_addresses_${user?._id || 'guest'}`;
 
   const [currentStep, setCurrentStep] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState('cod');
+  const [paymentMethod, setPaymentMethod] = useState('quote');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -338,7 +338,7 @@ export default function CheckoutPage() {
                       Back
                     </button>
                     <button type="button" onClick={() => { setCurrentStep(2); window.scrollTo(0, 0); }} className="btn-primary flex-1 justify-center">
-                      Continue to Payment
+                      Continue
                       <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                     </button>
                   </div>
@@ -360,23 +360,6 @@ export default function CheckoutPage() {
 
                   {/* Payment options */}
                   <div className="space-y-3 mb-6">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('cod')}
-                      className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}
-                    >
-                      <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${paymentMethod === 'cod' ? 'border-primary' : 'border-gray-300'}`}>
-                        {paymentMethod === 'cod' && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-800">Cash on Delivery</p>
-                        <p className="text-xs text-gray-400 mt-0.5">Pay in cash when your order arrives at your door</p>
-                      </div>
-                      <svg className="w-8 h-8 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
-                      </svg>
-                    </button>
-
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('quote')}
