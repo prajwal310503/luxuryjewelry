@@ -954,6 +954,13 @@ export default function Header() {
                             </svg>
                             My Addresses
                           </Link>
+                          <Link onClick={() => setAccountOpen(false)} to="/support"
+                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
+                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            Support
+                          </Link>
                           {user.role === 'retailer' && (
                             <Link onClick={() => setAccountOpen(false)} to="/quotes/request"
                               className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
@@ -1142,6 +1149,7 @@ export default function Header() {
                   <Link to="/my-quotes" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Track Quotes</Link>
                   <Link to="/orders" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Track Orders</Link>
                   <Link to="/my-addresses" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">My Addresses</Link>
+                  <Link to="/support" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Support</Link>
                   {user.role === 'retailer' && (
                     <Link to="/quotes/request" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Request a Quote</Link>
                   )}

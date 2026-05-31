@@ -33,6 +33,7 @@ const QuoteSuccessPage  = lazy(() => import('./pages/QuoteSuccessPage'));
 const QuotePaymentPage  = lazy(() => import('./pages/QuotePaymentPage'));
 const QuoteDetailPage   = lazy(() => import('./pages/QuoteDetailPage'));
 const MyAddressesPage   = lazy(() => import('./pages/MyAddressesPage'));
+const MySupportPage     = lazy(() => import('./pages/MySupportPage'));
 
 // Auth Pages
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
@@ -58,6 +59,7 @@ const AdminBlog = lazy(() => import('./admin/pages/Blog'));
 const AdminMenus = lazy(() => import('./admin/pages/Menus'));
 const AdminStores = lazy(() => import('./admin/pages/Stores'));
 const AdminSettings = lazy(() => import('./admin/pages/Settings'));
+const AdminSupport  = lazy(() => import('./admin/pages/Support'));
 const AdminUsers = lazy(() => import('./admin/pages/Users'));
 const AdminQuotes = lazy(() => import('./admin/pages/Quotes'));
 
@@ -121,6 +123,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <MyAddressesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/support"
+            element={
+              <ProtectedRoute>
+                <MySupportPage />
               </ProtectedRoute>
             }
           />
@@ -197,6 +207,7 @@ export default function App() {
           <Route path="menus"               element={<ProtectedRoute roles={['admin']}><AdminMenus /></ProtectedRoute>} />
           <Route path="stores"              element={<ProtectedRoute roles={['admin']}><AdminStores /></ProtectedRoute>} />
           <Route path="settings"            element={<ProtectedRoute roles={['admin']}><AdminSettings /></ProtectedRoute>} />
+          <Route path="support"             element={<ProtectedRoute roles={['admin', 'child_admin']}><AdminSupport /></ProtectedRoute>} />
           {/* Shared: admin + child_admin with permissions */}
           <Route path="orders"  element={<ProtectedRoute roles={['admin', 'child_admin']} permission="orders"><AdminOrders /></ProtectedRoute>} />
           <Route path="quotes"  element={<ProtectedRoute roles={['admin', 'child_admin']} permission="quotes"><AdminQuotes /></ProtectedRoute>} />

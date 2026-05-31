@@ -281,6 +281,16 @@ export const pincodeAPI = {
   adminClear: () => api.delete('/pincodes/admin/clear'),
 };
 
+// ==================== SUPPORT ====================
+export const supportAPI = {
+  create:        (formData) => api.post('/support', formData),
+  getMyTickets:  ()         => api.get('/support/my'),
+  getById:       (id)       => api.get(`/support/${id}`),
+  adminGetAll:   (params)   => api.get('/support/admin/all', { params }),
+  adminGetById:  (id)       => api.get(`/support/admin/${id}`),
+  adminReply:    (id, data) => api.put(`/support/admin/${id}/reply`, data),
+};
+
 // ==================== SETTINGS ====================
 export const settingsAPI = {
   getStatus:       () => api.get('/settings/status'),

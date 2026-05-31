@@ -23,6 +23,7 @@ const blogRoutes     = require('./routes/blog');
 const settingsRoutes = require('./routes/settings');
 const quoteRoutes    = require('./routes/quotes');
 const pincodeRoutes  = require('./routes/pincodes');
+const supportRoutes  = require('./routes/support');
 
 const app = express();
 
@@ -159,6 +160,7 @@ app.use('/api/blog',     blogRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/quotes',   quoteRoutes);
 app.use('/api/pincodes', pincodeRoutes);
+app.use('/api/support',  supportRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
