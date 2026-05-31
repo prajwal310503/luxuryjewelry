@@ -70,7 +70,7 @@ exports.createOrder = async (req, res, next) => {
       }
     }
 
-    const shippingCost = subtotal >= 5000 ? 0 : 199;
+    const shippingCost = 0;
     const total = subtotal - couponDiscount + shippingCost;
 
     const order = await Order.create({
@@ -217,7 +217,7 @@ exports.adminCreateOrder = async (req, res, next) => {
       subtotal += itemSubtotal;
     }
 
-    const shipping = subtotal >= 5000 ? 0 : 199;
+    const shipping = 0;
     const total    = subtotal + shipping;
 
     const order = await Order.create({

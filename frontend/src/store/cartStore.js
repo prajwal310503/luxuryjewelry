@@ -56,7 +56,7 @@ const useCartStore = create(
 
       getTotalItems: () => get().items.reduce((total, item) => total + item.quantity, 0),
 
-      getShipping: () => (get().getSubtotal() >= 5000 ? 0 : 199),
+      getShipping: () => 0,
 
       getTotal: () => get().getSubtotal() + get().getShipping(),
     }),
