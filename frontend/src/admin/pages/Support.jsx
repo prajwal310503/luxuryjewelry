@@ -8,11 +8,11 @@ const REASONS = {
   'payment-issue': 'Payment Issue', 'shipping': 'Shipping',
   'return-exchange': 'Return / Exchange', 'general': 'General Query', 'other': 'Other',
 };
-const STATUS_STYLES = {
-  open: 'bg-blue-50 text-blue-700 border-blue-200',
-  'in-progress': 'bg-amber-50 text-amber-700 border-amber-200',
-  resolved: 'bg-green-50 text-green-700 border-green-200',
-  closed: 'bg-gray-100 text-gray-500 border-gray-200',
+const STATUS_META = {
+  open:          { label: 'Open',        badge: 'bg-blue-50 text-blue-700 border-blue-200',   btn: 'bg-blue-500 text-white border-blue-500',   dot: 'bg-blue-500' },
+  'in-progress': { label: 'In Progress', badge: 'bg-amber-50 text-amber-700 border-amber-200', btn: 'bg-amber-500 text-white border-amber-500', dot: 'bg-amber-500' },
+  resolved:      { label: 'Resolved',    badge: 'bg-green-50 text-green-700 border-green-200', btn: 'bg-green-600 text-white border-green-600', dot: 'bg-green-500' },
+  closed:        { label: 'Closed',      badge: 'bg-gray-100 text-gray-500 border-gray-200',   btn: 'bg-gray-500 text-white border-gray-500',  dot: 'bg-gray-400' },
 };
 const STATUSES = ['open', 'in-progress', 'resolved', 'closed'];
 
@@ -88,8 +88,8 @@ export default function AdminSupport() {
                   <p className="text-xs text-gray-500 mt-0.5">{t.user?.name} &bull; {t.user?.email}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{REASONS[t.reason]} &bull; {new Date(t.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex-shrink-0 ${STATUS_STYLES[t.status]}`}>
-                  {t.status.replace('-', ' ').toUpperCase()}
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex-shrink-0 ${STATUS_META[t.status]?.badge}`}>
+                  {STATUS_META[t.status]?.label}
                 </span>
               </div>
               {t.replies?.length > 0 && (
@@ -122,7 +122,7 @@ export default function AdminSupport() {
                 {/* Original */}
                 <div className="bg-luxury-cream rounded-xl p-3">
                   <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Customer</p>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{activeTicket.body}</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap break-words overflow-hidden">{activeTicket.body}</p>
                   {activeTicket.image && (
                     <a href={activeTicket.image} target="_blank" rel="noreferrer">
                       <img src={activeTicket.image} alt="attachment" className="mt-2 max-h-32 rounded-lg border border-gray-200 object-contain" />
@@ -133,7 +133,7 @@ export default function AdminSupport() {
                 {activeTicket.replies?.map((r, i) => (
                   <div key={i} className={`rounded-xl p-3 ${r.by === 'admin' ? 'bg-primary/5 border border-primary/10' : 'bg-luxury-cream'}`}>
                     <p className="text-[10px] font-bold mb-1 text-gray-400 uppercase">{r.by === 'admin' ? 'Admin' : 'Customer'}</p>
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{r.message}</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap break-words overflow-hidden">{r.message}</p>
                   </div>
                 ))}
               </div>
@@ -142,15 +142,31 @@ export default function AdminSupport() {
               <div className="border-t border-gray-100 pt-4 space-y-3">
                 <textarea value={reply} onChange={(e) => setReply(e.target.value)}
                   rows={3} placeholder="Type your reply..." className="input-luxury resize-none text-sm" />
-                <div className="flex gap-3">
-                  <select value={newStatus} onChange={(e) => setNewStatus(e.target.value)} className="input-luxury text-sm flex-1">
-                    {STATUSES.map((s) => <option key={s} value={s}>{s.replace('-', ' ').charAt(0).toUpperCase() + s.replace('-', ' ').slice(1)}</option>)}
-                  </select>
-                  <button onClick={handleReply} disabled={sending || (!reply.trim() && newStatus === activeTicket.status)}
-                    className="btn-primary px-5 text-sm disabled:opacity-60">
-                    {sending ? 'Sending...' : 'Send Reply'}
-                  </button>
+
+                {/* Status selector */}
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Set Status</p>
+                  <div className="flex flex-wrap gap-2">
+                    {STATUSES.map((s) => {
+                      const m = STATUS_META[s];
+                      const active = newStatus === s;
+                      return (
+                        <button key={s} type="button" onClick={() => setNewStatus(s)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                            active ? m.btn + ' shadow-sm' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                          }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${active ? 'bg-white' : m.dot}`} />
+                          {m.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                <button onClick={handleReply} disabled={sending || (!reply.trim() && newStatus === activeTicket.status)}
+                  className="btn-primary w-full justify-center text-sm disabled:opacity-60">
+                  {sending ? 'Sending...' : 'Send Reply'}
+                </button>
               </div>
             </div>
           )}
