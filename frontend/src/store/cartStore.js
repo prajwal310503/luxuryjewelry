@@ -8,9 +8,10 @@ const useCartStore = create(
       items: [],
       isOpen: false,
 
-      addItem: (product, quantity = 1, variantAttributes = null) => {
+      addItem: (product, quantity = 1, variantAttributes = null, selections = null) => {
         const { items } = get();
-        const key = variantAttributes ? `${product._id}-${JSON.stringify(variantAttributes)}` : product._id;
+        const selKey = selections ? JSON.stringify(selections) : '';
+        const key = `${product._id}${selKey ? '-' + selKey : ''}${variantAttributes ? '-' + JSON.stringify(variantAttributes) : ''}`;
         const existingIndex = items.findIndex((item) => item.key === key);
 
         if (existingIndex > -1) {
@@ -20,7 +21,7 @@ const useCartStore = create(
           toast.success('Cart updated');
         } else {
           set({
-            items: [...items, { key, product, quantity, variantAttributes }],
+            items: [...items, { key, product, quantity, variantAttributes, selections }],
             isOpen: true,
           });
           toast.success('Added to cart');

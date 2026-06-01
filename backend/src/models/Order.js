@@ -6,6 +6,7 @@ const OrderItemSchema = new mongoose.Schema({
   image:             { type: String, default: '' },
   sku:               { type: String, default: '' },
   variantAttributes: mongoose.Schema.Types.Mixed,
+  selections:        mongoose.Schema.Types.Mixed,
   price:             { type: Number, required: true },
   quantity:          { type: Number, required: true, min: 1 },
   discount:          { type: Number, default: 0 },

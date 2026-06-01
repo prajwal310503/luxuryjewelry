@@ -370,6 +370,15 @@ export default function AdminQuotes() {
                                       <div className="flex-1 min-w-0">
                                         <p className="text-sm font-semibold text-gray-800 truncate">{item.productName}</p>
                                         <p className="text-xs text-gray-500">Qty: <strong>{item.quantity}</strong>{item.sku && <> · SKU: {item.sku}</>}</p>
+                                        {item.selections && (
+                                          <div className="flex flex-wrap gap-1 mt-1">
+                                            {Object.entries(item.selections).map(([k, v]) => (
+                                              <span key={k} className="text-[10px] bg-luxury-cream border border-gray-100 px-2 py-0.5 rounded-full text-gray-600 font-medium">
+                                                {k === 'size' ? `Size ${v}` : k === 'length' ? `Length ${v}` : k === 'stoneColor' ? `Stone: ${v}` : k === 'paymentMode' ? `Pay: ${v}` : `${k}: ${v}`}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        )}
                                       </div>
                                       <div className="text-right flex-shrink-0">
                                         {item.originalPrice != null && <p className="text-xs text-gray-400">Listed: <span className="font-medium">{fmt(item.originalPrice)}</span></p>}

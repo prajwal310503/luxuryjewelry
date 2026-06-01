@@ -6,8 +6,9 @@ const QuoteItemSchema = new mongoose.Schema({
   sku:           { type: String, default: '' },
   image:         { type: String, default: '' },
   quantity:      { type: Number, required: true, min: 1 },
-  unitPrice:     { type: Number, default: null }, // set by admin when quoting
-  originalPrice: { type: Number, default: null }, // price from storefront
+  selections:    mongoose.Schema.Types.Mixed,
+  unitPrice:     { type: Number, default: null },
+  originalPrice: { type: Number, default: null },
 }, { _id: true });
 
 const AddressSchema = new mongoose.Schema({

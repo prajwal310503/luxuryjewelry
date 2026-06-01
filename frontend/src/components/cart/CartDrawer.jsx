@@ -98,9 +98,12 @@ export default function CartDrawer() {
                               {item.product.title}
                             </h4>
                           </Link>
-                          {item.variantAttributes && (
+                          {(item.variantAttributes || item.selections) && (
                             <p className="text-xs text-gray-400 mt-0.5">
-                              {Object.values(item.variantAttributes).join(' · ')}
+                              {[
+                                ...(item.variantAttributes ? Object.values(item.variantAttributes) : []),
+                                ...(item.selections ? Object.entries(item.selections).map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`) : []),
+                              ].join(' · ')}
                             </p>
                           )}
                           <div className="flex items-center justify-between mt-2">

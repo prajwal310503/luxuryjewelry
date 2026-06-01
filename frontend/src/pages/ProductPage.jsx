@@ -474,7 +474,17 @@ export default function ProductPage() {
     if (needsLength && !selectedLength) return toast.error('Please select a length');
     if (needsColor && !selectedStoneColor) return toast.error('Please select a stone color');
     if (!selectedPayment) return toast.error('Please select a payment method');
-    addItem(product, qty, Object.keys(selectedAttrs).length ? selectedAttrs : null);
+    const selections = {};
+    if (selectedSize)       selections.size        = selectedSize;
+    if (selectedLength)     selections.length      = `${selectedLength}"`;
+    if (selectedStoneColor) selections.stoneColor  = selectedStoneColor;
+    if (selectedPayment)    selections.paymentMode = selectedPayment;
+    addItem(
+      product,
+      qty,
+      Object.keys(selectedAttrs).length ? selectedAttrs : null,
+      Object.keys(selections).length ? selections : null
+    );
   };
 
   const handleShare = async () => {

@@ -219,6 +219,15 @@ export default function QuoteDetailPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm text-gray-800">{item.productName}</p>
                   {item.sku && <p className="text-xs text-gray-400 mt-0.5">SKU: {item.sku}</p>}
+                  {item.selections && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {Object.entries(item.selections).map(([k, v]) => (
+                        <span key={k} className="text-[10px] bg-luxury-cream border border-gray-100 px-2 py-0.5 rounded-full text-gray-600 font-medium">
+                          {k === 'size' ? `Size ${v}` : k === 'length' ? `Length ${v}` : k === 'stoneColor' ? `Stone: ${v}` : k === 'paymentMode' ? `Pay: ${v}` : `${k}: ${v}`}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <p className="text-xs text-gray-400 mt-1">Qty: {item.quantity}</p>
                   {item.originalPrice && (
                     <p className="text-xs text-gray-500 mt-0.5">

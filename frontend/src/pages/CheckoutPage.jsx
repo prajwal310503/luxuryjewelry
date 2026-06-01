@@ -107,12 +107,14 @@ export default function CheckoutPage() {
     setLoading(true);
     try {
       const orderItems = items.map((item) => ({
-        product:  item.product._id,
-        title:    item.product.title,
-        sku:      item.product.sku || '',
-        image:    item.product.images?.[0]?.url || '',
-        price:    item.product.discountedPrice ?? item.product.price,
-        quantity: item.quantity,
+        product:           item.product._id,
+        title:             item.product.title,
+        sku:               item.product.sku || '',
+        image:             item.product.images?.[0]?.url || '',
+        price:             item.product.discountedPrice ?? item.product.price,
+        quantity:          item.quantity,
+        variantAttributes: item.variantAttributes || undefined,
+        selections:        item.selections || undefined,
       }));
 
       const { data } = await orderAPI.create({
@@ -141,6 +143,7 @@ export default function CheckoutPage() {
         image:         item.product.images?.[0]?.url || '',
         quantity:      item.quantity,
         originalPrice: item.product.discountedPrice ?? item.product.price,
+        selections:    item.selections || undefined,
       }));
 
       const { data } = await quoteAPI.create({
@@ -309,8 +312,14 @@ export default function CheckoutPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-gray-800 line-clamp-2">{item.product.title}</p>
-                            {item.variantAttributes && (
-                              <p className="text-xs text-gray-400 mt-0.5">{Object.values(item.variantAttributes).join(' · ')}</p>
+                            {item.selections && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {Object.entries(item.selections).map(([k, v]) => (
+                                  <span key={k} className="text-[10px] bg-luxury-cream border border-gray-100 px-2 py-0.5 rounded-full text-gray-600 font-medium">
+                                    {k === 'size' ? `Size ${v}` : k === 'length' ? `Length ${v}` : k === 'stoneColor' ? `Stone: ${v}` : k === 'paymentMode' ? `Pay: ${v}` : `${k}: ${v}`}
+                                  </span>
+                                ))}
+                              </div>
                             )}
                             <p className="text-xs text-gray-400 mt-0.5">Qty: {item.quantity}</p>
                           </div>
