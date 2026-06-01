@@ -6,13 +6,13 @@ import toast from 'react-hot-toast';
 import { supportAPI } from '../services/api';
 
 const REASONS = [
-  { value: 'order-review',     label: 'Order Review' },
-  { value: 'product-inquiry',  label: 'Product Inquiry' },
-  { value: 'payment-issue',    label: 'Payment Issue' },
-  { value: 'shipping',         label: 'Shipping' },
-  { value: 'return-exchange',  label: 'Return / Exchange' },
-  { value: 'general',          label: 'General Query' },
-  { value: 'other',            label: 'Other' },
+  { value: 'order-review',    label: 'Order Review',      icon: '📦' },
+  { value: 'product-inquiry', label: 'Product Inquiry',   icon: '💎' },
+  { value: 'payment-issue',   label: 'Payment Issue',     icon: '💳' },
+  { value: 'shipping',        label: 'Shipping',          icon: '🚚' },
+  { value: 'return-exchange', label: 'Return / Exchange', icon: '🔄' },
+  { value: 'general',         label: 'General Query',     icon: '💬' },
+  { value: 'other',           label: 'Other',             icon: '📝' },
 ];
 
 const STATUS_STYLES = {
@@ -97,9 +97,23 @@ export default function MySupportPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="label-luxury">Reason *</label>
-                  <select value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} className="input-luxury">
-                    {REASONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                  </select>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {REASONS.map((r) => (
+                      <button
+                        key={r.value}
+                        type="button"
+                        onClick={() => setForm({ ...form, reason: r.value })}
+                        className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium border transition-all ${
+                          form.reason === r.value
+                            ? 'bg-primary text-white border-primary shadow-sm shadow-primary/20'
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-primary/40 hover:text-primary'
+                        }`}
+                      >
+                        <span>{r.icon}</span>
+                        {r.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <label className="label-luxury">Subject *</label>
