@@ -4,19 +4,21 @@ import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { quoteAPI } from '../services/api';
+import useAuthStore from '../store/authStore';
 
 const formatPrice = (p) => `₹${Math.round(p).toLocaleString('en-IN')}`;
 
 const STEPS = ['Address', 'Payment', 'Confirm'];
 
+const EMPTY_ADDR = { fullName: '', phone: '', addressLine1: '', addressLine2: '', city: '', state: '', pincode: '', country: 'India' };
 const ADDR_FIELDS = [
-  { key: 'fullName',     label: 'Full Name',           span: 2 },
-  { key: 'phone',        label: 'Phone Number',         span: 1 },
-  { key: 'addressLine1', label: 'Address Line 1',       span: 2 },
-  { key: 'addressLine2', label: 'Address Line 2 (Optional)', span: 2 },
-  { key: 'city',         label: 'City',                 span: 1 },
-  { key: 'state',        label: 'State',                span: 1 },
-  { key: 'pincode',      label: 'Pincode',              span: 1 },
+  { key: 'fullName',     label: 'Full Name',                span: 2, req: true },
+  { key: 'phone',        label: 'Phone Number',             span: 1, req: true },
+  { key: 'addressLine1', label: 'Address Line 1',           span: 2, req: true },
+  { key: 'addressLine2', label: 'Address Line 2 (Optional)',span: 2, req: false },
+  { key: 'city',         label: 'City',                     span: 1, req: true },
+  { key: 'state',        label: 'State',                    span: 1, req: true },
+  { key: 'pincode',      label: 'Pincode',                  span: 1, req: true },
 ];
 
 const PAYMENT_METHODS = [
@@ -33,43 +35,51 @@ const PAYMENT_METHODS = [
 ];
 
 export default function QuotePaymentPage() {
-  const { id }   = useParams();
-  const navigate = useNavigate();
+  const { id }    = useParams();
+  const navigate  = useNavigate();
+  const { user }  = useAuthStore();
+  const ADDR_KEY  = `vk_saved_addresses_${user?._id || 'guest'}`;
 
-  const [quote,   setQuote]   = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [placing, setPlacing] = useState(false);
-  const [step,    setStep]    = useState(0);
-  const [method,  setMethod]  = useState('bank_transfer');
-
-  const [address, setAddress] = useState({
-    fullName: '', phone: '', addressLine1: '', addressLine2: '',
-    city: '', state: '', pincode: '', country: 'India',
-  });
-  const [addrErrors, setAddrErrors] = useState({});
+  const [quote,          setQuote]          = useState(null);
+  const [loading,        setLoading]        = useState(true);
+  const [placing,        setPlacing]        = useState(false);
+  const [step,           setStep]           = useState(0);
+  const [method,         setMethod]         = useState('bank_transfer');
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [showNewForm,    setShowNewForm]    = useState(false);
+  const [addrModalOpen,  setAddrModalOpen]  = useState(false);
+  const [modalSelected,  setModalSelected]  = useState(0);
+  const [address,        setAddress]        = useState({ ...EMPTY_ADDR });
+  const [addrErrors,     setAddrErrors]     = useState({});
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    // Load saved addresses
+    try {
+      const stored = JSON.parse(localStorage.getItem(ADDR_KEY) || '[]');
+      if (stored.length > 0) { setSavedAddresses(stored); setAddress(stored[0]); }
+      else setShowNewForm(true);
+    } catch { setShowNewForm(true); }
+
     quoteAPI.getById(id)
       .then(({ data }) => {
         const q = data.data;
-        if (q.status !== 'confirmed') {
-          toast.error('This quote has not been confirmed yet.');
-          navigate('/my-quotes');
-          return;
-        }
-        if (q.orderId) {
-          navigate(`/orders/${q.orderId._id || q.orderId}`);
-          return;
-        }
+        if (q.status !== 'confirmed') { toast.error('This quote has not been confirmed yet.'); navigate('/my-quotes'); return; }
+        if (q.orderId) { navigate(`/orders/${q.orderId._id || q.orderId}`); return; }
         setQuote(q);
-        if (q.shippingAddress?.fullName) {
-          setAddress({ country: 'India', ...q.shippingAddress });
-        }
       })
       .catch(() => { toast.error('Quote not found'); navigate('/my-quotes'); })
       .finally(() => setLoading(false));
   }, [id, navigate]);
+
+  const persistAddress = (addr) => {
+    const deduped = savedAddresses.filter(
+      (a) => !(a.addressLine1 === addr.addressLine1 && a.pincode === addr.pincode)
+    );
+    const updated = [addr, ...deduped].slice(0, 4);
+    setSavedAddresses(updated);
+    localStorage.setItem(ADDR_KEY, JSON.stringify(updated));
+  };
 
   const validateAddress = () => {
     const required = ['fullName', 'phone', 'addressLine1', 'city', 'state', 'pincode'];
@@ -174,45 +184,71 @@ export default function QuotePaymentPage() {
 
               {/* Step 0 — Address */}
               {step === 0 && (
-                <motion.div
-                  key="address"
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 16 }}
-                  transition={{ duration: 0.2 }}
-                  className="card-luxury p-6"
-                >
-                  <h2 className="font-heading text-xl font-semibold mb-1">Delivery Address</h2>
-                  <p className="text-sm text-gray-400 mb-6">Confirm or update your delivery address.</p>
+                <motion.div key="address" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 16 }} transition={{ duration: 0.2 }} className="card-luxury p-6">
+                  <h2 className="font-heading text-xl font-semibold mb-6">Delivery Address</h2>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {ADDR_FIELDS.map(({ key, label, span }) => (
-                      <div key={key} className={span === 2 ? 'sm:col-span-2' : ''}>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                          {label}
-                          {key !== 'addressLine2' && <span className="text-red-500 ml-0.5">*</span>}
-                        </label>
-                        <input
-                          type="text"
-                          value={address[key]}
-                          onChange={(e) => {
-                            setAddress({ ...address, [key]: e.target.value });
-                            if (addrErrors[key]) setAddrErrors({ ...addrErrors, [key]: '' });
-                          }}
-                          placeholder={label}
-                          className={`input-luxury w-full transition-all ${addrErrors[key] ? 'border-red-400 focus:border-red-500' : ''}`}
-                        />
-                        {addrErrors[key] && <p className="text-xs text-red-500 mt-1">{addrErrors[key]}</p>}
+                  {savedAddresses.length > 0 && !showNewForm ? (
+                    <div>
+                      <div className="border-2 border-primary rounded-xl p-4 mb-4 bg-primary/5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-800">{address.fullName} &bull; {address.phone}</p>
+                            <p className="text-sm text-gray-600 mt-1 leading-relaxed">
+                              {address.addressLine1}{address.addressLine2 && `, ${address.addressLine2}`}<br />
+                              {address.city}, {address.state} – {address.pincode}
+                            </p>
+                          </div>
+                          <span className="text-[10px] font-bold bg-primary text-white px-2 py-0.5 rounded-full flex-shrink-0">DEFAULT</span>
+                        </div>
+                        <div className="flex gap-3 mt-4">
+                          <button type="button" onClick={() => { setModalSelected(0); setAddrModalOpen(true); }}
+                            className="text-xs font-medium text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary/5 transition-colors">
+                            Change Address
+                          </button>
+                          {savedAddresses.length < 4 && (
+                            <button type="button" onClick={() => { setAddress({ ...EMPTY_ADDR }); setShowNewForm(true); }}
+                              className="text-xs font-medium text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors">
+                              + Add New
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-
-                  <button type="button" onClick={goNext} className="btn-primary mt-6 w-full justify-center py-3.5 text-sm">
-                    Continue
-                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
+                      <button type="button" onClick={goNext} className="btn-primary w-full justify-center py-3.5 text-sm">
+                        Continue
+                        <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      {savedAddresses.length > 0 && (
+                        <button type="button" onClick={() => setShowNewForm(false)}
+                          className="flex items-center gap-1.5 text-xs text-primary font-medium mb-4 hover:underline">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                          Back to saved addresses
+                        </button>
+                      )}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {ADDR_FIELDS.map(({ key, label, span, req }) => (
+                          <div key={key} className={span === 2 ? 'sm:col-span-2' : ''}>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                              {label}{req && <span className="text-red-500 ml-0.5">*</span>}
+                            </label>
+                            <input type="text" value={address[key]}
+                              onChange={(e) => { setAddress({ ...address, [key]: e.target.value }); if (addrErrors[key]) setAddrErrors({ ...addrErrors, [key]: '' }); }}
+                              placeholder={label}
+                              className={`input-luxury w-full transition-all ${addrErrors[key] ? 'border-red-400 focus:border-red-500' : ''}`}
+                            />
+                            {addrErrors[key] && <p className="text-xs text-red-500 mt-1">{addrErrors[key]}</p>}
+                          </div>
+                        ))}
+                      </div>
+                      <button type="button" onClick={() => { if (validateAddress()) { persistAddress(address); setShowNewForm(false); goNext(); } }}
+                        className="btn-primary mt-6 w-full justify-center py-3.5 text-sm">
+                        Save & Continue
+                        <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+                      </button>
+                    </div>
+                  )}
                 </motion.div>
               )}
 
@@ -418,6 +454,53 @@ export default function QuotePaymentPage() {
           </div>
         </div>
       </div>
+
+      {/* Address selection modal */}
+      <AnimatePresence>
+        {addrModalOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            onClick={() => setAddrModalOpen(false)}>
+            <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 40 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
+              onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-heading text-lg font-semibold">Select Address</h3>
+                <button type="button" onClick={() => setAddrModalOpen(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+              </div>
+              <div className="space-y-3 mb-5">
+                {savedAddresses.map((addr, idx) => (
+                  <button key={idx} type="button" onClick={() => setModalSelected(idx)}
+                    className={`w-full text-left p-4 rounded-xl border-2 transition-all ${modalSelected === idx ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <div className="flex items-start gap-3">
+                      <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${modalSelected === idx ? 'border-primary' : 'border-gray-300'}`}>
+                        {modalSelected === idx && <div className="w-2 h-2 rounded-full bg-primary" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-800">{addr.fullName} &bull; {addr.phone}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{addr.addressLine1}, {addr.city}, {addr.state} – {addr.pincode}</p>
+                        {idx === 0 && <span className="text-[10px] font-bold text-primary mt-1 inline-block">DEFAULT</span>}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-3">
+                {savedAddresses.length < 4 && (
+                  <button type="button" onClick={() => { setAddrModalOpen(false); setAddress({ ...EMPTY_ADDR }); setShowNewForm(true); }}
+                    className="btn-outline flex-1 justify-center text-sm">+ Add New</button>
+                )}
+                <button type="button" onClick={() => { setAddress(savedAddresses[modalSelected]); setAddrModalOpen(false); }}
+                  className="btn-primary flex-1 justify-center text-sm">Use This Address</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
