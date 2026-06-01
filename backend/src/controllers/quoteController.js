@@ -148,15 +148,26 @@ exports.respondToQuote = async (req, res, next) => {
     }
 
     if (items && Array.isArray(items)) {
-      quote.items = items.map((item) => ({
-        product:       item.product?._id || item.product || null,
-        productName:   (item.productName || '').trim(),
-        sku:           item.sku || '',
-        image:         item.image || '',
-        quantity:      parseInt(item.quantity) || 1,
-        unitPrice:     item.unitPrice != null ? parseFloat(item.unitPrice) : null,
-        originalPrice: item.originalPrice != null ? parseFloat(item.originalPrice) : null,
-      }));
+      // Build a map of existing items to preserve selections
+      const existingMap = {};
+      quote.items.forEach((it) => {
+        const key = it.product?.toString() || it.productName;
+        if (key) existingMap[key] = it.selections;
+      });
+
+      quote.items = items.map((item) => {
+        const key = item.product?._id || item.product || item.productName;
+        return {
+          product:       item.product?._id || item.product || null,
+          productName:   (item.productName || '').trim(),
+          sku:           item.sku || '',
+          image:         item.image || '',
+          quantity:      parseInt(item.quantity) || 1,
+          selections:    item.selections || existingMap[key?.toString()] || undefined,
+          unitPrice:     item.unitPrice != null ? parseFloat(item.unitPrice) : null,
+          originalPrice: item.originalPrice != null ? parseFloat(item.originalPrice) : null,
+        };
+      });
     }
 
     if (adminResponse !== undefined) quote.adminResponse = adminResponse;
