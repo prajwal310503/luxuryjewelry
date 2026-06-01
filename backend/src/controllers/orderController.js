@@ -30,15 +30,16 @@ exports.createOrder = async (req, res, next) => {
       const itemSubtotal = price * item.quantity;
 
       orderItems.push({
-        product: product._id,
-        title: product.title,
-        image: product.images[0]?.url || '',
-        sku: product.sku,
+        product:           product._id,
+        title:             product.title,
+        image:             product.images[0]?.url || '',
+        sku:               product.sku,
         variantAttributes: item.variantAttributes,
+        selections:        item.selections || undefined,
         price,
-        quantity: item.quantity,
-        discount: product.discount,
-        subtotal: itemSubtotal,
+        quantity:          item.quantity,
+        discount:          product.discount,
+        subtotal:          itemSubtotal,
       });
 
       subtotal += itemSubtotal;

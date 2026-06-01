@@ -24,6 +24,7 @@ exports.createQuote = async (req, res, next) => {
         sku:           item.sku || '',
         image:         item.image || '',
         quantity:      qty,
+        selections:    item.selections || undefined,
         unitPrice:     null,
         originalPrice: item.originalPrice != null ? parseFloat(item.originalPrice) : null,
       });
