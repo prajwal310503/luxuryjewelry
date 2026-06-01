@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import SelectionBadges from '../components/product/SelectionBadges';
 import { useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -312,15 +313,7 @@ export default function CheckoutPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-gray-800 line-clamp-2">{item.product.title}</p>
-                            {item.selections && (
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {Object.entries(item.selections).map(([k, v]) => (
-                                  <span key={k} className="text-[10px] bg-luxury-cream border border-gray-100 px-2 py-0.5 rounded-full text-gray-600 font-medium">
-                                    {k === 'size' ? `Size ${v}` : k === 'length' ? `Length ${v}` : k === 'stoneColor' ? `Stone: ${v}` : k === 'paymentMode' ? `Pay: ${v}` : `${k}: ${v}`}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
+                            <SelectionBadges selections={item.selections} />
                             <p className="text-xs text-gray-400 mt-0.5">Qty: {item.quantity}</p>
                           </div>
                           <p className="price-tag text-sm font-semibold flex-shrink-0">{formatPrice(price * item.quantity)}</p>

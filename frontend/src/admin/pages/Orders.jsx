@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
+import SelectionBadges from '../../components/product/SelectionBadges';
 import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { orderAPI, adminAPI, productAPI } from '../../services/api';
@@ -393,15 +394,7 @@ function OrderDetail({ order, onUpdateStatus }) {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-800 truncate">{it.title || it.productName}</p>
                 <p className="text-xs text-gray-400">{it.sku && `SKU: ${it.sku} · `}Qty: {it.quantity}</p>
-                {it.selections && (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {Object.entries(it.selections).map(([k, v]) => (
-                      <span key={k} className="text-[10px] bg-luxury-cream border border-gray-100 px-2 py-0.5 rounded-full text-gray-600 font-medium">
-                        {k === 'size' ? `Size ${v}` : k === 'length' ? `Length ${v}` : k === 'stoneColor' ? `Stone: ${v}` : k === 'paymentMode' ? `Pay: ${v}` : `${k}: ${v}`}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                <SelectionBadges selections={it.selections} />
               </div>
               <div className="text-right flex-shrink-0">
                 <p className="text-sm font-bold text-gray-800">{fmt((it.price || 0) * it.quantity)}</p>
