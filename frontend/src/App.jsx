@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import useAuthStore from './store/authStore';
 import PageLoader from './components/ui/PageLoader';
 
@@ -64,15 +64,23 @@ const AdminUsers = lazy(() => import('./admin/pages/Users'));
 const AdminQuotes = lazy(() => import('./admin/pages/Quotes'));
 
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+}
+
 export default function App() {
   const { fetchMe, token } = useAuthStore();
 
   useEffect(() => {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     if (token) fetchMe();
   }, []);
 
   return (
     <Suspense fallback={<PageLoader />}>
+      <ScrollToTop />
       <Routes>
         {/* Storefront */}
         <Route element={<StorefrontLayout />}>
