@@ -35,6 +35,7 @@ export default function CheckoutPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('quote');
   const [loading, setLoading] = useState(false);
+  const [quoteConfirmOpen, setQuoteConfirmOpen] = useState(false);
   const [errors, setErrors] = useState({});
 
   const [savedAddresses, setSavedAddresses] = useState([]);
@@ -407,7 +408,7 @@ export default function CheckoutPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={paymentMethod === 'cod' ? handlePlaceOrder : handleRequestQuote}
+                      onClick={paymentMethod === 'cod' ? handlePlaceOrder : () => setQuoteConfirmOpen(true)}
                       disabled={loading}
                       className="btn-primary flex-1 justify-center py-3.5 disabled:opacity-60"
                     >
@@ -568,6 +569,74 @@ export default function CheckoutPage() {
                   onClick={() => { setAddress(savedAddresses[modalSelected]); setAddrModalOpen(false); }}
                   className="btn-primary flex-1 justify-center text-sm">
                   Use This Address
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Quote confirmation popup ──────────────────────────────────────── */}
+      <AnimatePresence>
+        {quoteConfirmOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={() => setQuoteConfirmOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Icon */}
+              <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-7 h-7 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+
+              <h3 className="font-heading text-xl font-semibold text-gray-900 text-center mb-2">
+                Before You Request a Quote
+              </h3>
+              <p className="text-sm text-gray-500 text-center mb-5 leading-relaxed">
+                Please note that the final <strong className="text-gray-700">price, weight, and material</strong> may vary based on the quantity ordered and your selected customisation options.
+              </p>
+
+              {/* Key points */}
+              <div className="space-y-2.5 mb-6">
+                {[
+                  { icon: '⚖️', text: 'Weight may change based on final quantity' },
+                  { icon: '💎', text: 'Material grade adjusted per order specifications' },
+                  { icon: '💰', text: 'Final amount confirmed after admin review' },
+                ].map((pt) => (
+                  <div key={pt.text} className="flex items-start gap-3 bg-gray-50 rounded-xl px-4 py-3">
+                    <span className="text-lg leading-none mt-0.5">{pt.icon}</span>
+                    <p className="text-sm text-gray-600">{pt.text}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setQuoteConfirmOpen(false)}
+                  className="btn-outline flex-1 justify-center"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setQuoteConfirmOpen(false); handleRequestQuote(); }}
+                  disabled={loading}
+                  className="btn-primary flex-1 justify-center disabled:opacity-60"
+                >
+                  {loading ? 'Submitting...' : 'Yes, Request Quote'}
                 </button>
               </div>
             </motion.div>
