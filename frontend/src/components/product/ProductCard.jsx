@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import useWishlistStore from '../../store/wishlistStore';
 import useCartStore from '../../store/cartStore';
@@ -55,7 +55,7 @@ const StarRating = ({ rating, count }) => (
 
 export default function ProductCard({ product, className = '', index = 0 }) {
   const { toggleItem, isInWishlist } = useWishlistStore();
-  const { addItem } = useCartStore();
+  const navigate = useNavigate();
   const [activeSwatch, setActiveSwatch] = useState(0);
 
   const primaryImage  = product.images?.find((img) => img.isPrimary) || product.images?.[0];
@@ -180,7 +180,7 @@ export default function ProductCard({ product, className = '', index = 0 }) {
         {/* Add to Cart slide-up */}
         <div className="absolute inset-x-0 bottom-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
           <button
-            onClick={(e) => { e.preventDefault(); addItem(product); }}
+            onClick={(e) => { e.preventDefault(); navigate(`/products/${product.slug}`); }}
             className="w-full text-white text-sm font-bold py-2.5 rounded-xl transition-all duration-200 hover:opacity-90 active:scale-95"
             style={{
               background: 'linear-gradient(135deg, #5a413f 0%, #3a2927 100%)',
