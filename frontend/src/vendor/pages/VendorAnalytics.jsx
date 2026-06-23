@@ -76,6 +76,7 @@ export function VendorAddProduct() {
   const { id } = useParams();
   const [form, setForm] = useState({ title: '', description: '', price: '', stock: 10, category: '', purity: '22kt', metalWeight: 1 });
   const [categories, setCategories] = useState([]);
+  const [images, setImages] = useState([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -88,17 +89,22 @@ export function VendorAddProduct() {
     e.preventDefault();
     setSaving(true);
     try {
-      const payload = { ...form, price: +form.price, stock: +form.stock, metalWeight: +form.metalWeight };
-      if (!payload.category) {
+      if (!form.category) {
         toast.error('Please select a category');
         setSaving(false);
         return;
       }
+      const fd = new FormData();
+      Object.entries({ ...form, price: form.price, stock: form.stock, metalWeight: form.metalWeight }).forEach(([k, v]) => {
+        if (v !== '' && v != null) fd.append(k, v);
+      });
+      images.forEach((file) => fd.append('images', file));
+
       if (id) {
-        await axios.put(`${API}/vendor/products/${id}`, payload, { withCredentials: true });
+        await axios.put(`${API}/vendor/products/${id}`, fd, { withCredentials: true });
         toast.success('Product updated');
       } else {
-        await axios.post(`${API}/vendor/products`, payload, { withCredentials: true });
+        await axios.post(`${API}/vendor/products`, fd, { withCredentials: true });
         toast.success('Product submitted for review');
       }
       navigate('/vendor/products');
@@ -124,6 +130,11 @@ export function VendorAddProduct() {
             <input type="number" className="input-luxury" placeholder="Stock" value={form.stock} onChange={(e) => set('stock', e.target.value)} />
             <input className="input-luxury" placeholder="Purity e.g. 22kt" value={form.purity} onChange={(e) => set('purity', e.target.value)} />
             <input type="number" className="input-luxury" placeholder="Weight (g)" value={form.metalWeight} onChange={(e) => set('metalWeight', e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Product Images</label>
+            <input type="file" accept="image/*" multiple className="input-luxury w-full text-sm" onChange={(e) => setImages(Array.from(e.target.files || []))} />
+            {images.length > 0 && <p className="text-xs text-gray-400 mt-1">{images.length} image(s) selected</p>}
           </div>
           <button type="submit" disabled={saving} className="btn-primary w-full">{saving ? 'Saving...' : 'Save Product'}</button>
         </form>

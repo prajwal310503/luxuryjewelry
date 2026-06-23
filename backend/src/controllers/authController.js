@@ -16,16 +16,18 @@ exports.register = async (req, res, next) => {
       return sendError(res, 400, 'Email already registered');
     }
 
-    const user = await User.create({ name, email, password, phone, role: 'retailer' });
+    const user = await User.create({ name, email, password, phone, role: role || 'customer' });
 
-    // Send verification email
-    try {
-      const verificationToken = user.getEmailVerificationToken();
-      await user.save({ validateBeforeSave: false });
-      const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
-      await sendWelcomeEmail(user, verificationUrl);
-    } catch (_) {
-      // Non-critical — continue
+    // Send verification email for customers/retailers
+    if (['customer', 'retailer'].includes(user.role)) {
+      try {
+        const verificationToken = user.getEmailVerificationToken();
+        await user.save({ validateBeforeSave: false });
+        const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
+        await sendWelcomeEmail(user, verificationUrl);
+      } catch (_) {
+        // Non-critical — continue
+      }
     }
 
     sendTokenResponse(user, 201, res, 'Account created successfully');
@@ -57,6 +59,10 @@ exports.login = async (req, res, next) => {
 
     if (!user.isActive) {
       return sendError(res, 403, 'Account has been deactivated. Contact support.');
+    }
+
+    if (['customer', 'retailer'].includes(user.role) && !user.isEmailVerified) {
+      return sendError(res, 403, 'Please verify your email before logging in. Check your inbox or request a new link.');
     }
 
     user.lastLogin = Date.now();
@@ -167,6 +173,30 @@ exports.verifyEmail = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     sendSuccess(res, 200, 'Email verified successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Resend email verification
+// @route   POST /api/auth/resend-verification
+// @access  Public
+exports.resendVerification = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) return sendError(res, 400, 'Email is required');
+
+    const user = await User.findOne({ email });
+    if (!user || user.isEmailVerified) {
+      return sendSuccess(res, 200, 'If an unverified account exists, a verification email has been sent');
+    }
+
+    const verificationToken = user.getEmailVerificationToken();
+    await user.save({ validateBeforeSave: false });
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
+    await sendWelcomeEmail(user, verificationUrl);
+
+    sendSuccess(res, 200, 'Verification email sent');
   } catch (error) {
     next(error);
   }

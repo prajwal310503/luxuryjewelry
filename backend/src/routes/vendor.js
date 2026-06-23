@@ -27,6 +27,7 @@ const {
 const vendorAuth = [protect, authorize('vendor')];
 const adminAuth  = [protect, authorize('admin')];
 const storeUpload = uploadProduct.fields([{ name: 'logo', maxCount: 1 }, { name: 'banner', maxCount: 1 }]);
+const productUpload = uploadProduct.fields([{ name: 'images', maxCount: 6 }]);
 
 router.post(
   '/register',
@@ -45,8 +46,8 @@ router.get('/dashboard',          ...vendorAuth, getVendorDashboard);
 router.get('/store',              ...vendorAuth, getMyStore);
 router.put('/store',              ...vendorAuth, storeUpload, updateMyStore);
 router.get('/products',           ...vendorAuth, getVendorProducts);
-router.post('/products',          ...vendorAuth, createVendorProduct);
-router.put('/products/:id',       ...vendorAuth, updateVendorProduct);
+router.post('/products',          ...vendorAuth, productUpload, createVendorProduct);
+router.put('/products/:id',       ...vendorAuth, productUpload, updateVendorProduct);
 router.delete('/products/:id',    ...vendorAuth, deleteVendorProduct);
 router.get('/orders',             ...vendorAuth, getVendorOrders);
 router.put('/orders/:id/status',  ...vendorAuth, updateOrderStatus);

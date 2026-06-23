@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../../store/authStore';
+import { authAPI, orderAPI } from '../../services/api';
+import toast from 'react-hot-toast';
 
 const inputCls = (err) =>
   `input-luxury w-full h-11 pl-10 pr-4 text-sm text-gray-800 placeholder:text-gray-400 ${err ? 'border-red-400 focus:ring-red-200' : ''}`;
@@ -33,6 +35,8 @@ export default function LoginPage() {
   const [form, setForm]       = useState({ email: '', password: '' });
   const [errors, setErrors]   = useState({});
   const [serverErr, setServerErr] = useState('');
+  const [needsVerify, setNeedsVerify] = useState(false);
+  const [resending, setResending] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const { login, loading }    = useAuthStore();
   const navigate = useNavigate();
@@ -55,6 +59,7 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setServerErr('');
+    setNeedsVerify(false);
     const e2 = validate();
     if (Object.keys(e2).length) { setErrors(e2); return; }
     setErrors({});
@@ -71,7 +76,21 @@ export default function LoginPage() {
         } else navigate('/');
       }
     } catch (err) {
-      setServerErr(err?.message || 'Invalid email or password. Please try again.');
+      const msg = err?.response?.data?.message || err?.message || 'Invalid email or password. Please try again.';
+      setServerErr(msg);
+      setNeedsVerify(/verify/i.test(msg));
+    }
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    try {
+      await authAPI.resendVerification(form.email);
+      toast.success('Verification email sent. Check your inbox.');
+    } catch {
+      toast.error('Could not send verification email');
+    } finally {
+      setResending(false);
     }
   };
 
@@ -95,12 +114,19 @@ export default function LoginPage() {
         {serverErr && (
           <motion.div
             initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="mb-4 flex items-center gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3"
+            className="mb-4 flex flex-col gap-1 bg-red-50 border border-red-200 rounded-xl px-4 py-3"
           >
+            <div className="flex items-center gap-2.5">
             <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
             <p className="text-sm text-red-700">{serverErr}</p>
+            </div>
+            {needsVerify && (
+              <button type="button" onClick={handleResend} disabled={resending} className="ml-6 text-xs font-semibold text-primary hover:underline text-left">
+                {resending ? 'Sending...' : 'Resend verification email'}
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

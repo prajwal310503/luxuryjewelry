@@ -177,8 +177,6 @@ export default function AdminAddProduct() {
             deliveryDays: p.deliveryDays || '',
             sizesEnabled: p.sizes?.enabled || false,
             sizesAvailable: p.sizes?.available || [],
-            lengthEnabled: p.lengths?.enabled || false,
-            lengthAvailable: p.lengths?.available || [],
             stoneColors: p.stoneColors || [],
             diamondClarity: typeof p.diamondClarity === 'string' ? p.diamondClarity : '',
           });

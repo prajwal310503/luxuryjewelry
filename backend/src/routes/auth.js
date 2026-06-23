@@ -12,6 +12,7 @@ const {
   forgotPassword,
   resetPassword,
   verifyEmail,
+  resendVerification,
   updatePassword,
   updateProfile,
   updateAddresses,
@@ -43,6 +44,7 @@ router.get('/me', protect, getMe);
 router.post('/forgot-password', body('email').isEmail(), validate, forgotPassword);
 router.put('/reset-password/:token', body('password').isLength({ min: 6 }), validate, resetPassword);
 router.get('/verify-email/:token', verifyEmail);
+router.post('/resend-verification', body('email').isEmail(), validate, resendVerification);
 router.put('/update-password', protect, body('currentPassword').notEmpty(), body('newPassword').isLength({ min: 6 }), validate, updatePassword);
 router.put('/profile', protect, uploadAvatar.single('avatar'), updateProfile);
 router.put('/addresses', protect, updateAddresses);

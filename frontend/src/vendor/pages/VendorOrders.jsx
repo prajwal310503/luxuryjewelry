@@ -4,6 +4,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import VendorLayout from '../components/VendorLayout';
 import { EmptyStateIcon, IconBox } from '../../components/ui/Icons';
+import { orderAPI } from '../../services/api';
 
 const API = import.meta.env.VITE_API_URL || '/api';
 
@@ -84,6 +85,20 @@ export default function VendorOrders() {
       fetchOrders();
     } catch { toast.error('Failed to process request'); }
     finally { setUpdating(null); }
+  };
+
+  const downloadInvoice = async (order) => {
+    try {
+      const { data } = await orderAPI.downloadInvoice(order._id);
+      const url = window.URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoice-${order.orderNumber || order._id.slice(-8)}.pdf`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Failed to download invoice');
+    }
   };
 
   return (
@@ -168,7 +183,10 @@ export default function VendorOrders() {
                     <div>
                       <StatusBadge status={order.status} />
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex flex-col items-end gap-1">
+                      <button type="button" onClick={() => downloadInvoice(order)} className="text-xs font-semibold text-gray-500 hover:text-primary hover:underline">
+                        Invoice
+                      </button>
                       {!['delivered', 'cancelled'].includes(order.status) && (
                         <button
                           onClick={() => {

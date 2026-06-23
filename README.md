@@ -1,14 +1,8 @@
-# VK Jewellers — Premium Diamond & Gold Jewelry Platform
+# VK Jewellers — Multi-Vendor Jewelry Marketplace
 
----
+Full-stack B2C marketplace with admin panel, vendor portal, and customer storefront.
 
-## Admin Login
-
-| Field    | Value                         |
-|----------|-------------------------------|
-| URL      | `http://localhost:5173/login` (local) |
-| Email    | `admin@luxuryjewelry.com`     |
-| Password | `admin@123`                   |
+**GitHub:** https://github.com/prajwal310503/luxuryjewelry
 
 ---
 
@@ -16,9 +10,18 @@
 
 | Service  | URL |
 |----------|-----|
+| Frontend | https://vk-jewellers-arzb.vercel.app |
 | Backend  | https://vk-jewellers.onrender.com |
 | API      | https://vk-jewellers.onrender.com/api |
-| Frontend | https://vk-jewellers-arzb.vercel.app |
+
+---
+
+## Login Credentials (after seeding)
+
+| Role   | Email                   | Password    |
+|--------|-------------------------|-------------|
+| Admin  | admin@luxuryjewelry.com | admin@123   |
+| Vendor | (from seedProducts.js)  | (see .env)  |
 
 ---
 
@@ -26,114 +29,84 @@
 
 ### Prerequisites
 - Node.js 18+
-- MongoDB running locally on port `27017`
+- MongoDB Atlas (or local MongoDB)
 
 ### Backend
 ```bash
 cd backend
+cp .env.example .env   # fill in values
 npm install
-npm run dev
-# Runs on http://localhost:8000
+npm run dev            # http://localhost:8000
 ```
 
 ### Frontend
 ```bash
 cd frontend
 npm install
-npm run dev
-# Runs on http://localhost:5173
+npm run dev            # http://localhost:5173
 ```
 
-### Seed Database (first time only)
+### Seed Database (first time)
 ```bash
 cd backend
-node src/utils/seeder.js       # Categories, attributes, admin user
-node src/seedBlogs.js          # Blog posts
+node src/utils/seeder.js
+node src/utils/seedProducts.js
+node src/seedBlogs.js
 ```
 
 ---
 
-## Roles
+## Deployment
 
-| Role          | Description                                              |
-|---------------|----------------------------------------------------------|
-| `admin`       | Full access to all admin pages                           |
-| `child_admin` | Staff — access controlled via permission toggles         |
-| `retailer`    | Submit quote requests, view confirmed orders             |
+### Render (Backend)
+1. Connect repo → set **Root Directory** to `backend`
+2. **Build:** `npm install`
+3. **Start:** `node server.js`
+4. Add environment variables from `backend/.env.example`
+5. Set `FRONTEND_URL` to your Vercel URL
+6. Set `NODE_ENV=production`
 
----
+### Vercel (Frontend)
+1. Connect repo → set **Root Directory** to `frontend`
+2. Add env: `VITE_API_URL=https://your-backend.onrender.com/api`
+3. **Redeploy** after any env change (Vite bakes vars at build time)
 
-## Quote → Order Flow
-
-1. Retailer submits a quote with product names + quantities
-2. Admin reviews, edits item prices, sets total
-3. Admin confirms → Order auto-created from the quote
-4. Retailer views their order under **My Orders**
-
----
-
-## Admin Dashboard Pages
-
-| Page           | Route                    |
-|----------------|--------------------------|
-| Dashboard      | `/admin/dashboard`       |
-| Products       | `/admin/products`        |
-| Orders         | `/admin/orders`          |
-| Quotes         | `/admin/quotes`          |
-| Users & Roles  | `/admin/users`           |
-| Customers      | `/admin/customers`       |
-| Categories     | `/admin/categories`      |
-| Attributes     | `/admin/attributes`      |
-| Banners        | `/admin/banners`         |
-| Blog Posts     | `/admin/blog`            |
-| CMS Builder    | `/admin/cms-builder`     |
-| Settings       | `/admin/settings`        |
+### MongoDB Atlas
+- **Network Access** → add your IP or `0.0.0.0/0` (dev)
+- Copy connection string to `MONGO_URI` on Render
 
 ---
 
 ## Environment Variables
 
-`backend/.env`
+See `backend/.env.example` for the full list. Required for production:
 
-```env
-PORT=5000
-NODE_ENV=development
+- `MONGO_URI`, `JWT_SECRET`, `FRONTEND_URL`, `BACKEND_URL`
+- `CLOUDINARY_*` (image uploads)
+- `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` (online payments)
+- `SMTP_*`, `FROM_EMAIL` (emails)
 
-MONGO_URI=mongodb://localhost:27017/vkjewellers
-
-JWT_SECRET=your_jwt_secret
-JWT_EXPIRE=30d
-
-CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
-CLOUDINARY_API_KEY=your_cloudinary_api_key
-CLOUDINARY_API_SECRET=your_cloudinary_api_secret
-
-FRONTEND_URL=http://localhost:5173
-
-ADMIN_EMAIL=admin@luxuryjewelry.com
-ADMIN_PASSWORD=admin@123
-```
-
-`frontend/.env`
-
-```env
-VITE_API_URL=http://localhost:5000/api
-```
+Frontend only needs `VITE_API_URL`.
 
 ---
 
 ## Tech Stack
 
-| Layer    | Technology                                          |
-|----------|-----------------------------------------------------|
-| Frontend | React 18, Vite, TailwindCSS, Framer Motion, Zustand |
-| Backend  | Node.js, Express, MongoDB, Mongoose, JWT            |
-| Storage  | Cloudinary                                          |
-| Auth     | JWT + HTTP-only cookies, role-based access control  |
+| Layer    | Technology |
+|----------|------------|
+| Frontend | React 18, Vite, TailwindCSS, Zustand |
+| Backend  | Node.js, Express, MongoDB, Mongoose |
+| Auth     | JWT + Bearer token |
+| Storage  | Cloudinary |
+| Payments | Razorpay |
 
 ---
 
-## Design Tokens
+## Key Routes
 
-- **Primary:** `#5a413f` · **Gold:** `#C9A84C` · **Rose Gold:** `#B76E79`
-- **Font:** Playfair Display (headings), Inter (body)
+| Area | Routes |
+|------|--------|
+| Storefront | `/`, `/products/:slug`, `/cart`, `/checkout` |
+| Vendor | `/vendor/dashboard`, `/vendor/products`, `/vendor/orders` |
+| Admin | `/admin/dashboard`, `/admin/vendors`, `/admin/master-data` |
+| Quotes | `/my-quotes`, `/request-quote`, `/admin/quotes` |

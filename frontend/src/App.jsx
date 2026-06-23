@@ -29,6 +29,11 @@ const BlogPage = lazy(() => import('./pages/BlogPage'));
 const BlogDetailPage = lazy(() => import('./pages/BlogDetailPage'));
 const MyAddressesPage   = lazy(() => import('./pages/MyAddressesPage'));
 const MySupportPage     = lazy(() => import('./pages/MySupportPage'));
+const MyQuotesPage      = lazy(() => import('./pages/MyQuotesPage'));
+const QuoteRequestPage  = lazy(() => import('./pages/QuoteRequestPage'));
+const QuoteDetailPage   = lazy(() => import('./pages/QuoteDetailPage'));
+const QuotePaymentPage  = lazy(() => import('./pages/QuotePaymentPage'));
+const QuoteSuccessPage  = lazy(() => import('./pages/QuoteSuccessPage'));
 
 // Auth Pages
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
@@ -46,6 +51,7 @@ const AdminCategories = lazy(() => import('./admin/pages/Categories'));
 const AdminCMSBuilder = lazy(() => import('./admin/pages/CMSBuilder'));
 const AdminAddProduct = lazy(() => import('./admin/pages/AddProduct'));
 const AdminOrders = lazy(() => import('./admin/pages/Orders'));
+const AdminQuotes = lazy(() => import('./admin/pages/Quotes'));
 const AdminCustomers = lazy(() => import('./admin/pages/Customers'));
 const AdminReviews = lazy(() => import('./admin/pages/Reviews'));
 const AdminAttributes = lazy(() => import('./admin/pages/Attributes'));
@@ -164,6 +170,39 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/my-quotes"
+            element={
+              <ProtectedRoute roles={['retailer', 'customer', 'admin']}>
+                <MyQuotesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/request-quote"
+            element={
+              <ProtectedRoute roles={['retailer', 'customer', 'admin']}>
+                <QuoteRequestPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quotes/:id"
+            element={
+              <ProtectedRoute roles={['retailer', 'customer', 'admin', 'child_admin']}>
+                <QuoteDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quotes/:id/pay"
+            element={
+              <ProtectedRoute roles={['retailer', 'customer', 'admin']}>
+                <QuotePaymentPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/quote-success" element={<QuoteSuccessPage />} />
           <Route path="/order-success/:id" element={<OrderSuccessPage />} />
         </Route>
 
@@ -248,6 +287,7 @@ export default function App() {
           <Route path="support"             element={<ProtectedRoute roles={['admin', 'child_admin']}><AdminSupport /></ProtectedRoute>} />
           {/* Shared: admin + child_admin with permissions */}
           <Route path="orders"  element={<ProtectedRoute roles={['admin', 'child_admin']} permission="orders"><AdminOrders /></ProtectedRoute>} />
+          <Route path="quotes"  element={<ProtectedRoute roles={['admin', 'child_admin']} permission="quotes"><AdminQuotes /></ProtectedRoute>} />
           <Route path="vendors"     element={<ProtectedRoute roles={['admin']}><AdminVendors /></ProtectedRoute>} />
           <Route path="master-data" element={<ProtectedRoute roles={['admin']}><AdminMasterData /></ProtectedRoute>} />
           <Route path="coupons"     element={<ProtectedRoute roles={['admin']}><AdminCoupons /></ProtectedRoute>} />

@@ -644,7 +644,7 @@ export default function AdminOrders() {
                     )}
                   </Fragment>
                 );
-              })}}
+              })}
             </tbody>
           </table>
         </div>

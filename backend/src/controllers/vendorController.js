@@ -383,6 +383,27 @@ exports.adminGetVendorOrders = async (req, res, next) => {
 
 // ─── Vendor Product Management ────────────────────────────────────────────────
 
+function mapUploadedImages(files = []) {
+  return files.map((file, idx) => ({
+    url: getFileUrl(file),
+    publicId: file.filename || file.public_id || '',
+    isPrimary: idx === 0,
+    sortOrder: idx,
+  })).filter((img) => img.url);
+}
+
+function parseVendorProductBody(body) {
+  const payload = {};
+  if (body.title !== undefined) payload.title = body.title;
+  if (body.description !== undefined) payload.description = body.description;
+  if (body.category) payload.category = body.category;
+  if (body.purity !== undefined) payload.purity = body.purity;
+  if (body.price !== undefined && body.price !== '') payload.price = Number(body.price);
+  if (body.stock !== undefined && body.stock !== '') payload.stock = Number(body.stock);
+  if (body.metalWeight !== undefined && body.metalWeight !== '') payload.metalWeight = Number(body.metalWeight);
+  return payload;
+}
+
 // @route  POST /api/vendor/products
 // @access Vendor
 exports.createVendorProduct = async (req, res, next) => {
@@ -392,10 +413,18 @@ exports.createVendorProduct = async (req, res, next) => {
     if (store.status !== 'approved') return sendError(res, 403, 'Store must be approved to add products');
 
     const payload = {
-      ...req.body,
+      ...parseVendorProductBody(req.body),
       store: store._id,
       status: 'pending',
+      isActive: true,
     };
+
+    if (!payload.title || !payload.category || payload.price == null) {
+      return sendError(res, 400, 'Title, category, and price are required');
+    }
+
+    const imageFiles = req.files?.images || [];
+    if (imageFiles.length) payload.images = mapUploadedImages(imageFiles);
 
     if (!payload.slug && payload.title) {
       payload.slug = await generateUniqueProductSlug(payload.title);
@@ -419,11 +448,20 @@ exports.updateVendorProduct = async (req, res, next) => {
     const product = await Product.findOne({ _id: req.params.id, store: store._id });
     if (!product) return sendError(res, 404, 'Product not found');
 
-    Object.keys(req.body).forEach((key) => {
-      if (key !== 'store' && key !== 'vendor' && key !== 'slug') {
-        product[key] = req.body[key];
-      }
+    const updates = parseVendorProductBody(req.body);
+    Object.keys(updates).forEach((key) => {
+      product[key] = updates[key];
     });
+
+    const imageFiles = req.files?.images || [];
+    if (imageFiles.length) {
+      const newImages = mapUploadedImages(imageFiles).map((img, idx) => ({
+        ...img,
+        sortOrder: product.images.length + idx,
+        isPrimary: product.images.length === 0 && idx === 0,
+      }));
+      product.images.push(...newImages);
+    }
 
     await product.save();
     sendSuccess(res, 200, 'Product updated', product);

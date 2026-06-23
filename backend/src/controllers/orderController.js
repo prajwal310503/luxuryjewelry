@@ -190,7 +190,8 @@ exports.getOrder = async (req, res, next) => {
 
     if (!order) return sendError(res, 404, 'Order not found');
 
-    const isOwner = order.customer._id.toString() === req.user.id;
+    const customerId = order.customer?._id?.toString() || order.customer?.toString();
+    const isOwner = customerId === req.user.id;
     const isStaff = ['admin', 'child_admin', 'vendor'].includes(req.user.role);
     if (!isOwner && !isStaff) return sendError(res, 403, 'Not authorized');
 
@@ -204,11 +205,19 @@ exports.downloadInvoice = async (req, res, next) => {
   try {
     const order = await Order.findById(req.params.id).populate('customer', 'name email phone');
     if (!order) return sendError(res, 404, 'Order not found');
-    if (order.customer._id.toString() !== req.user.id && req.user.role !== 'admin') {
-      return sendError(res, 403, 'Not authorized');
-    }
 
-    const buffer = await generateInvoiceBuffer(order, order.customer);
+    const customerId = order.customer?._id?.toString() || order.customer?.toString();
+    let allowed = false;
+    if (req.user.role === 'admin') allowed = true;
+    else if (customerId === req.user.id) allowed = true;
+    else if (req.user.role === 'vendor') {
+      const store = await Store.findOne({ vendor: req.user.id }).select('_id');
+      allowed = store && order.store?.toString() === store._id.toString();
+    }
+    if (!allowed) return sendError(res, 403, 'Not authorized');
+
+    const customer = order.customer || { name: 'Customer', email: '', phone: '' };
+    const buffer = await generateInvoiceBuffer(order, customer);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=invoice-${order.orderNumber}.pdf`);
     res.send(buffer);
