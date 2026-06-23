@@ -27,11 +27,6 @@ const StorePage = lazy(() => import('./pages/StorePage'));
 const StoresListPage = lazy(() => import('./pages/StoresListPage'));
 const BlogPage = lazy(() => import('./pages/BlogPage'));
 const BlogDetailPage = lazy(() => import('./pages/BlogDetailPage'));
-const QuoteRequestPage  = lazy(() => import('./pages/QuoteRequestPage'));
-const MyQuotesPage      = lazy(() => import('./pages/MyQuotesPage'));
-const QuoteSuccessPage  = lazy(() => import('./pages/QuoteSuccessPage'));
-const QuotePaymentPage  = lazy(() => import('./pages/QuotePaymentPage'));
-const QuoteDetailPage   = lazy(() => import('./pages/QuoteDetailPage'));
 const MyAddressesPage   = lazy(() => import('./pages/MyAddressesPage'));
 const MySupportPage     = lazy(() => import('./pages/MySupportPage'));
 
@@ -61,7 +56,26 @@ const AdminStores = lazy(() => import('./admin/pages/Stores'));
 const AdminSettings = lazy(() => import('./admin/pages/Settings'));
 const AdminSupport  = lazy(() => import('./admin/pages/Support'));
 const AdminUsers = lazy(() => import('./admin/pages/Users'));
-const AdminQuotes = lazy(() => import('./admin/pages/Quotes'));
+const AdminVendors = lazy(() => import('./admin/pages/VendorManagement'));
+const AdminMasterData = lazy(() => import('./admin/pages/MasterData'));
+const AdminCoupons = lazy(() => import('./admin/pages/Coupons'));
+const AdminReports = lazy(() => import('./admin/pages/Reports'));
+
+// Marketplace / Become-a-Seller Pages
+const BecomeSellerPage = lazy(() => import('./pages/BecomeSellerPage'));
+const VendorRegisterPage = lazy(() => import('./pages/VendorRegisterPage'));
+const StaticPage = lazy(() => import('./pages/StaticPage'));
+const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
+
+// Vendor Portal Pages
+const VendorDashboard = lazy(() => import('./vendor/pages/VendorDashboard'));
+const VendorProducts  = lazy(() => import('./vendor/pages/VendorProducts'));
+const VendorOrders    = lazy(() => import('./vendor/pages/VendorOrders'));
+const VendorStore     = lazy(() => import('./vendor/pages/VendorStore'));
+const VendorPricing   = lazy(() => import('./vendor/pages/VendorPricing'));
+const VendorAnalytics = lazy(() => import('./vendor/pages/VendorAnalytics'));
+const VendorAddProduct = lazy(() => import('./vendor/pages/VendorAnalytics').then(m => ({ default: m.VendorAddProduct })));
+const VendorCouponsPage = lazy(() => import('./vendor/pages/VendorAnalytics').then(m => ({ default: m.VendorCoupons })));
 
 
 function ScrollToTop() {
@@ -93,6 +107,14 @@ export default function App() {
           <Route path="/stores/:slug" element={<StorePage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogDetailPage />} />
+          <Route path="/become-a-seller" element={<BecomeSellerPage />} />
+          <Route path="/about" element={<StaticPage pageKey="about" />} />
+          <Route path="/contact" element={<StaticPage pageKey="contact" />} />
+          <Route path="/privacy" element={<StaticPage pageKey="privacy" />} />
+          <Route path="/terms" element={<StaticPage pageKey="terms" />} />
+          <Route path="/faq" element={<StaticPage pageKey="faq" />} />
+          <Route path="/shipping" element={<StaticPage pageKey="shipping" />} />
+          <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
           <Route
             path="/checkout"
@@ -143,40 +165,48 @@ export default function App() {
             }
           />
           <Route path="/order-success/:id" element={<OrderSuccessPage />} />
-          <Route path="/quote-success/:id" element={<QuoteSuccessPage />} />
-          <Route
-            path="/my-quotes"
-            element={
-              <ProtectedRoute>
-                <MyQuotesPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/quotes/:id"
-            element={
-              <ProtectedRoute>
-                <QuoteDetailPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/quotes/:id/pay"
-            element={
-              <ProtectedRoute>
-                <QuotePaymentPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/quotes/request"
-            element={
-              <ProtectedRoute roles={['retailer']}>
-                <QuoteRequestPage />
-              </ProtectedRoute>
-            }
-          />
         </Route>
+
+        {/* Vendor Registration (public) */}
+        <Route path="/vendor/register" element={<VendorRegisterPage />} />
+
+        {/* Vendor Portal (protected: vendor role) */}
+        <Route
+          path="/vendor/dashboard"
+          element={<ProtectedRoute roles={['vendor']}><VendorDashboard /></ProtectedRoute>}
+        />
+        <Route
+          path="/vendor/products"
+          element={<ProtectedRoute roles={['vendor']}><VendorProducts /></ProtectedRoute>}
+        />
+        <Route
+          path="/vendor/orders"
+          element={<ProtectedRoute roles={['vendor']}><VendorOrders /></ProtectedRoute>}
+        />
+        <Route
+          path="/vendor/store"
+          element={<ProtectedRoute roles={['vendor']}><VendorStore /></ProtectedRoute>}
+        />
+        <Route
+          path="/vendor/pricing"
+          element={<ProtectedRoute roles={['vendor']}><VendorPricing /></ProtectedRoute>}
+        />
+        <Route
+          path="/vendor/analytics"
+          element={<ProtectedRoute roles={['vendor']}><VendorAnalytics /></ProtectedRoute>}
+        />
+        <Route
+          path="/vendor/products/add"
+          element={<ProtectedRoute roles={['vendor']}><VendorAddProduct /></ProtectedRoute>}
+        />
+        <Route
+          path="/vendor/products/edit/:id"
+          element={<ProtectedRoute roles={['vendor']}><VendorAddProduct /></ProtectedRoute>}
+        />
+        <Route
+          path="/vendor/coupons"
+          element={<ProtectedRoute roles={['vendor']}><VendorCouponsPage /></ProtectedRoute>}
+        />
 
         {/* Auth */}
         <Route element={<AuthLayout />}>
@@ -218,7 +248,10 @@ export default function App() {
           <Route path="support"             element={<ProtectedRoute roles={['admin', 'child_admin']}><AdminSupport /></ProtectedRoute>} />
           {/* Shared: admin + child_admin with permissions */}
           <Route path="orders"  element={<ProtectedRoute roles={['admin', 'child_admin']} permission="orders"><AdminOrders /></ProtectedRoute>} />
-          <Route path="quotes"  element={<ProtectedRoute roles={['admin', 'child_admin']} permission="quotes"><AdminQuotes /></ProtectedRoute>} />
+          <Route path="vendors"     element={<ProtectedRoute roles={['admin']}><AdminVendors /></ProtectedRoute>} />
+          <Route path="master-data" element={<ProtectedRoute roles={['admin']}><AdminMasterData /></ProtectedRoute>} />
+          <Route path="coupons"     element={<ProtectedRoute roles={['admin']}><AdminCoupons /></ProtectedRoute>} />
+          <Route path="reports"     element={<ProtectedRoute roles={['admin']}><AdminReports /></ProtectedRoute>} />
         </Route>
 
         {/* 404 */}

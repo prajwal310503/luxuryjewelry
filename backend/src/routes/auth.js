@@ -3,6 +3,7 @@ const router = express.Router();
 const { body } = require('express-validator');
 const validate = require('../middleware/validate');
 const { protect } = require('../middleware/auth');
+const { uploadAvatar } = require('../config/cloudinary');
 const {
   register,
   login,
@@ -12,6 +13,8 @@ const {
   resetPassword,
   verifyEmail,
   updatePassword,
+  updateProfile,
+  updateAddresses,
 } = require('../controllers/authController');
 
 router.post(
@@ -41,5 +44,7 @@ router.post('/forgot-password', body('email').isEmail(), validate, forgotPasswor
 router.put('/reset-password/:token', body('password').isLength({ min: 6 }), validate, resetPassword);
 router.get('/verify-email/:token', verifyEmail);
 router.put('/update-password', protect, body('currentPassword').notEmpty(), body('newPassword').isLength({ min: 6 }), validate, updatePassword);
+router.put('/profile', protect, uploadAvatar.single('avatar'), updateProfile);
+router.put('/addresses', protect, updateAddresses);
 
 module.exports = router;

@@ -90,6 +90,7 @@ export default function AdminDashboard() {
   const revenueChart = data?.revenueChart || [];
   const ordersByStatus = data?.ordersByStatus || [];
   const recentOrders = data?.recentOrders || [];
+  const topVendors = data?.topVendors || [];
 
   return (
     <div className="space-y-6">
@@ -133,7 +134,32 @@ export default function AdminDashboard() {
         <StatCard title="Active Vendors" value={formatNum(stats.totalVendors)} to="/admin/vendors" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2M5 21H3M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>} />
         <StatCard title="Total Products" value={formatNum(stats.totalProducts)} to="/admin/products" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 9l10 13L22 9z" /></svg>} />
         <StatCard title="Pending Products" value={formatNum(stats.pendingProducts)} to="/admin/products?status=pending" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+        <StatCard title="Today's Revenue" value={formatPrice(stats.todayRevenue)} icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+        <StatCard title="Commission (Month)" value={formatPrice(stats.commissionThisMonth)} to="/admin/reports" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg>} />
       </div>
+
+      {/* Top Vendors */}
+      {topVendors.length > 0 && (
+        <div className="card-luxury p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-heading font-semibold text-gray-800">Top Vendors This Month</h3>
+            <Link to="/admin/vendors" className="text-xs text-primary font-medium hover:underline">View All →</Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {topVendors.slice(0, 6).map((v, i) => (
+              <div key={v._id || i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                  {(v.storeName || v.name || 'V')[0]}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-gray-800 truncate">{v.storeName || v.name}</p>
+                  <p className="text-xs text-gray-500">{formatPrice(v.revenue)} · {v.orderCount || 0} orders</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

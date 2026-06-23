@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { authAPI } from '../../services/api';
+import { EmptyStateIcon, IconMail } from '../../components/ui/Icons';
 import toast from 'react-hot-toast';
 
 export default function ForgotPasswordPage() {
@@ -30,7 +31,7 @@ export default function ForgotPasswordPage() {
 
       {sent ? (
         <div className="text-center py-8">
-          <div className="text-5xl mb-4">📧</div>
+          <EmptyStateIcon Icon={IconMail} className="w-8 h-8 text-primary" />
           <h3 className="font-heading text-xl text-gray-800 mb-2">Check your inbox</h3>
           <p className="text-gray-500 text-sm mb-6">We sent a password reset link to <strong>{email}</strong></p>
           <Link to="/login" className="btn-primary">Back to Login</Link>

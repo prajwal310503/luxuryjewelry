@@ -1,8 +1,8 @@
-require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
+﻿require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
 const mongoose = require('mongoose');
 const connectDB = require('../config/db');
 const User = require('../models/User');
-const Vendor = require('../models/Vendor');
+const Store = require('../models/Store');
 const Category = require('../models/Category');
 const Product = require('../models/Product');
 
@@ -288,7 +288,7 @@ async function seedProducts() {
     let vendorUser = await User.findOne({ role: 'vendor' });
     if (!vendorUser) {
       vendorUser = await User.create({
-        name: 'VK Jewellers',
+        name: 'LUXURY JEWELRY',
         email: process.env.VENDOR || 'vendor@onsкjewelry.com',
         password: process.env.PASSWORD || 'Vendor@123456',
         role: 'vendor',
@@ -300,21 +300,23 @@ async function seedProducts() {
       console.log('ℹ️  Using existing vendor user:', vendorUser.email);
     }
 
-    // Find or create vendor profile
-    let vendor = await Vendor.findOne({ user: vendorUser._id });
-    if (!vendor) {
-      vendor = await Vendor.create({
-        user: vendorUser._id,
-        storeName: 'VK Jewellers',
-        storeSlug: 'vk-jewellers',
-        storeDescription: 'Premium gold and diamond jewelry crafted with love.',
-        businessEmail: vendorUser.email,
+    // Find or create store for vendor
+    let store = await Store.findOne({ vendor: vendorUser._id });
+    if (!store) {
+      store = await Store.create({
+        name: 'LUXURY JEWELRY',
+        slug: 'luxury-jewelry',
+        description: 'Premium gold and diamond jewelry crafted with love.',
+        email: vendorUser.email,
+        vendor: vendorUser._id,
         status: 'approved',
-        isVerified: true,
+        isActive: true,
       });
-      console.log('✅ Vendor profile created:', vendor.storeName);
+      vendorUser.store = store._id;
+      await vendorUser.save({ validateBeforeSave: false });
+      console.log('✅ Store created:', store.name);
     } else {
-      console.log('ℹ️  Using existing vendor profile:', vendor.storeName);
+      console.log('ℹ️  Using existing store:', store.name);
     }
 
     // Load all categories
@@ -345,7 +347,7 @@ async function seedProducts() {
 
       const product = new Product({
         ...productData,
-        vendor: vendor._id,
+        store: store._id,
         category: category._id,
         images: [PLACEHOLDER_IMAGE],
         status: 'approved',

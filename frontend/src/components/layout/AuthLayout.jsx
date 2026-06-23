@@ -1,4 +1,4 @@
-import { Outlet, Link } from 'react-router-dom';
+﻿import { Outlet, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import vkLogo from '../../assets/vklogo.png';
 
@@ -34,7 +34,7 @@ export default function AuthLayout() {
 
           {/* Logo — fixed at top */}
           <Link to="/" className="inline-flex items-center flex-shrink-0 group mb-auto">
-            <img src={vkLogo} alt="VK Jewellers" className="h-20 w-auto object-contain" />
+            <img src={vkLogo} alt="LUXURY JEWELRY" className="h-20 w-auto object-contain" />
           </Link>
 
           {/* Main content — centered in remaining space */}
@@ -146,7 +146,7 @@ export default function AuthLayout() {
             </div>
 
             <p className="text-center text-[11px] text-gray-400 mt-3">
-              © 2026 VK Jewellers. All rights reserved.
+              © 2026 LUXURY JEWELRY. All rights reserved.
             </p>
           </div>
         </div>

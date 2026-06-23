@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
@@ -10,14 +10,25 @@ export default function CartPage() {
   const { items, removeItem, updateQuantity, getSubtotal, getShipping, getTotal, clearCart } = useCartStore();
   const [confirmClear, setConfirmClear] = useState(false);
 
+  const grouped = useMemo(() => {
+    const map = {};
+    items.forEach((item) => {
+      const shopKey = item.product?.store?.name || item.product?.storeName || 'VK Jewellers';
+      const shopSlug = item.product?.store?.slug;
+      if (!map[shopKey]) map[shopKey] = { name: shopKey, slug: shopSlug, items: [] };
+      map[shopKey].items.push(item);
+    });
+    return Object.values(map);
+  }, [items]);
+
   if (items.length === 0) {
     return (
       <>
-        <Helmet><title>My Cart | VK Jewellers</title></Helmet>
+        <Helmet><title>My Cart | LUXURY JEWELRY</title></Helmet>
         <div className="container-luxury py-20 text-center">
           <svg className="w-16 h-16 text-gray-300 mx-auto mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
           <h2 className="font-heading text-3xl text-gray-700 mb-4">Your cart is empty</h2>
-          <p className="text-gray-400 mb-8">Discover our vk jewellers collection</p>
+          <p className="text-gray-400 mb-8">Discover our LUXURY JEWELRY collection</p>
           <Link to="/collections/rings" className="btn-primary">Start Shopping</Link>
         </div>
       </>
@@ -26,7 +37,7 @@ export default function CartPage() {
 
   return (
     <>
-      <Helmet><title>My Cart | VK Jewellers</title></Helmet>
+      <Helmet><title>My Cart | LUXURY JEWELRY</title></Helmet>
       <div className="container-luxury py-10">
         <div className="flex items-center justify-between mb-8">
           <h1 className="font-heading text-3xl font-bold">My Cart ({items.length})</h1>
@@ -40,35 +51,57 @@ export default function CartPage() {
             <button onClick={() => setConfirmClear(true)} className="text-sm text-red-500 hover:underline">Clear Cart</button>
           )}
         </div>
+
+        {grouped.length > 1 && (
+          <p className="text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 mb-6">
+            Items from {grouped.length} shops — each shop will fulfill their portion separately after checkout.
+          </p>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          <div className="lg:col-span-2 space-y-4">
-            {items.map((item) => {
-              const price = item.product.discountedPrice ?? item.product.price;
-              return (
-                <motion.div key={item.key} layout className="card-luxury p-4 flex gap-4">
-                  <Link to={`/products/${item.product.slug}`} className="w-24 h-24 rounded-xl bg-luxury-cream overflow-hidden flex-shrink-0">
-                    {item.product.images?.[0]?.url && <img src={item.product.images[0].url} alt={item.product.title} className="w-full h-full object-cover" />}
-                  </Link>
-                  <div className="flex-1">
-                    <Link to={`/products/${item.product.slug}`} className="font-medium text-gray-800 hover:text-primary text-sm line-clamp-2">{item.product.title}</Link>
-                    <p className="price-tag text-base mt-1">{formatPrice(price)}</p>
-                    <div className="flex items-center gap-4 mt-3">
-                      <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                        <button onClick={() => updateQuantity(item.key, item.quantity - 1)} className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100">−</button>
-                        <span className="w-10 text-center text-sm font-medium">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.key, item.quantity + 1)} className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100">+</button>
-                      </div>
-                      <span className="text-sm font-semibold text-gray-800">{formatPrice(price * item.quantity)}</span>
-                      <button onClick={() => removeItem(item.key)} className="text-red-400 hover:text-red-600 text-sm ml-auto">Remove</button>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
+          <div className="lg:col-span-2 space-y-6">
+            {grouped.map((group) => (
+              <div key={group.name}>
+                <div className="flex items-center gap-2 mb-3">
+                  <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349" /></svg>
+                  {group.slug ? (
+                    <Link to={`/stores/${group.slug}`} className="text-sm font-semibold text-gray-800 hover:text-primary">{group.name}</Link>
+                  ) : (
+                    <span className="text-sm font-semibold text-gray-800">{group.name}</span>
+                  )}
+                  <span className="text-xs text-gray-400">({group.items.length} item{group.items.length !== 1 ? 's' : ''})</span>
+                </div>
+                <div className="space-y-4">
+                  {group.items.map((item) => {
+                    const price = item.product.discountedPrice ?? item.product.price;
+                    return (
+                      <motion.div key={item.key} layout className="card-luxury p-4 flex gap-4">
+                        <Link to={`/products/${item.product.slug}`} className="w-24 h-24 rounded-xl bg-luxury-cream overflow-hidden flex-shrink-0">
+                          {item.product.images?.[0]?.url && <img src={item.product.images[0].url} alt={item.product.title} className="w-full h-full object-cover" />}
+                        </Link>
+                        <div className="flex-1">
+                          <Link to={`/products/${item.product.slug}`} className="font-medium text-gray-800 hover:text-primary text-sm line-clamp-2">{item.product.title}</Link>
+                          <p className="price-tag text-base mt-1">{formatPrice(price)}</p>
+                          <div className="flex items-center gap-4 mt-3">
+                            <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                              <button onClick={() => updateQuantity(item.key, item.quantity - 1)} className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100">−</button>
+                              <span className="w-10 text-center text-sm font-medium">{item.quantity}</span>
+                              <button onClick={() => updateQuantity(item.key, item.quantity + 1)} className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100">+</button>
+                            </div>
+                            <span className="text-sm font-semibold text-gray-800">{formatPrice(price * item.quantity)}</span>
+                            <button onClick={() => removeItem(item.key)} className="text-red-400 hover:text-red-600 text-sm ml-auto">Remove</button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
           <div className="lg:col-span-1">
             <div className="card-luxury p-6 sticky top-24">
-              <h3 className="font-heading text-lg font-semibold mb-5">Quote Summary</h3>
+              <h3 className="font-heading text-lg font-semibold mb-5">Order Summary</h3>
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-sm text-gray-600"><span>Subtotal</span><span>{formatPrice(getSubtotal())}</span></div>
                 <div className="flex justify-between text-sm text-gray-600"><span>Shipping</span><span className={getShipping() === 0 ? 'text-green-600 font-medium' : ''}>{getShipping() === 0 ? 'FREE' : formatPrice(getShipping())}</span></div>

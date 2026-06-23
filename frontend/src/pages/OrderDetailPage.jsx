@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import SelectionBadges from '../components/product/SelectionBadges';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
@@ -43,7 +43,7 @@ export default function OrderDetailPage() {
 
   return (
     <>
-      <Helmet><title>Order #{order.orderNumber} | VK Jewellers</title></Helmet>
+      <Helmet><title>Order #{order.orderNumber} | LUXURY JEWELRY</title></Helmet>
       <div className="container-luxury py-10">
 
         {/* Breadcrumb + title */}
@@ -155,10 +155,41 @@ export default function OrderDetailPage() {
                     <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    This order was placed from a quote confirmed by VK Jewellers.
+                    This order was placed from a quote confirmed by LUXURY JEWELRY.
                   </div>
                 </div>
               )}
+
+              <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+                <button type="button" onClick={async () => {
+                  try {
+                    const res = await orderAPI.downloadInvoice(order._id);
+                    const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `invoice-${order.orderNumber}.pdf`;
+                    a.click();
+                  } catch { alert('Failed to download invoice'); }
+                }} className="btn-outline w-full text-sm justify-center py-2">
+                  Download Invoice (PDF)
+                </button>
+                {!['cancelled', 'delivered', 'shipped'].includes(order.status) && (
+                  <button type="button" onClick={async () => {
+                    const reason = prompt('Reason for cancellation?');
+                    if (!reason) return;
+                    await orderAPI.requestCancel(order._id, { reason });
+                    window.location.reload();
+                  }} className="text-xs text-red-500 hover:underline w-full text-center block">Request Cancellation</button>
+                )}
+                {order.status === 'delivered' && (
+                  <button type="button" onClick={async () => {
+                    const reason = prompt('Reason for return?');
+                    if (!reason) return;
+                    await orderAPI.requestReturn(order._id, { reason });
+                    window.location.reload();
+                  }} className="text-xs text-amber-600 hover:underline w-full text-center block">Request Return</button>
+                )}
+              </div>
             </div>
           </div>
         </div>

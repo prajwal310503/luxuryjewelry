@@ -18,6 +18,7 @@ const CouponSchema = new mongoose.Schema(
     startDate: Date,
     endDate: Date,
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    store: { type: mongoose.Schema.Types.ObjectId, ref: 'Store', default: null }, // null = platform-wide
   },
   { timestamps: true }
 );

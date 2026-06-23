@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
@@ -498,7 +498,7 @@ export default function ProductPage() {
   return (
     <>
       <Helmet>
-        <title>{product.title} | VK Jewellers</title>
+        <title>{product.title} | LUXURY JEWELRY</title>
         <meta name="description" content={product.shortDescription || product.seo?.metaDescription || product.title} />
       </Helmet>
 
@@ -697,6 +697,21 @@ export default function ProductPage() {
                 </span>
               )}
             </div>
+
+            {product.store && (
+              <Link to={`/stores/${product.store.slug}`}
+                className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50/80 hover:border-primary/30 transition-colors">
+                {product.store.logo ? (
+                  <img src={product.store.logo} alt="" className="w-10 h-10 rounded-full object-cover" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">{product.store.name?.charAt(0)}</div>
+                )}
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide">Sold by</p>
+                  <p className="text-sm font-semibold text-gray-900">{product.store.name}</p>
+                </div>
+              </Link>
+            )}
 
             {/* Title */}
             <div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -86,7 +86,7 @@ export default function MyAddressesPage() {
 
   return (
     <>
-      <Helmet><title>My Addresses | VK Jewellers</title></Helmet>
+      <Helmet><title>My Addresses | LUXURY JEWELRY</title></Helmet>
 
       <div className="container-luxury py-10 max-w-2xl">
         {/* Breadcrumb */}

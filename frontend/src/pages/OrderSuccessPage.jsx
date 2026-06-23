@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+﻿import { useEffect, useState } from 'react';
+import { useParams, useLocation, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { orderAPI } from '../services/api';
@@ -70,7 +70,10 @@ const ORDER_STEPS = [
 
 export default function OrderSuccessPage() {
   const { id } = useParams();
+  const { state } = useLocation();
   const [order, setOrder] = useState(null);
+  const siblingOrders = state?.orders?.filter((o) => o._id !== id) || [];
+  const totalOrders = (state?.orders?.length || 0) || (order ? 1 : 0);
 
   useEffect(() => {
     orderAPI.getById(id).then(({ data }) => setOrder(data.data)).catch(() => { });
@@ -78,7 +81,7 @@ export default function OrderSuccessPage() {
 
   return (
     <>
-      <Helmet><title>Order Placed | VK Jewellers</title></Helmet>
+      <Helmet><title>Order Placed | LUXURY JEWELRY</title></Helmet>
       <div className="container-luxury py-16 text-center">
 
         {/* Success Icon */}
@@ -101,6 +104,24 @@ export default function OrderSuccessPage() {
           <h1 className="font-heading text-4xl font-bold text-gray-900 mb-3">Order Placed!</h1>
           {order && (
             <p className="text-gray-500 mb-2 text-lg">Order #{order.orderNumber}</p>
+          )}
+          {totalOrders > 1 && (
+            <div className="max-w-lg mx-auto mb-6 bg-amber-50 border border-amber-100 rounded-xl px-5 py-4 text-left">
+              <p className="text-sm font-semibold text-amber-800 mb-2">
+                Your checkout was split into {totalOrders} orders from different shops
+              </p>
+              <ul className="space-y-1.5 text-sm text-amber-700">
+                {order && (
+                  <li>• #{order.orderNumber} — {order.storeName || 'Shop'} (primary)</li>
+                )}
+                {siblingOrders.map((o) => (
+                  <li key={o._id}>
+                    • #{o.orderNumber || o._id?.slice(-8).toUpperCase()} — {o.storeName || 'Shop'}{' '}
+                    <Link to={`/orders/${o._id}`} className="underline font-medium">View</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
           <p className="text-gray-400 text-sm max-w-md mx-auto mb-10 leading-relaxed">
             Thank you for your order. Here is a summary of your order journey — we will keep you updated at every step.

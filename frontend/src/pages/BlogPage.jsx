@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
@@ -18,7 +18,7 @@ export default function BlogPage() {
   return (
     <>
       <Helmet>
-        <title>Jewelry Blog — VK Jewellers</title>
+        <title>Jewelry Blog — LUXURY JEWELRY</title>
         <meta name="description" content="Explore jewelry guides, trends, and education from our experts." />
       </Helmet>
 

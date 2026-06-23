@@ -33,14 +33,37 @@ const UserSchema = new mongoose.Schema(
     password: { type: String, required: [true, 'Password is required'], minlength: 6, select: false },
     role: {
       type: String,
-      enum: ['admin', 'child_admin', 'retailer'],
-      default: 'retailer',
+      enum: ['admin', 'child_admin', 'vendor', 'customer', 'retailer'],
+      default: 'customer',
     },
     // Granular access granted by admin to child_admin users
     permissions: {
       type: [{ type: String, enum: PERMISSIONS }],
       default: [],
     },
+    // Vendor-specific info (populated when role === 'vendor')
+    vendorDetails: {
+      shopName:       { type: String },
+      businessType:   { type: String },
+      gstNumber:      { type: String },
+      panNumber:      { type: String },
+      businessAddress:{ type: String },
+      city:           { type: String },
+      state:          { type: String },
+      pincode:        { type: String },
+      bankName:       { type: String },
+      accountNumber:  { type: String },
+      ifscCode:       { type: String },
+      accountHolder:  { type: String },
+    },
+    // Vendor approval status: pending → approved | rejected
+    vendorStatus: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected', 'suspended'],
+      default: 'pending',
+    },
+    // Store linked to this vendor (populated after approval)
+    store: { type: mongoose.Schema.Types.ObjectId, ref: 'Store' },
     avatar: { type: String, default: '' },
     avatarPublicId: { type: String, default: '' },
     addresses: [AddressSchema],

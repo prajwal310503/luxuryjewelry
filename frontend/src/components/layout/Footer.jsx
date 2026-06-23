@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { cmsAPI } from '../../services/api';
 import vkLogo from '../../assets/vklogo.png';
@@ -33,22 +33,22 @@ const SOCIAL_ICONS = {
 };
 
 const DEFAULT_BRAND = {
-  brandName:   'VK Jewellers',
+  brandName:   'LUXURY JEWELRY',
   legalName:   'SHRI VENKATESHWARA ENTERPRISES',
   tagline:     'Luxury. Joy. Comfort.',
   about:       'Premium lab-grown diamond and gold jewelry for every occasion.',
-  email:       'care@vkjewellers.com',
+  email:       'care@luxuryjewelry.com',
   phone:       '+91 9004436052',
   gst:         '27AFCPR0683K1Z4',
   address:     'Gala No-D 24, R S No 657, Y P Powar Nagar,\nKolhapur Udyam Co Op Society,\nKolhapur – 416008, Maharashtra',
-  copyright:   '© 2026 VK Jewellers. All Rights Reserved.',
+  copyright:   '© 2026 LUXURY JEWELRY. All Rights Reserved.',
 };
 const DEFAULT_SOCIAL  = { instagram: '#', facebook: '#', youtube: '#', pinterest: '#', linkedin: '#' };
 const DEFAULT_COLUMNS = [
-  { heading: 'About VK Jewellers',  links: [{ label: 'About Our Company', to: '/about' }, { label: 'Terms & Conditions', to: '/terms' }, { label: 'Privacy Policy', to: '/privacy' }, { label: 'Shipping Policy', to: '/shipping' }] },
+  { heading: 'About LUXURY JEWELRY',  links: [{ label: 'About Our Company', to: '/about' }, { label: 'Terms & Conditions', to: '/terms' }, { label: 'Privacy Policy', to: '/privacy' }, { label: 'Shipping Policy', to: '/shipping' }] },
   { heading: 'Jewelry Guide', links: [{ label: 'Diamond Education', to: '/guides/diamonds' }, { label: 'Metal Education', to: '/guides/metals' }, { label: 'Size Guide', to: '/guides/size' }, { label: 'Jewelry Care Tips', to: '/guides/care' }] },
   { heading: 'Why Choose Us', links: [{ label: '15 Days Return', to: '/policies/return' }, { label: 'Lifetime Exchange', to: '/policies/exchange' }, { label: 'Old Gold Exchange', to: '/old-gold' }, { label: "FAQ's", to: '/faq' }] },
-  { heading: 'For Retailers', links: [{ label: 'Retailer Registration', to: '/register' }, { label: 'Request a Quote', to: '/account' }, { label: 'Bulk Orders', to: '/contact' }] },
+  { heading: 'Sell With Us', links: [{ label: 'Become a Seller', to: '/become-a-seller' }, { label: 'Vendor Registration', to: '/vendor/register' }, { label: 'Seller Support', to: '/support' }] },
 ];
 const DEFAULT_PAYMENT = ['Visa', 'Mastercard', 'UPI', 'Razorpay', 'GPay', 'Paytm'];
 
@@ -81,7 +81,7 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-1 space-y-5">
             <Link to="/" className="block">
-              <img src={vkLogo} alt="VK Jewellers" className="h-20 w-auto object-contain" />
+              <img src={vkLogo} alt="LUXURY JEWELRY" className="h-20 w-auto object-contain" />
             </Link>
 
             <div>

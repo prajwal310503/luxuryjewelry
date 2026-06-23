@@ -1,4 +1,4 @@
-import vkLogo from '../../assets/vklogo.png';
+﻿import vkLogo from '../../assets/vklogo.png';
 
 export default function PageLoader() {
   return (
@@ -8,7 +8,7 @@ export default function PageLoader() {
           <div className="absolute inset-0 rounded-full border-4 border-primary/10" />
           <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary animate-spin" />
           <div className="absolute inset-2 rounded-full bg-white flex items-center justify-center">
-            <img src={vkLogo} alt="VK Jewellers" className="w-full h-full object-contain" />
+            <img src={vkLogo} alt="LUXURY JEWELRY" className="w-full h-full object-contain" />
           </div>
         </div>
         <p className="text-primary/60 text-sm font-body tracking-widest uppercase">Loading</p>

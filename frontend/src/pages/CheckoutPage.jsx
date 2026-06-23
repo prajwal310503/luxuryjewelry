@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import SelectionBadges from '../components/product/SelectionBadges';
 import { useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
@@ -6,7 +6,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import useCartStore from '../store/cartStore';
 import useAuthStore from '../store/authStore';
-import { quoteAPI, orderAPI } from '../services/api';
+import { orderAPI, couponAPI, paymentAPI } from '../services/api';
+
+const loadRazorpayScript = () => new Promise((resolve) => {
+  if (window.Razorpay) return resolve(true);
+  const script = document.createElement('script');
+  script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+  script.onload = () => resolve(true);
+  script.onerror = () => resolve(false);
+  document.body.appendChild(script);
+});
 
 const formatPrice = (p) => `₹${Math.round(p).toLocaleString('en-IN')}`;
 
@@ -33,10 +42,13 @@ export default function CheckoutPage() {
   const ADDR_KEY = `vk_saved_addresses_${user?._id || 'guest'}`;
 
   const [currentStep, setCurrentStep] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState('quote');
+  const [paymentMethod, setPaymentMethod] = useState('cod');
   const [loading, setLoading] = useState(false);
-  const [quoteConfirmOpen, setQuoteConfirmOpen] = useState(false);
   const [errors, setErrors] = useState({});
+  const [couponCode, setCouponCode] = useState('');
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [appliedCoupon, setAppliedCoupon] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
 
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [showNewForm, setShowNewForm] = useState(false);
@@ -105,6 +117,23 @@ export default function CheckoutPage() {
     }
   };
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    try {
+      const { data } = await couponAPI.validate({ code: couponCode.trim(), subtotal: getSubtotal() });
+      setCouponDiscount(data.data.discount || 0);
+      setAppliedCoupon(couponCode.trim().toUpperCase());
+      toast.success(`Coupon applied! You save ${formatPrice(data.data.discount)}`);
+    } catch (err) {
+      toast.error(err?.message || 'Invalid coupon');
+      setCouponDiscount(0);
+      setAppliedCoupon('');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
   const handlePlaceOrder = async () => {
     setLoading(true);
     try {
@@ -119,15 +148,64 @@ export default function CheckoutPage() {
         selections:        item.selections || undefined,
       }));
 
+      const method = paymentMethod === 'online' ? 'razorpay' : 'cod';
       const { data } = await orderAPI.create({
         items:           orderItems,
         shippingAddress: address,
-        payment:         { method: paymentMethod },
+        payment:         { method },
+        couponCode:      appliedCoupon || undefined,
       });
 
+      const result = data.data;
+      const orderGroupId = result.orderGroupId;
+      const primaryId = result.primaryOrderId || result.orders?.[0]?._id;
+
+      if (paymentMethod === 'online') {
+        const keyRes = await paymentAPI.getKey();
+        if (!keyRes.data.data?.configured) {
+          toast.error('Online payment not configured. Use COD or contact support.');
+          setLoading(false);
+          return;
+        }
+        await loadRazorpayScript();
+        const payRes = await paymentAPI.createOrder({ orderGroupId, amount: getTotal() - couponDiscount });
+        const { orderId, amount, keyId } = payRes.data.data;
+
+        await new Promise((resolve, reject) => {
+          const rzp = new window.Razorpay({
+            key: keyId,
+            amount: Math.round(amount * 100),
+            currency: 'INR',
+            name: 'VK Jewellers',
+            description: 'Marketplace Order',
+            order_id: orderId,
+            handler: async (response) => {
+              try {
+                await paymentAPI.verify({
+                  orderGroupId,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                });
+                resolve();
+              } catch (e) { reject(e); }
+            },
+            prefill: { name: address.fullName, email: user?.email, contact: address.phone },
+            theme: { color: '#5a413f' },
+          });
+          rzp.on('payment.failed', () => reject(new Error('Payment failed')));
+          rzp.open();
+        });
+      }
+
       clearCart();
-      toast.success(paymentMethod === 'cod' ? 'Order placed! Pay on delivery.' : 'Order placed successfully!');
-      navigate(`/order-success/${data.data._id}`);
+      toast.success(paymentMethod === 'cod' ? 'Order placed! Pay on delivery.' : 'Payment successful!');
+      navigate(`/order-success/${primaryId}`, {
+        state: {
+          orderGroupId,
+          orders: result.orders || [],
+        },
+      });
     } catch (error) {
       toast.error(error?.message || 'Failed to place order');
     } finally {
@@ -135,41 +213,13 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleRequestQuote = async () => {
-    setLoading(true);
-    try {
-      const quoteItems = items.map((item) => ({
-        product:       item.product._id,
-        productName:   item.product.title,
-        sku:           item.product.sku || '',
-        image:         item.product.images?.[0]?.url || '',
-        quantity:      item.quantity,
-        originalPrice: item.product.discountedPrice ?? item.product.price,
-        selections:    item.selections || undefined,
-      }));
-
-      const { data } = await quoteAPI.create({
-        items:           quoteItems,
-        shippingAddress: address,
-      });
-
-      clearCart();
-      toast.success('Quote request submitted! We will contact you shortly.');
-      navigate(`/quote-success/${data.data._id}`);
-    } catch (error) {
-      toast.error(error?.message || 'Failed to submit quote');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const subtotal = getSubtotal();
   const shipping = getShipping();
-  const total = getTotal();
+  const total = getTotal() - couponDiscount;
 
   return (
     <>
-      <Helmet><title>Checkout | VK Jewellers</title></Helmet>
+      <Helmet><title>Checkout | LUXURY JEWELRY</title></Helmet>
 
       <div className="container-luxury py-10">
         {/* Stepper */}
@@ -365,18 +415,34 @@ export default function CheckoutPage() {
                   <div className="space-y-3 mb-6">
                     <button
                       type="button"
-                      onClick={() => setPaymentMethod('quote')}
-                      className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${paymentMethod === 'quote' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}
+                      onClick={() => setPaymentMethod('cod')}
+                      className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}
                     >
-                      <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${paymentMethod === 'quote' ? 'border-primary' : 'border-gray-300'}`}>
-                        {paymentMethod === 'quote' && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                      <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${paymentMethod === 'cod' ? 'border-primary' : 'border-gray-300'}`}>
+                        {paymentMethod === 'cod' && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-800">Request a Quote</p>
-                        <p className="text-xs text-gray-400 mt-0.5">Our team will contact you with the best price — no payment now</p>
+                        <p className="text-sm font-semibold text-gray-800">Cash on Delivery</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Pay with cash when your order arrives</p>
                       </div>
-                      <svg className="w-8 h-8 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                      <svg className="w-7 h-7 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('online')}
+                      className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${paymentMethod === 'online' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}
+                    >
+                      <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${paymentMethod === 'online' ? 'border-primary' : 'border-gray-300'}`}>
+                        {paymentMethod === 'online' && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-gray-800">Online Payment</p>
+                        <p className="text-xs text-gray-400 mt-0.5">UPI, Credit / Debit Card, Net Banking via Razorpay</p>
+                      </div>
+                      <svg className="w-7 h-7 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
                       </svg>
                     </button>
                   </div>
@@ -408,7 +474,7 @@ export default function CheckoutPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={paymentMethod === 'cod' ? handlePlaceOrder : () => setQuoteConfirmOpen(true)}
+                      onClick={handlePlaceOrder}
                       disabled={loading}
                       className="btn-primary flex-1 justify-center py-3.5 disabled:opacity-60"
                     >
@@ -418,14 +484,14 @@ export default function CheckoutPage() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                           </svg>
-                          {paymentMethod === 'cod' ? 'Placing Order...' : 'Submitting...'}
+                          Placing Order...
                         </>
                       ) : (
                         <>
                           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          {paymentMethod === 'cod' ? 'Place Order' : 'Request Quote'}
+                          Place Order
                         </>
                       )}
                     </button>
@@ -467,6 +533,22 @@ export default function CheckoutPage() {
               </div>
 
               <div className="border-t border-gray-100 pt-4 space-y-2.5 mb-5">
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    placeholder="Coupon code"
+                    className="input-luxury flex-1 h-9 text-sm"
+                  />
+                  <button type="button" onClick={handleApplyCoupon} disabled={couponLoading}
+                    className="px-3 py-1.5 text-xs font-bold border border-primary text-primary rounded-lg hover:bg-primary/5 disabled:opacity-50">
+                    Apply
+                  </button>
+                </div>
+                {appliedCoupon && (
+                  <p className="text-xs text-green-600 mb-2">Coupon {appliedCoupon} applied (−{formatPrice(couponDiscount)})</p>
+                )}
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>Subtotal</span>
                   <span>{formatPrice(subtotal)}</span>
@@ -576,73 +658,6 @@ export default function CheckoutPage() {
         )}
       </AnimatePresence>
 
-      {/* ── Quote confirmation popup ──────────────────────────────────────── */}
-      <AnimatePresence>
-        {quoteConfirmOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-            onClick={() => setQuoteConfirmOpen(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 20 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Icon */}
-              <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-100 flex items-center justify-center mx-auto mb-4">
-                <svg className="w-7 h-7 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-
-              <h3 className="font-heading text-xl font-semibold text-gray-900 text-center mb-2">
-                Before You Request a Quote
-              </h3>
-              <p className="text-sm text-gray-500 text-center mb-5 leading-relaxed">
-                Please note that the final <strong className="text-gray-700">price, weight, and material</strong> may vary based on the quantity ordered and your selected customisation options.
-              </p>
-
-              {/* Key points */}
-              <div className="space-y-2.5 mb-6">
-                {[
-                  { icon: '⚖️', text: 'Weight may change based on final quantity' },
-                  { icon: '💎', text: 'Material grade adjusted per order specifications' },
-                  { icon: '💰', text: 'Final amount confirmed after admin review' },
-                ].map((pt) => (
-                  <div key={pt.text} className="flex items-start gap-3 bg-gray-50 rounded-xl px-4 py-3">
-                    <span className="text-lg leading-none mt-0.5">{pt.icon}</span>
-                    <p className="text-sm text-gray-600">{pt.text}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setQuoteConfirmOpen(false)}
-                  className="btn-outline flex-1 justify-center"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setQuoteConfirmOpen(false); handleRequestQuote(); }}
-                  disabled={loading}
-                  className="btn-primary flex-1 justify-center disabled:opacity-60"
-                >
-                  {loading ? 'Submitting...' : 'Yes, Request Quote'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   );
 }

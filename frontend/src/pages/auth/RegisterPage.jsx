@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../../store/authStore';
@@ -137,7 +137,7 @@ export default function RegisterPage() {
         </div>
         <div>
           <h2 className="font-heading text-[1.35rem] font-bold text-gray-900 leading-tight">Create Account</h2>
-          <p className="text-xs text-gray-400">Join VK Jewellers today.</p>
+          <p className="text-xs text-gray-400">Join LUXURY JEWELRY today.</p>
         </div>
       </div>
 

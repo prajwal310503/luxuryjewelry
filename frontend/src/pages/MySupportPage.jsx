@@ -1,18 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { supportAPI } from '../services/api';
+import {
+  IconBox, IconGem, IconCard, IconTruck, IconRefresh, IconChat, IconDocument, IconWarning,
+} from '../components/ui/Icons';
 
 const REASONS = [
-  { value: 'order-review',    label: 'Order Review',      icon: '📦' },
-  { value: 'product-inquiry', label: 'Product Inquiry',   icon: '💎' },
-  { value: 'payment-issue',   label: 'Payment Issue',     icon: '💳' },
-  { value: 'shipping',        label: 'Shipping',          icon: '🚚' },
-  { value: 'return-exchange', label: 'Return / Exchange', icon: '🔄' },
-  { value: 'general',         label: 'General Query',     icon: '💬' },
-  { value: 'other',           label: 'Other',             icon: '📝' },
+  { value: 'order-review',    label: 'Order Review',      Icon: IconBox },
+  { value: 'product-inquiry', label: 'Product Inquiry',   Icon: IconGem },
+  { value: 'payment-issue',   label: 'Payment Issue',     Icon: IconCard },
+  { value: 'shipping',        label: 'Shipping',          Icon: IconTruck },
+  { value: 'return-exchange', label: 'Return / Exchange', Icon: IconRefresh },
+  { value: 'general',         label: 'General Query',     Icon: IconChat },
+  { value: 'other',           label: 'Other',             Icon: IconDocument },
 ];
 
 const STATUS_STYLES = {
@@ -63,7 +66,7 @@ export default function MySupportPage() {
 
   return (
     <>
-      <Helmet><title>Support | VK Jewellers</title></Helmet>
+      <Helmet><title>Support | LUXURY JEWELRY</title></Helmet>
 
       <div className="container-luxury py-10 max-w-3xl">
         {/* Breadcrumb */}
@@ -109,7 +112,7 @@ export default function MySupportPage() {
                             : 'bg-white text-gray-600 border-gray-200 hover:border-primary/40 hover:text-primary'
                         }`}
                       >
-                        <span>{r.icon}</span>
+                        <r.Icon className="w-4 h-4" />
                         {r.label}
                       </button>
                     ))}
@@ -214,7 +217,7 @@ export default function MySupportPage() {
                         {t.replies?.map((r, i) => (
                           <div key={i} className={`rounded-xl p-4 ${r.by === 'admin' ? 'bg-primary/5 border border-primary/10' : 'bg-luxury-cream'}`}>
                             <p className="text-xs font-semibold mb-1 ${r.by === 'admin' ? 'text-primary' : 'text-gray-500'}">
-                              {r.by === 'admin' ? 'VK Jewellers Support' : 'You'} &bull; {new Date(r.at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                              {r.by === 'admin' ? 'LUXURY JEWELRY Support' : 'You'} &bull; {new Date(r.at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                             </p>
                             <p className="text-sm text-gray-700 whitespace-pre-wrap">{r.message}</p>
                           </div>

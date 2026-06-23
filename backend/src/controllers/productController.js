@@ -55,6 +55,12 @@ exports.getProducts = async (req, res, next) => {
       attributeFilters[`attributes.values`] = { $in: values };
     }
 
+    // Store / vendor filter
+    if (req.query.store) {
+      const storeDoc = await Store.findOne({ slug: req.query.store });
+      if (storeDoc) baseQuery = baseQuery.where('store').equals(storeDoc._id);
+    }
+
     // Featured / BestSeller / NewArrival / Lifestyle flags
     if (req.query.isFeatured === 'true')   baseQuery = baseQuery.where('isFeatured').equals(true);
     if (req.query.isBestSeller === 'true') baseQuery = baseQuery.where('isBestSeller').equals(true);
@@ -113,6 +119,7 @@ exports.getProducts = async (req, res, next) => {
       .skip(skip)
       .limit(limit)
       .populate('category', 'name slug')
+      .populate('store', 'name slug logo rating')
       .select('-description -__v');
 
     sendPaginated(res, products, page, limit, total);
@@ -129,6 +136,7 @@ exports.getProduct = async (req, res, next) => {
     const product = await Product.findOne({ slug: req.params.slug, status: 'approved', isActive: true })
       .populate('category', 'name slug ancestors')
       .populate('subcategory', 'name slug')
+      .populate('store', 'name slug logo rating phone city description')
       .populate('attributes.attribute', 'name slug type displayType')
       .populate('attributes.values', 'value slug colorCode image');
 

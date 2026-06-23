@@ -175,11 +175,15 @@ const ProductSchema = new mongoose.Schema(
     diamondClarity: String,   // 'Natural' | 'CZ'
 
     paymentMethods: { type: [String], default: [] },
+
+    // Marketplace: which vendor store this product belongs to
+    store: { type: mongoose.Schema.Types.ObjectId, ref: 'Store' },
   },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
 ProductSchema.index({ title: 'text', shortDescription: 'text', description: 'text' });
+ProductSchema.index({ store: 1, isActive: 1 });
 ProductSchema.index({ category: 1, status: 1, isActive: 1 });
 ProductSchema.index({ status: 1, isActive: 1 });
 ProductSchema.index({ price: 1 });

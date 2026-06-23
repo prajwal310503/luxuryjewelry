@@ -1,4 +1,4 @@
-/**
+﻿/**
  * fixLocalUrls.js
  * Replaces ALL http://localhost:8000/uploads/... URLs stored in MongoDB
  * with working Unsplash fallback images.
@@ -80,8 +80,8 @@ async function run() {
   const client = new MongoClient(MONGO_URI);
   await client.connect();
 
-  // Extract DB name from URI, default to 'vkjewellers'
-  const dbName = MONGO_URI.split('/').pop().split('?')[0] || 'vkjewellers';
+  // Extract DB name from URI, default to 'luxuryjewelry'
+  const dbName = MONGO_URI.split('/').pop().split('?')[0] || 'luxuryjewelry';
   const db = client.db(dbName);
 
   console.log(`\n🔧 Connected to: ${dbName}`);

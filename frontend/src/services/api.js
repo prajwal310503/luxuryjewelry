@@ -104,6 +104,8 @@ export const authAPI = {
   resetPassword: (token, password) => api.put(`/auth/reset-password/${token}`, { password }),
   verifyEmail: (token) => api.get(`/auth/verify-email/${token}`),
   updatePassword: (data) => api.put('/auth/update-password', data),
+  updateProfile: (formData) => api.put('/auth/profile', formData),
+  updateAddresses: (addresses) => api.put('/auth/addresses', { addresses }),
 };
 
 // ==================== PRODUCTS ====================
@@ -161,6 +163,10 @@ export const orderAPI = {
   create:            (data)     => api.post('/orders', data),
   getMyOrders:       (params)   => api.get('/orders/my', { params }),
   getById:           (id)       => api.get(`/orders/${id}`),
+  downloadInvoice:   (id)       => api.get(`/orders/${id}/invoice`, { responseType: 'blob' }),
+  requestCancel:     (id, data) => api.post(`/orders/${id}/cancel-request`, data),
+  requestReturn:     (id, data) => api.post(`/orders/${id}/return-request`, data),
+  searchSuggest:     (q)        => api.get('/orders/search/suggest', { params: { q } }),
   adminGetAll:       (params)   => api.get('/orders/admin/all', { params }),
   adminCreate:       (data)     => api.post('/orders/admin/create', data),
   adminUpdateStatus: (id, data) => api.put(`/orders/admin/${id}/status`, data),
@@ -237,7 +243,7 @@ export const quoteAPI = {
 
 // ==================== STORES ====================
 export const storeAPI = {
-  getStores: () => api.get('/stores'),
+  getStores: (params) => api.get('/stores', { params }),
   getStoreBySlug: (slug) => api.get(`/stores/${slug}`),
   // Admin
   adminGetAll: () => api.get('/stores/admin/all'),
@@ -245,6 +251,61 @@ export const storeAPI = {
   adminUpdate: (id, data) => api.put(`/stores/admin/${id}`, data),
   adminDelete: (id) => api.delete(`/stores/admin/${id}`),
   adminToggle: (id) => api.put(`/stores/admin/${id}/toggle`),
+};
+
+// ==================== VENDOR ====================
+export const vendorAPI = {
+  register: (data) => api.post('/vendor/register', data),
+  getDashboard: () => api.get('/vendor/dashboard'),
+  getStore: () => api.get('/vendor/store'),
+  updateStore: (formData) => api.put('/vendor/store', formData),
+  getProducts: (params) => api.get('/vendor/products', { params }),
+  createProduct: (data) => api.post('/vendor/products', data),
+  updateProduct: (id, data) => api.put(`/vendor/products/${id}`, data),
+  deleteProduct: (id) => api.delete(`/vendor/products/${id}`),
+  getOrders: (params) => api.get('/vendor/orders', { params }),
+  updateOrderStatus: (id, data) => api.put(`/vendor/orders/${id}/status`, data),
+  getCoupons: () => api.get('/coupons/vendor'),
+  createCoupon: (data) => api.post('/coupons/vendor', data),
+  deleteCoupon: (id) => api.delete(`/coupons/vendor/${id}`),
+  getReports: {
+    sales: (params) => api.get('/reports/vendor/sales', { params }),
+    products: () => api.get('/reports/vendor/products'),
+    customers: () => api.get('/reports/vendor/customers'),
+  },
+  adminGetVendors: (params) => api.get('/vendor/admin/list', { params }),
+  adminGetVendorProducts: (id) => api.get(`/vendor/admin/${id}/products`),
+  adminGetVendorOrders: (id) => api.get(`/vendor/admin/${id}/orders`),
+  adminSetCommission: (id, rate) => api.put(`/vendor/admin/${id}/commission`, { commissionRate: rate }),
+};
+
+export const couponAPI = {
+  validate: (data) => api.post('/coupons/validate', data),
+  adminGetAll: (params) => api.get('/coupons/admin', { params }),
+  adminCreate: (data) => api.post('/coupons/admin', data),
+  adminUpdate: (id, data) => api.put(`/coupons/admin/${id}`, data),
+  adminDelete: (id) => api.delete(`/coupons/admin/${id}`),
+};
+
+export const paymentAPI = {
+  getKey: () => api.get('/payments/key'),
+  createOrder: (data) => api.post('/payments/create-order', data),
+  verify: (data) => api.post('/payments/verify', data),
+};
+
+export const masterDataAPI = {
+  get: () => api.get('/master-data'),
+  update: (data) => api.put('/master-data', data),
+  sync: () => api.post('/master-data/sync'),
+  getSyncLogs: (params) => api.get('/master-data/sync-logs', { params }),
+};
+
+export const reportAPI = {
+  sales: (params) => api.get('/reports/admin/sales', { params }),
+  orders: (params) => api.get('/reports/admin/orders', { params }),
+  products: () => api.get('/reports/admin/products'),
+  customers: () => api.get('/reports/admin/customers'),
+  vendors: () => api.get('/reports/admin/vendors'),
 };
 
 // ==================== BLOG ====================

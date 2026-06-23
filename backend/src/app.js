@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -24,6 +24,11 @@ const settingsRoutes = require('./routes/settings');
 const quoteRoutes    = require('./routes/quotes');
 const pincodeRoutes  = require('./routes/pincodes');
 const supportRoutes  = require('./routes/support');
+const vendorRoutes   = require('./routes/vendor');
+const masterDataRoutes = require('./routes/masterData');
+const couponRoutes   = require('./routes/coupons');
+const paymentRoutes  = require('./routes/payments');
+const reportRoutes   = require('./routes/reports');
 
 const app = express();
 
@@ -143,7 +148,7 @@ app.use('/uploads', (req, res, next) => {
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'VK Jewellers API is running', timestamp: new Date().toISOString() });
+  res.json({ success: true, message: 'LUXURY JEWELRY API is running', timestamp: new Date().toISOString() });
 });
 
 // Routes
@@ -161,6 +166,11 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/quotes',   quoteRoutes);
 app.use('/api/pincodes', pincodeRoutes);
 app.use('/api/support',  supportRoutes);
+app.use('/api/vendor',   vendorRoutes);
+app.use('/api/master-data', masterDataRoutes);
+app.use('/api/coupons', couponRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/reports', reportRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

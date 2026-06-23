@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
@@ -18,8 +18,8 @@ export default function StoresListPage() {
   return (
     <>
       <Helmet>
-        <title>Store Locations — VK Jewellers</title>
-        <meta name="description" content="Find a vk jewellers store near you. Visit us for an in-person experience." />
+        <title>Store Locations — LUXURY JEWELRY</title>
+        <meta name="description" content="Find a LUXURY JEWELRY store near you. Visit us for an in-person experience." />
       </Helmet>
 
       {/* Header */}

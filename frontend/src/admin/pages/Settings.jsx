@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { settingsAPI, pincodeAPI } from '../../services/api';
 
@@ -98,7 +98,7 @@ const GROUPS = [
     description: 'Store-wide settings — name, currency, contact info.',
     docsUrl: null,
     fields: [
-      { name: 'store_name',    label: 'Store Name',    type: 'text',  placeholder: 'VK Jewellers' },
+      { name: 'store_name',    label: 'Store Name',    type: 'text',  placeholder: 'LUXURY JEWELRY' },
       { name: 'currency',      label: 'Currency Code', type: 'text',  placeholder: 'INR', hint: 'ISO 4217 — e.g. INR, USD, EUR' },
       { name: 'currency_symbol', label: 'Currency Symbol', type: 'text', placeholder: '₹' },
       { name: 'support_email', label: 'Support Email', type: 'email', placeholder: 'support@yourstore.com' },

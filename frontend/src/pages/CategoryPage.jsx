@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
-import { productAPI, categoryAPI, attributeAPI, settingsAPI } from '../services/api';
+import { productAPI, categoryAPI, attributeAPI, settingsAPI, storeAPI } from '../services/api';
 import ProductCard from '../components/product/ProductCard';
 import Select from '../components/ui/Select';
 
@@ -60,7 +60,7 @@ const FilterSection = ({ title, children, defaultOpen = true }) => {
 };
 
 /* ─── Filter sidebar ─── */
-const FilterSidebar = ({ attributes, filters, onChange, onReset, isMobile, onClose }) => {
+const FilterSidebar = ({ attributes, filters, onChange, onReset, isMobile, onClose, stores = [] }) => {
   const handlePriceRange = (range) => {
     const isActive = filters.minPrice === range.min && (range.max ? filters.maxPrice === range.max : !filters.maxPrice);
     onChange({ ...filters, minPrice: isActive ? undefined : range.min, maxPrice: isActive ? undefined : range.max });
@@ -124,6 +124,21 @@ const FilterSidebar = ({ attributes, filters, onChange, onReset, isMobile, onClo
           })}
         </div>
       </FilterSection>
+
+      {stores.length > 0 && (
+        <FilterSection title="Shop / Vendor">
+          <div className="space-y-1">
+            {stores.map((s) => (
+              <label key={s._id} className="flex items-center gap-2.5 cursor-pointer py-1">
+                <input type="radio" name="storeFilter" checked={filters.store === s.slug}
+                  onChange={() => onChange({ ...filters, store: filters.store === s.slug ? undefined : s.slug, page: 1 })}
+                  className="w-4 h-4 accent-primary" />
+                <span className="text-sm text-gray-600">{s.name}</span>
+              </label>
+            ))}
+          </div>
+        </FilterSection>
+      )}
 
       {/* Dynamic attributes */}
       {filterableAttributes.map((attr, idx) => {
@@ -289,9 +304,11 @@ export default function CategoryPage() {
   const [loading, setLoading] = useState(true);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [bannerImages, setBannerImages] = useState({});
+  const [stores, setStores] = useState([]);
 
   const [filters, setFilters] = useState({
     sort: searchParams.get('sort') || 'newest',
+    store: searchParams.get('store') || undefined,
     minPrice: searchParams.get('minPrice') ? parseInt(searchParams.get('minPrice')) : undefined,
     maxPrice: searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice')) : undefined,
     page: parseInt(searchParams.get('page')) || 1,
@@ -311,6 +328,7 @@ export default function CategoryPage() {
 
   useEffect(() => {
     attributeAPI.getAll({ filterable: true }).then(({ data }) => setAttributes(data.data || [])).catch(() => {});
+    storeAPI.getStores().then(({ data }) => setStores(data.data || [])).catch(() => {});
   }, []);
 
   const fetchProducts = useCallback(async () => {
@@ -352,7 +370,7 @@ export default function CategoryPage() {
   return (
     <>
       <Helmet>
-        <title>{category?.name || 'Collections'} | VK Jewellers</title>
+        <title>{category?.name || 'Collections'} | LUXURY JEWELRY</title>
         <meta name="description" content={category?.seo?.metaDescription || `Shop ${category?.name || 'jewelry'} collection`} />
       </Helmet>
 
@@ -427,6 +445,7 @@ export default function CategoryPage() {
                   filters={filters}
                   onChange={handleFilterChange}
                   onReset={handleResetFilters}
+                  stores={stores}
                 />
               </div>
             </div>
@@ -558,6 +577,7 @@ export default function CategoryPage() {
                 onReset={() => { handleResetFilters(); setMobileFilterOpen(false); }}
                 isMobile
                 onClose={() => setMobileFilterOpen(false)}
+                stores={stores}
               />
             </motion.div>
           </>

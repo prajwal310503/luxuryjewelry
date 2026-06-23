@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 
 const OrderItemSchema = new mongoose.Schema({
   product:           { type: mongoose.Schema.Types.ObjectId, ref: 'Product', default: null },
+  store:             { type: mongoose.Schema.Types.ObjectId, ref: 'Store', default: null },
+  storeName:         String,
   title:             String,
   image:             { type: String, default: '' },
   sku:               { type: String, default: '' },
@@ -32,7 +34,7 @@ const ShippingAddressSchema = new mongoose.Schema({
 });
 
 const PaymentSchema = new mongoose.Schema({
-  method:           { type: String, enum: ['stripe', 'razorpay', 'cod', 'wallet', 'quote', 'bank_transfer'], default: 'quote' },
+  method:           { type: String, enum: ['stripe', 'razorpay', 'cod', 'wallet', 'quote', 'bank_transfer'], default: 'cod' },
   status:           { type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' },
   transactionId:    String,
   gatewayOrderId:   String,
@@ -43,10 +45,22 @@ const PaymentSchema = new mongoose.Schema({
   paidAt:           Date,
 });
 
+const RequestSchema = new mongoose.Schema({
+  status:     { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  reason:     String,
+  requestedAt:{ type: Date, default: Date.now },
+  resolvedAt: Date,
+  resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  adminNote:  String,
+}, { _id: false });
+
 const OrderSchema = new mongoose.Schema(
   {
     orderNumber:     { type: String, unique: true },
+    orderGroupId:    { type: String, index: true }, // links sub-orders from one checkout
     customer:        { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    store:           { type: mongoose.Schema.Types.ObjectId, ref: 'Store', default: null },
+    storeName:       String,
     items:           [OrderItemSchema],
     shippingAddress: ShippingAddressSchema,
     payment:         PaymentSchema,
@@ -58,12 +72,15 @@ const OrderSchema = new mongoose.Schema(
     tax:             { type: Number, default: 0 },
     taxRate:         { type: Number, default: 0 },
     total:           { type: Number, required: true },
+    commissionRate:  { type: Number, default: 0 },
+    commissionAmount:{ type: Number, default: 0 },
+    vendorPayout:    { type: Number, default: 0 },
     status: {
       type: String,
       enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned', 'refunded'],
       default: 'pending',
     },
-    source:  { type: String, enum: ['direct', 'quote'], default: 'quote' },
+    source:  { type: String, enum: ['direct', 'quote'], default: 'direct' },
     quoteId: { type: mongoose.Schema.Types.ObjectId, ref: 'Quote', default: null },
     notes:   String,
     statusHistory: [
@@ -80,9 +97,17 @@ const OrderSchema = new mongoose.Schema(
     deliveredAt:        Date,
     cancelledAt:        Date,
     cancellationReason: String,
+    cancellationRequest: RequestSchema,
+    returnRequest:       RequestSchema,
+    courierName:         String,
+    trackingNumber:      String,
+    trackingUrl:         String,
   },
   { timestamps: true }
 );
+
+OrderSchema.index({ store: 1, status: 1 });
+OrderSchema.index({ 'items.store': 1 });
 
 OrderSchema.pre('save', async function (next) {
   if (!this.orderNumber) {

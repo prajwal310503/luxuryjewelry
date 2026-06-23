@@ -1,11 +1,11 @@
-import { Helmet } from 'react-helmet-async';
+﻿import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 export default function QuoteSuccessPage() {
   return (
     <>
-      <Helmet><title>Quote Submitted | VK Jewellers</title></Helmet>
+      <Helmet><title>Quote Submitted | LUXURY JEWELRY</title></Helmet>
       <div className="container-luxury py-24 text-center">
 
         {/* Animated icon */}

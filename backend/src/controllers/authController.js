@@ -193,3 +193,39 @@ exports.updatePassword = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Update profile
+// @route   PUT /api/auth/profile
+// @access  Private
+exports.updateProfile = async (req, res, next) => {
+  try {
+    const allowed = ['name', 'phone'];
+    const user = await User.findById(req.user.id);
+    allowed.forEach((k) => { if (req.body[k] !== undefined) user[k] = req.body[k]; });
+    if (req.file) {
+      const { getFileUrl } = require('../config/cloudinary');
+      user.avatar = getFileUrl(req.file);
+      if (req.file.filename) user.avatarPublicId = req.file.filename;
+    }
+    await user.save();
+    sendSuccess(res, 200, 'Profile updated', { user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Save / update addresses on user account
+// @route   PUT /api/auth/addresses
+// @access  Private
+exports.updateAddresses = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (Array.isArray(req.body.addresses)) {
+      user.addresses = req.body.addresses;
+      await user.save();
+    }
+    sendSuccess(res, 200, 'Addresses updated', { addresses: user.addresses });
+  } catch (error) {
+    next(error);
+  }
+};

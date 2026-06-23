@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import useWishlistStore from '../store/wishlistStore';
 import ProductCard from '../components/product/ProductCard';
@@ -7,7 +7,7 @@ export default function WishlistPage() {
   const { items, clearWishlist } = useWishlistStore();
   return (
     <>
-      <Helmet><title>My Wishlist | VK Jewellers</title></Helmet>
+      <Helmet><title>My Wishlist | LUXURY JEWELRY</title></Helmet>
       <div className="container-luxury py-10">
         <div className="flex items-center justify-between mb-8">
           <h1 className="font-heading text-3xl font-bold">My Wishlist ({items.length})</h1>

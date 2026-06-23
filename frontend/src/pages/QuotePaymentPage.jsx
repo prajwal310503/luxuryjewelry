@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -126,7 +126,7 @@ export default function QuotePaymentPage() {
 
   return (
     <>
-      <Helmet><title>Place Order | VK Jewellers</title></Helmet>
+      <Helmet><title>Place Order | LUXURY JEWELRY</title></Helmet>
       <div className="container-luxury py-10">
 
         {/* Back */}
@@ -142,7 +142,7 @@ export default function QuotePaymentPage() {
           <svg className="w-5 h-5 flex-shrink-0 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Quote confirmed by VK Jewellers
+          Quote confirmed by LUXURY JEWELRY
           {quote.quotedTotal != null && (
             <span className="ml-auto font-bold text-green-800 text-base">{formatPrice(quote.quotedTotal)}</span>
           )}

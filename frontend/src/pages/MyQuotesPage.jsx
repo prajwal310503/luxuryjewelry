@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -69,7 +69,7 @@ export default function MyQuotesPage() {
 
   return (
     <>
-      <Helmet><title>My Quote Requests | VK Jewellers</title></Helmet>
+      <Helmet><title>My Quote Requests | LUXURY JEWELRY</title></Helmet>
       <div className="container-luxury py-10">
 
         {/* ── Header ── */}

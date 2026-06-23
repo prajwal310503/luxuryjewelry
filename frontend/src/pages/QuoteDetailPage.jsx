@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import SelectionBadges from '../components/product/SelectionBadges';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
@@ -88,7 +88,7 @@ export default function QuoteDetailPage() {
 
   return (
     <>
-      <Helmet><title>Quote #{quote.quoteNumber || id.slice(-6).toUpperCase()} | VK Jewellers</title></Helmet>
+      <Helmet><title>Quote #{quote.quoteNumber || id.slice(-6).toUpperCase()} | LUXURY JEWELRY</title></Helmet>
       <div className="container-luxury py-10">
 
         {/* Breadcrumb */}
@@ -156,7 +156,7 @@ export default function QuoteDetailPage() {
             </svg>
             <div>
               <p className="text-sm font-semibold text-red-700">Quote Not Accepted</p>
-              <p className="text-xs text-red-500 mt-0.5">This quote request was not accepted by VK Jewellers.</p>
+              <p className="text-xs text-red-500 mt-0.5">This quote request was not accepted by LUXURY JEWELRY.</p>
             </div>
           </div>
         )}
@@ -172,7 +172,7 @@ export default function QuoteDetailPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="flex-1 text-sm text-green-700 font-medium">
-              Your quote has been confirmed by VK Jewellers! Proceed to place your order.
+              Your quote has been confirmed by LUXURY JEWELRY! Proceed to place your order.
             </p>
             <Link to={`/quotes/${id}/pay`}
               className="btn-primary text-xs px-5 py-2.5 flex items-center gap-2 bg-green-600 hover:bg-green-700 flex-shrink-0">
@@ -244,7 +244,7 @@ export default function QuoteDetailPage() {
             {/* Admin response */}
             {quote.adminResponse && (
               <div className="card-luxury p-4 bg-amber-50 border-amber-100">
-                <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-2">Message from VK Jewellers</p>
+                <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-2">Message from LUXURY JEWELRY</p>
                 <p className="text-sm text-gray-700 italic">"{quote.adminResponse}"</p>
               </div>
             )}

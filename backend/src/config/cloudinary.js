@@ -56,6 +56,12 @@ function makeDynamic(params) {
         : multer({ storage: localDiskStorage });
       upload.array(field, max)(req, res, next);
     },
+    fields: (fieldList) => (req, res, next) => {
+      const upload = isCloudinaryConfigured()
+        ? multer({ storage: new CloudinaryStorage({ cloudinary, params }) })
+        : multer({ storage: localDiskStorage });
+      upload.fields(fieldList)(req, res, next);
+    },
   };
 }
 

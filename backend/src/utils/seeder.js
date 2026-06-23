@@ -1,8 +1,7 @@
-require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
+﻿require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
 const mongoose = require('mongoose');
 const connectDB = require('../config/db');
 const User = require('../models/User');
-const Vendor = require('../models/Vendor');
 const Category = require('../models/Category');
 const Attribute = require('../models/Attribute');
 const AttributeValue = require('../models/AttributeValue');
@@ -266,7 +265,7 @@ async function seedDatabase() {
     if (!admin) {
       admin = await User.create({
         name: 'Platform Admin',
-        email: process.env.ADMIN_EMAIL || 'admin@vkjewellers.com',
+        email: process.env.ADMIN_EMAIL || 'admin@luxuryjewelry.com',
         password: process.env.ADMIN_PASSWORD || 'Admin@123456',
         role: 'admin',
         isEmailVerified: true,

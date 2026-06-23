@@ -58,6 +58,8 @@ const useAuthStore = create(
         }
       },
 
+      updateUser: (user) => set({ user }),
+
       isAuthenticated: () => !!get().token,
       isAdmin: () => get().user?.role === 'admin',
       isChildAdmin: () => get().user?.role === 'child_admin',

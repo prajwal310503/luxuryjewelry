@@ -15,7 +15,9 @@ const parseArray = (val) => {
 // ── Public ──────────────────────────────────────────────────────────────────
 exports.getStores = async (req, res) => {
   try {
-    const stores = await Store.find({ isActive: true }).sort('-isFeatured -createdAt');
+    const filter = { isActive: true, status: 'approved' };
+    if (req.query.featured === 'true') filter.isFeatured = true;
+    const stores = await Store.find(filter).sort('-isFeatured -createdAt');
     res.json({ success: true, data: stores });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

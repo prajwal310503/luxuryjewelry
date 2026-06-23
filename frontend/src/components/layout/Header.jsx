@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useCartStore from '../../store/cartStore';
 import useWishlistStore from '../../store/wishlistStore';
 import useAuthStore from '../../store/authStore';
-import { cmsAPI } from '../../services/api';
+import { cmsAPI, orderAPI } from '../../services/api';
 import vkLogo from '../../assets/vklogo.png';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -348,12 +348,21 @@ const SearchBar = ({ className = '' }) => {
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
   const [pi, setPi] = useState(0);
+  const [suggestions, setSuggestions] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     const t = setInterval(() => setPi((i) => (i + 1) % SEARCH_PLACEHOLDERS.length), 3500);
     return () => clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    if (query.trim().length < 2) { setSuggestions([]); return; }
+    const t = setTimeout(() => {
+      orderAPI.searchSuggest(query.trim()).then(({ data }) => setSuggestions(data.data || [])).catch(() => setSuggestions([]));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [query]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -373,7 +382,7 @@ const SearchBar = ({ className = '' }) => {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
+        onBlur={() => setTimeout(() => setFocused(false), 200)}
         placeholder={SEARCH_PLACEHOLDERS[pi]}
         className="w-full h-[44px] pl-11 pr-[108px] text-[13px] text-gray-800 placeholder:text-gray-400 transition-all duration-200"
         style={{
@@ -401,6 +410,18 @@ const SearchBar = ({ className = '' }) => {
       >
         Search
       </button>
+
+      {suggestions.length > 0 && focused && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden">
+          {suggestions.map((p) => (
+            <Link key={p._id} to={`/products/${p.slug}`}
+              className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-sm text-gray-800 border-b border-gray-50 last:border-0">
+              {p.images?.[0]?.url && <img src={p.images[0].url} alt="" className="w-8 h-8 rounded object-cover" />}
+              <span className="line-clamp-1 flex-1">{p.title}</span>
+            </Link>
+          ))}
+        </div>
+      )}
     </form>
   );
 };
@@ -861,7 +882,7 @@ export default function Header() {
 
             {/* Logo */}
             <Link to="/" className="flex-shrink-0 group leading-none">
-              <img src={vkLogo} alt="VK Jewellers" className="h-24 w-auto object-contain" />
+              <img src={vkLogo} alt="LUXURY JEWELRY" className="h-24 w-auto object-contain" />
             </Link>
 
             {/* Search bar */}
@@ -932,13 +953,6 @@ export default function Header() {
                             </svg>
                             My Account
                           </Link>
-                          <Link onClick={() => setAccountOpen(false)} to="/my-quotes"
-                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
-                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Track Quotes
-                          </Link>
                           <Link onClick={() => setAccountOpen(false)} to="/orders"
                             className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
                             <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
@@ -961,15 +975,6 @@ export default function Header() {
                             </svg>
                             Support
                           </Link>
-                          {user.role === 'retailer' && (
-                            <Link onClick={() => setAccountOpen(false)} to="/quotes/request"
-                              className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
-                              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                              </svg>
-                              Request a Quote
-                            </Link>
-                          )}
                           <div className="border-t border-gray-100 mt-1 pt-1">
                             <button
                               onClick={() => { setAccountOpen(false); logout(); }}
@@ -1114,7 +1119,7 @@ export default function Header() {
               }}
             >
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <img src={vkLogo} alt="VK Jewellers" className="h-20 w-auto object-contain" />
+                <img src={vkLogo} alt="LUXURY JEWELRY" className="h-20 w-auto object-contain" />
                 <button onClick={() => setMobileOpen(false)} className="p-1 text-gray-500">
                   <CloseIcon />
                 </button>
@@ -1146,13 +1151,9 @@ export default function Header() {
                     <Link to="/admin/dashboard" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Admin Panel</Link>
                   )}
                   <Link to="/account" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">My Account</Link>
-                  <Link to="/my-quotes" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Track Quotes</Link>
                   <Link to="/orders" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Track Orders</Link>
                   <Link to="/my-addresses" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">My Addresses</Link>
                   <Link to="/support" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Support</Link>
-                  {user.role === 'retailer' && (
-                    <Link to="/quotes/request" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Request a Quote</Link>
-                  )}
                   <button onClick={() => { setMobileOpen(false); logout(); }} className="block text-sm text-red-500 py-1.5 tracking-wide">Sign Out</button>
                 </div>
               ) : (

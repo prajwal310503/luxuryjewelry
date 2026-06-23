@@ -1,6 +1,7 @@
-import { useState } from 'react';
+﻿import { useState, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import useAuthStore from '../store/authStore';
 import { authAPI } from '../services/api';
 
@@ -84,7 +85,14 @@ function PwInput({ label, field, value, error, show, onToggle, onChange }) {
 }
 
 export default function AccountPage() {
-  const { user } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
+  const fileRef = useRef(null);
+
+  const [profile, setProfile] = useState({ name: user?.name || '', phone: user?.phone || '' });
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(user?.avatar || '');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSuccess, setProfileSuccess] = useState('');
 
   const [pw, setPw]         = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [errors, setErrors]  = useState({});
@@ -95,11 +103,39 @@ export default function AccountPage() {
   const [showNew, setShowNew]     = useState(false);
   const [showCon, setShowCon]     = useState(false);
 
-  const handleChange = (field, val) => {
+  const handlePwChange = (field, val) => {
     setPw((p) => ({ ...p, [field]: val }));
     setErrors((e) => ({ ...e, [field]: '' }));
     setServerErr('');
     setSuccess('');
+  };
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault();
+    setProfileSaving(true);
+    setProfileSuccess('');
+    try {
+      const fd = new FormData();
+      fd.append('name', profile.name);
+      if (profile.phone) fd.append('phone', profile.phone);
+      if (avatarFile) fd.append('avatar', avatarFile);
+      const { data } = await authAPI.updateProfile(fd);
+      updateUser(data.data?.user || data.data);
+      setProfileSuccess('Profile updated successfully!');
+      setAvatarFile(null);
+      toast.success('Profile updated');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setProfileSaving(false);
+    }
   };
 
   const validate = () => {
@@ -133,14 +169,18 @@ export default function AccountPage() {
 
   return (
     <>
-      <Helmet><title>My Account | VK Jewellers</title></Helmet>
+      <Helmet><title>My Account | LUXURY JEWELRY</title></Helmet>
       <div className="container-luxury py-10 max-w-4xl">
 
         {/* Page header */}
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <span className="text-xl font-bold text-primary">{user?.name?.[0]?.toUpperCase()}</span>
-          </div>
+          <button type="button" onClick={() => fileRef.current?.click()} className="relative w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden group">
+            {avatarPreview || user?.avatar
+              ? <img src={avatarPreview || user.avatar} alt="" className="w-full h-full object-cover" />
+              : <span className="text-xl font-bold text-primary">{user?.name?.[0]?.toUpperCase()}</span>}
+            <span className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-semibold transition-opacity">Edit</span>
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
           <div>
             <h1 className="font-heading text-2xl font-bold text-gray-900">{user?.name}</h1>
             <p className="text-sm text-gray-400 capitalize">{user?.role} Account</p>
@@ -149,7 +189,7 @@ export default function AccountPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-          {/* ── Profile Details (read-only) ── */}
+          {/* ── Profile Details ── */}
           <div className="card-luxury p-6">
             <div className="flex items-center gap-2 mb-5">
               <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
@@ -160,19 +200,25 @@ export default function AccountPage() {
               <h2 className="font-heading text-lg font-semibold text-gray-900">Profile Details</h2>
             </div>
 
-            <div className="space-y-4">
-              <ReadOnlyField label="Full Name" value={user?.name} />
-              <ReadOnlyField label="Email Address" value={user?.email} note="Contact support to change your email" />
-              <ReadOnlyField label="Phone" value={user?.phone} />
-              <ReadOnlyField label="Account Type" value={user?.role?.replace('_', ' ')} />
-            </div>
+            {profileSuccess && (
+              <p className="mb-4 text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-4 py-2">{profileSuccess}</p>
+            )}
 
-            <div className="mt-5 flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
-              <svg className="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="text-xs text-amber-700">To update profile details, please contact our support team.</p>
-            </div>
+            <form onSubmit={handleProfileUpdate} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Full Name</label>
+                <input className="input-luxury w-full h-10 px-3 text-sm" value={profile.name} onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))} required />
+              </div>
+              <ReadOnlyField label="Email Address" value={user?.email} note="Contact support to change your email" />
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Phone</label>
+                <input className="input-luxury w-full h-10 px-3 text-sm" value={profile.phone} onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))} />
+              </div>
+              <ReadOnlyField label="Account Type" value={user?.role?.replace('_', ' ')} />
+              <button type="submit" disabled={profileSaving} className="btn-primary w-full justify-center disabled:opacity-60">
+                {profileSaving ? 'Saving...' : 'Save Profile'}
+              </button>
+            </form>
           </div>
 
           {/* ── Change Password ── */}
@@ -213,12 +259,12 @@ export default function AccountPage() {
             </AnimatePresence>
 
             <form onSubmit={handlePasswordUpdate} className="space-y-4" noValidate>
-              <PwInput label="Current Password"     field="currentPassword"  value={pw.currentPassword}  error={errors.currentPassword}  show={showCur} onToggle={() => setShowCur((v) => !v)} onChange={handleChange} />
+              <PwInput label="Current Password"     field="currentPassword"  value={pw.currentPassword}  error={errors.currentPassword}  show={showCur} onToggle={() => setShowCur((v) => !v)} onChange={handlePwChange} />
               <div>
-                <PwInput label="New Password"       field="newPassword"      value={pw.newPassword}      error={errors.newPassword}      show={showNew} onToggle={() => setShowNew((v) => !v)} onChange={handleChange} />
+                <PwInput label="New Password"       field="newPassword"      value={pw.newPassword}      error={errors.newPassword}      show={showNew} onToggle={() => setShowNew((v) => !v)} onChange={handlePwChange} />
                 <PasswordStrength password={pw.newPassword} />
               </div>
-              <PwInput label="Confirm New Password" field="confirmPassword"  value={pw.confirmPassword}  error={errors.confirmPassword}  show={showCon} onToggle={() => setShowCon((v) => !v)} onChange={handleChange} />
+              <PwInput label="Confirm New Password" field="confirmPassword"  value={pw.confirmPassword}  error={errors.confirmPassword}  show={showCon} onToggle={() => setShowCon((v) => !v)} onChange={handlePwChange} />
 
               <button
                 type="submit"

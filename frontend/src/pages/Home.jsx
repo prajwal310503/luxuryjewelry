@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+﻿import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
@@ -1598,6 +1598,35 @@ const LifestyleLookbookSection = ({ panel1Products = [], panel2Products = [], fa
   );
 };
 
+// ─── TESTIMONIALS ─────────────────────────────────────────────────────────────
+const DEFAULT_TESTIMONIALS = [
+  { name: 'Priya S.', text: 'Beautiful craftsmanship and seamless delivery. Love shopping from multiple jewellers in one place!', rating: 5 },
+  { name: 'Rahul M.', text: 'The price transparency and certification details give me confidence every time I buy gold online.', rating: 5 },
+  { name: 'Ananya K.', text: 'Found my perfect engagement ring from a boutique store I never knew existed. VK Jewellers is a gem!', rating: 5 },
+];
+
+const TestimonialsSection = ({ cmsContent }) => {
+  const items = cmsContent?.items?.length ? cmsContent.items : DEFAULT_TESTIMONIALS;
+  return (
+    <section className="py-16 bg-white">
+      <div className="container-luxury">
+        <PillHeading title={cmsContent?.title || 'WHAT CUSTOMERS SAY'} subtitle={cmsContent?.subtitle || 'Trusted by thousands'} simple />
+        <div className="grid md:grid-cols-3 gap-6 mt-10">
+          {items.slice(0, 3).map((t, i) => (
+            <div key={i} className="card-luxury p-6">
+              <div className="flex gap-1 mb-3">{[...Array(t.rating || 5)].map((_, j) => (
+                <svg key={j} className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              ))}</div>
+              <p className="text-sm text-gray-600 leading-relaxed mb-4">&ldquo;{t.text}&rdquo;</p>
+              <p className="text-sm font-semibold text-gray-900">{t.name}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 // ─── STORES SLIDER ────────────────────────────────────────────────────────────
 const STORE_FALLBACKS = [
   { bg: 'linear-gradient(135deg,#1c1209 0%,#3a2010 60%,#2d1b10 100%)', name: 'FLAGSHIP STORE — MUMBAI', city: 'Bandra West, Mumbai' },
@@ -2159,6 +2188,7 @@ export default function Home() {
   const [banners, setBanners] = useState([]);
   const [categories, setCategories] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [newArrivals, setNewArrivals] = useState([]);
   const [dealProducts, setDealProducts] = useState([]);
   const [lifestyle1Products, setLifestyle1Products] = useState([]);
   const [lifestyle2Products, setLifestyle2Products] = useState([]);
@@ -2169,13 +2199,14 @@ export default function Home() {
 
   useEffect(() => {
     const load = async () => {
-      const [bannersRes, categoriesRes, featuredRes, dealsRes, sectionsRes, storesRes, blogsRes, ls1Res, ls2Res, siteImagesRes] = await Promise.allSettled([
+      const [bannersRes, categoriesRes, featuredRes, dealsRes, newArrivalsRes, sectionsRes, storesRes, blogsRes, ls1Res, ls2Res, siteImagesRes] = await Promise.allSettled([
         cmsAPI.getBanners('hero'),
         categoryAPI.getAll({ parent: 'null' }),
         productAPI.getAll({ limit: 60, isFeatured: true, sort: 'rating' }),
         productAPI.getAll({ limit: 8, isBestSeller: true, sort: 'popular' }),
+        productAPI.getAll({ limit: 8, isNewArrival: true, sort: 'newest' }),
         cmsAPI.getPageSections('home'),
-        storeAPI.getStores(),
+        storeAPI.getStores({ featured: 'true' }),
         blogAPI.getAll({ featured: 'true', limit: 4 }),
         productAPI.getAll({ limit: 4, isLifestyle1: true }),
         productAPI.getAll({ limit: 4, isLifestyle2: true }),
@@ -2191,6 +2222,8 @@ export default function Home() {
       const deals = dealsRes.status === 'fulfilled' ? (dealsRes.value.data.data || []) : [];
       // Fall back to featured products if no "Deal of Week" segment products exist yet
       setDealProducts(deals.length >= 4 ? deals.slice(0, 8) : featured.slice(0, 8));
+      const arrivals = newArrivalsRes.status === 'fulfilled' ? (newArrivalsRes.value.data.data || []) : [];
+      setNewArrivals(arrivals.length ? arrivals : featured.slice(0, 8));
       if (storesRes.status === 'fulfilled') setStores(storesRes.value.data.data || []);
       if (ls1Res.status === 'fulfilled') setLifestyle1Products(ls1Res.value.data.data || []);
       if (ls2Res.status === 'fulfilled') setLifestyle2Products(ls2Res.value.data.data || []);
@@ -2219,7 +2252,7 @@ export default function Home() {
   return (
     <>
       <Helmet>
-        <title>VK Jewellers — Premium Diamond & Gold Jewelry</title>
+        <title>LUXURY JEWELRY — Premium Diamond & Gold Jewelry</title>
         <meta name="description" content="Discover premium lab-grown diamond jewelry, gold rings, earrings, necklaces and more." />
       </Helmet>
 
@@ -2227,6 +2260,7 @@ export default function Home() {
       <TrustBar cmsContent={cmsSections.trust_bar} />
       <CategoryGrid categories={categories} cmsContent={cmsSections.category_grid} />
       <DealsSection products={dealProducts} cmsContent={cmsSections.deals} />
+      <FeaturedProducts products={newArrivals} title="NEW ARRIVALS" subtitle="Latest pieces from our vendors" cmsContent={cmsSections.new_arrivals} />
       <WhyChooseSection cmsContent={cmsSections.why_choose} siteImages={siteImages} />
       <LifestyleLookbookSection
         panel1Products={lifestyle1Products}
@@ -2243,6 +2277,7 @@ export default function Home() {
       />
       <DiamondCutsSection cmsContent={cmsSections.diamond_cuts} />
       <StoresSection stores={stores} cmsContent={cmsSections.visit_stores} />
+      <TestimonialsSection cmsContent={cmsSections.testimonials} />
       <GiftingSection cmsContent={cmsSections.gifting} />
       <BlogSection blogs={blogs} cmsContent={cmsSections.blog_section} />
       <ServicesSection cmsContent={cmsSections.services} />
