@@ -167,6 +167,7 @@ export const orderAPI = {
   downloadInvoice:   (id)       => api.get(`/orders/${id}/invoice`, { responseType: 'blob' }),
   requestCancel:     (id, data) => api.post(`/orders/${id}/cancel-request`, data),
   requestReturn:     (id, data) => api.post(`/orders/${id}/return-request`, data),
+  payRemaining:      (id)       => api.post(`/orders/${id}/pay-remaining`),
   searchSuggest:     (q)        => api.get('/orders/search/suggest', { params: { q } }),
   adminGetAll:       (params)   => api.get('/orders/admin/all', { params }),
   adminCreate:       (data)     => api.post('/orders/admin/create', data),
@@ -282,6 +283,7 @@ export const vendorAPI = {
 
 export const couponAPI = {
   validate: (data) => api.post('/coupons/validate', data),
+  getAvailable: () => api.get('/coupons/available'),
   adminGetAll: (params) => api.get('/coupons/admin', { params }),
   adminCreate: (data) => api.post('/coupons/admin', data),
   adminUpdate: (id, data) => api.put(`/coupons/admin/${id}`, data),

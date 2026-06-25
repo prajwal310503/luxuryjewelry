@@ -61,7 +61,8 @@ export default function ProductCard({ product, className = '', index = 0 }) {
   const primaryImage  = product.images?.find((img) => img.isPrimary) || product.images?.[0];
   const secondaryImage = product.images?.[1];
   const inWishlist     = isInWishlist(product._id);
-  const discountedPrice = product.discountedPrice ?? product.price;
+  const salePrice = (product.discountedPrice > 0 ? product.discountedPrice : null) ?? (product.price > 0 ? product.price : null);
+  const discountedPrice = salePrice ?? product.price;
   const hasDiscount    = product.discount > 0;
   const gradient       = CARD_GRADIENTS[index % CARD_GRADIENTS.length];
 

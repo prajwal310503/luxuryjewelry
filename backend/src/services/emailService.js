@@ -8,10 +8,14 @@ const createTransporter = () => {
       user: process.env.SMTP_EMAIL,
       pass: process.env.SMTP_PASSWORD,
     },
+    connectionTimeout: 5000,
+    greetingTimeout: 5000,
+    socketTimeout: 10000,
   });
 };
 
-const sendEmail = async ({ to, subject, html, text }) => {
+const sendEmail = async ({ to, subject, html, text, attachments }) => {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_EMAIL) return null;
   const transporter = createTransporter();
 
   const mailOptions = {
@@ -21,6 +25,7 @@ const sendEmail = async ({ to, subject, html, text }) => {
     html,
     text,
   };
+  if (attachments?.length) mailOptions.attachments = attachments;
 
   const info = await transporter.sendMail(mailOptions);
   return info;

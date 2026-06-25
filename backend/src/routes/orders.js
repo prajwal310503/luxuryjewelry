@@ -8,6 +8,7 @@ const {
   downloadInvoice,
   requestCancellation,
   requestReturn,
+  payRemainingBalance,
   adminGetOrders,
   adminUpdateOrderStatus,
   adminCreateOrder,
@@ -18,7 +19,7 @@ router.get('/search/suggest', searchProducts);
 router.post('/', protect, createOrder);
 router.get('/my', protect, getMyOrders);
 router.get('/:id/invoice', protect, downloadInvoice);
-router.post('/:id/cancel-request', protect, requestCancellation);
+router.post('/:id/pay-remaining', protect, payRemainingBalance);
 router.post('/:id/return-request', protect, requestReturn);
 router.get('/:id', protect, getOrder);
 

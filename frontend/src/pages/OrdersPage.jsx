@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
 import { orderAPI } from '../services/api';
+import PartialPaymentBanner from '../components/orders/PartialPaymentBanner';
 
 const formatPrice = (p) => `₹${Math.round(p).toLocaleString('en-IN')}`;
 
@@ -92,6 +93,13 @@ export default function OrdersPage() {
         </div>
 
         {/* ── Filter Tabs ── */}
+        {orders.some((o) => o.payment?.status === 'partial') && !loading && (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <strong>Payment pending:</strong> Orders with 50% partial payment need the remaining balance paid before dispatch.
+            {' '}<Link to="/orders" className="font-semibold underline">View orders</Link> and tap <strong>Pay 50%</strong>.
+          </div>
+        )}
+
         <div className="flex items-center gap-2 mb-6 flex-wrap">
           {FILTERS.map((f) => (
             <button
@@ -216,6 +224,7 @@ export default function OrdersPage() {
                                 {itemCount} item{itemCount !== 1 ? 's' : ''}
                                 {order.items?.length > 1 && ` · +${order.items.length - 1} more`}
                               </p>
+                              <PartialPaymentBanner order={order} compact onPaid={fetchOrders} />
                             </div>
                           </div>
                         </div>
@@ -234,7 +243,7 @@ export default function OrdersPage() {
                         <div className="hidden md:block col-span-2">
                           <p className="price-tag text-sm">{formatPrice(order.total || 0)}</p>
                           <p className="text-[10px] text-gray-400 mt-0.5">
-                            {order.paymentMethod === 'cod' ? 'Cash on Delivery' : order.paymentMethod === 'bank_transfer' ? 'Bank Transfer' : order.paymentMethod || '—'}
+                            {({ full_payment: 'Full Payment', partial_payment: 'Partial (50%)', cod: 'COD', stripe: 'Online', razorpay: 'Online', wallet: 'Wallet', bank_transfer: 'Bank', quote: 'Quote' })[order.payment?.method || order.paymentMethod] || order.payment?.method || order.paymentMethod || '—'}
                           </p>
                         </div>
 

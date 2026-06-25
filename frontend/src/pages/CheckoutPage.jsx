@@ -6,16 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import useCartStore from '../store/cartStore';
 import useAuthStore from '../store/authStore';
-import { orderAPI, couponAPI, paymentAPI } from '../services/api';
-
-const loadRazorpayScript = () => new Promise((resolve) => {
-  if (window.Razorpay) return resolve(true);
-  const script = document.createElement('script');
-  script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-  script.onload = () => resolve(true);
-  script.onerror = () => resolve(false);
-  document.body.appendChild(script);
-});
+import PromoCodeSection from '../components/checkout/PromoCodeSection';
+import { orderAPI } from '../services/api';
 
 const formatPrice = (p) => `₹${Math.round(p).toLocaleString('en-IN')}`;
 
@@ -42,13 +34,12 @@ export default function CheckoutPage() {
   const ADDR_KEY = `vk_saved_addresses_${user?._id || 'guest'}`;
 
   const [currentStep, setCurrentStep] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState('cod');
+  const [paymentMethod, setPaymentMethod] = useState('full_payment');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [couponCode, setCouponCode] = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0);
-  const [appliedCoupon, setAppliedCoupon] = useState('');
-  const [couponLoading, setCouponLoading] = useState(false);
+  const [appliedIsGift, setAppliedIsGift] = useState(false);
 
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [showNewForm, setShowNewForm] = useState(false);
@@ -117,24 +108,18 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) return;
-    setCouponLoading(true);
-    try {
-      const { data } = await couponAPI.validate({ code: couponCode.trim(), subtotal: getSubtotal() });
-      setCouponDiscount(data.data.discount || 0);
-      setAppliedCoupon(couponCode.trim().toUpperCase());
-      toast.success(`Coupon applied! You save ${formatPrice(data.data.discount)}`);
-    } catch (err) {
-      toast.error(err?.message || 'Invalid coupon');
+  const handlePromoApplied = ({ code, discount, isGiftCard }) => {
+    setCouponCode(code);
+    setCouponDiscount(discount);
+    setAppliedIsGift(isGiftCard);
+    if (!code) {
       setCouponDiscount(0);
-      setAppliedCoupon('');
-    } finally {
-      setCouponLoading(false);
+      setAppliedIsGift(false);
     }
   };
 
   const handlePlaceOrder = async () => {
+    if (loading) return;
     setLoading(true);
     try {
       const orderItems = items.map((item) => ({
@@ -148,64 +133,30 @@ export default function CheckoutPage() {
         selections:        item.selections || undefined,
       }));
 
-      const method = paymentMethod === 'online' ? 'razorpay' : 'cod';
       const { data } = await orderAPI.create({
         items:           orderItems,
         shippingAddress: address,
-        payment:         { method },
-        couponCode:      appliedCoupon || undefined,
+        payment:         { method: paymentMethod },
+        couponCode:      couponCode || undefined,
       });
 
       const result = data.data;
       const orderGroupId = result.orderGroupId;
       const primaryId = result.primaryOrderId || result.orders?.[0]?._id;
 
-      if (paymentMethod === 'online') {
-        const keyRes = await paymentAPI.getKey();
-        if (!keyRes.data.data?.configured) {
-          toast.error('Online payment not configured. Use COD or contact support.');
-          setLoading(false);
-          return;
-        }
-        await loadRazorpayScript();
-        const payRes = await paymentAPI.createOrder({ orderGroupId, amount: getTotal() - couponDiscount });
-        const { orderId, amount, keyId } = payRes.data.data;
-
-        await new Promise((resolve, reject) => {
-          const rzp = new window.Razorpay({
-            key: keyId,
-            amount: Math.round(amount * 100),
-            currency: 'INR',
-            name: 'VK Jewellers',
-            description: 'Marketplace Order',
-            order_id: orderId,
-            handler: async (response) => {
-              try {
-                await paymentAPI.verify({
-                  orderGroupId,
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature,
-                });
-                resolve();
-              } catch (e) { reject(e); }
-            },
-            prefill: { name: address.fullName, email: user?.email, contact: address.phone },
-            theme: { color: '#5a413f' },
-          });
-          rzp.on('payment.failed', () => reject(new Error('Payment failed')));
-          rzp.open();
-        });
-      }
-
       clearCart();
-      toast.success(paymentMethod === 'cod' ? 'Order placed! Pay on delivery.' : 'Payment successful!');
       navigate(`/order-success/${primaryId}`, {
         state: {
           orderGroupId,
           orders: result.orders || [],
+          partialPayment: paymentMethod === 'partial_payment',
         },
       });
+      toast.success(
+        paymentMethod === 'partial_payment'
+          ? 'Order confirmed! Pay remaining 50% from My Orders to dispatch.'
+          : 'Order confirmed!'
+      );
     } catch (error) {
       toast.error(error?.message || 'Failed to place order');
     } finally {
@@ -216,6 +167,8 @@ export default function CheckoutPage() {
   const subtotal = getSubtotal();
   const shipping = getShipping();
   const total = getTotal() - couponDiscount;
+  const payNow = paymentMethod === 'partial_payment' ? Math.round(total * 0.5) : total;
+  const payLater = paymentMethod === 'partial_payment' ? total - payNow : 0;
 
   return (
     <>
@@ -415,35 +368,31 @@ export default function CheckoutPage() {
                   <div className="space-y-3 mb-6">
                     <button
                       type="button"
-                      onClick={() => setPaymentMethod('cod')}
-                      className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${paymentMethod === 'cod' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}
+                      onClick={() => setPaymentMethod('full_payment')}
+                      className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${paymentMethod === 'full_payment' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}
                     >
-                      <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${paymentMethod === 'cod' ? 'border-primary' : 'border-gray-300'}`}>
-                        {paymentMethod === 'cod' && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                      <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${paymentMethod === 'full_payment' ? 'border-primary' : 'border-gray-300'}`}>
+                        {paymentMethod === 'full_payment' && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-800">Cash on Delivery</p>
-                        <p className="text-xs text-gray-400 mt-0.5">Pay with cash when your order arrives</p>
+                        <p className="text-sm font-semibold text-gray-800">Full Payment</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Pay 100% now — {formatPrice(total)}</p>
                       </div>
-                      <svg className="w-7 h-7 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
-                      </svg>
+                      <span className="text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full flex-shrink-0">100%</span>
                     </button>
                     <button
                       type="button"
-                      onClick={() => setPaymentMethod('online')}
-                      className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${paymentMethod === 'online' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}
+                      onClick={() => setPaymentMethod('partial_payment')}
+                      className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${paymentMethod === 'partial_payment' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}
                     >
-                      <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${paymentMethod === 'online' ? 'border-primary' : 'border-gray-300'}`}>
-                        {paymentMethod === 'online' && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                      <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${paymentMethod === 'partial_payment' ? 'border-primary' : 'border-gray-300'}`}>
+                        {paymentMethod === 'partial_payment' && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-800">Online Payment</p>
-                        <p className="text-xs text-gray-400 mt-0.5">UPI, Credit / Debit Card, Net Banking via Razorpay</p>
+                        <p className="text-sm font-semibold text-gray-800">Partial Payment</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Pay 50% now — {formatPrice(Math.round(total * 0.5))}</p>
                       </div>
-                      <svg className="w-7 h-7 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
-                      </svg>
+                      <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full flex-shrink-0">50%</span>
                     </button>
                   </div>
 
@@ -462,9 +411,19 @@ export default function CheckoutPage() {
                       <span className={shipping === 0 ? 'text-green-600 font-medium' : ''}>{shipping === 0 ? 'FREE' : formatPrice(shipping)}</span>
                     </div>
                     <div className="border-t border-[#eedfd8] pt-3 flex justify-between text-base font-bold">
-                      <span>Total</span>
+                      <span>Order Total</span>
                       <span className="price-tag">{formatPrice(total)}</span>
                     </div>
+                    <div className="flex justify-between text-sm font-semibold text-primary">
+                      <span>Pay Now ({paymentMethod === 'partial_payment' ? '50%' : '100%'})</span>
+                      <span>{formatPrice(payNow)}</span>
+                    </div>
+                    {payLater > 0 && (
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>Remaining (50%)</span>
+                        <span>{formatPrice(payLater)}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-3">
@@ -533,21 +492,19 @@ export default function CheckoutPage() {
               </div>
 
               <div className="border-t border-gray-100 pt-4 space-y-2.5 mb-5">
-                <div className="flex gap-2 mb-3">
-                  <input
-                    type="text"
-                    value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                    placeholder="Coupon code"
-                    className="input-luxury flex-1 h-9 text-sm"
-                  />
-                  <button type="button" onClick={handleApplyCoupon} disabled={couponLoading}
-                    className="px-3 py-1.5 text-xs font-bold border border-primary text-primary rounded-lg hover:bg-primary/5 disabled:opacity-50">
-                    Apply
-                  </button>
-                </div>
-                {appliedCoupon && (
-                  <p className="text-xs text-green-600 mb-2">Coupon {appliedCoupon} applied (−{formatPrice(couponDiscount)})</p>
+                <PromoCodeSection
+                  items={items}
+                  subtotal={subtotal}
+                  appliedCode={couponCode}
+                  appliedDiscount={couponDiscount}
+                  appliedIsGift={appliedIsGift}
+                  onApplied={handlePromoApplied}
+                />
+                {couponCode && (
+                  <div className="flex justify-between text-sm text-green-700 font-medium">
+                    <span>{appliedIsGift ? 'Gift card' : 'Discount'}</span>
+                    <span>−{formatPrice(couponDiscount)}</span>
+                  </div>
                 )}
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>Subtotal</span>

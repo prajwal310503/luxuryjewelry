@@ -3,6 +3,7 @@ const Store  = require('../models/Store');
 const Product = require('../models/Product');
 const Order  = require('../models/Order');
 const { sendSuccess, sendError } = require('../utils/response');
+const { assertCanDispatch } = require('../utils/orderPaymentHelpers');
 const { getFileUrl } = require('../config/cloudinary');
 
 // ─── Public ──────────────────────────────────────────────────────────────────
@@ -216,6 +217,11 @@ exports.updateOrderStatus = async (req, res, next) => {
     }
 
     if (req.body.status) {
+      const dispatchCheck = assertCanDispatch(order);
+      if (!dispatchCheck.allowed && ['processing', 'shipped', 'delivered'].includes(req.body.status)) {
+        return sendError(res, 400, dispatchCheck.message);
+      }
+
       order.status = req.body.status;
       order.statusHistory.push({
         status: req.body.status,

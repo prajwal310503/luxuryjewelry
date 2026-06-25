@@ -34,8 +34,9 @@ const ShippingAddressSchema = new mongoose.Schema({
 });
 
 const PaymentSchema = new mongoose.Schema({
-  method:           { type: String, enum: ['stripe', 'razorpay', 'cod', 'wallet', 'quote', 'bank_transfer'], default: 'cod' },
-  status:           { type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' },
+  method:           { type: String, enum: ['stripe', 'razorpay', 'cod', 'wallet', 'quote', 'bank_transfer', 'full_payment', 'partial_payment'], default: 'full_payment' },
+  status:           { type: String, enum: ['pending', 'partial', 'paid', 'failed', 'refunded'], default: 'pending' },
+  paymentPercent:   { type: Number, min: 0, max: 100 },
   transactionId:    String,
   gatewayOrderId:   String,
   gatewayPaymentId: String,
@@ -111,8 +112,7 @@ OrderSchema.index({ 'items.store': 1 });
 
 OrderSchema.pre('save', async function (next) {
   if (!this.orderNumber) {
-    const count = await mongoose.model('Order').countDocuments();
-    this.orderNumber = `VK${Date.now().toString().slice(-8)}${(count + 1).toString().padStart(4, '0')}`;
+    this.orderNumber = `VK${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
   }
   next();
 });

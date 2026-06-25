@@ -349,7 +349,6 @@ export default function ProductPage() {
   const [selectedSize, setSelectedSize]             = useState('');
   const [selectedLength, setSelectedLength]         = useState('');
   const [selectedStoneColor, setSelectedStoneColor] = useState('');
-  const [selectedPayment, setSelectedPayment]       = useState('');
   const titleRef    = useRef(null);
   const thumbsRef   = useRef(null);
   const mediaLenRef = useRef(0);
@@ -473,12 +472,10 @@ export default function ProductPage() {
     if (needsSize && !selectedSize) return toast.error('Please select a size');
     if (needsLength && !selectedLength) return toast.error('Please select a length');
     if (needsColor && !selectedStoneColor) return toast.error('Please select a stone color');
-    if (!selectedPayment) return toast.error('Please select a payment method');
     const selections = {};
     if (selectedSize)       selections.size        = selectedSize;
     if (selectedLength)     selections.length      = `${selectedLength}"`;
     if (selectedStoneColor) selections.stoneColor  = selectedStoneColor;
-    if (selectedPayment)    selections.paymentMode = selectedPayment;
     addItem(
       product,
       qty,
@@ -900,32 +897,6 @@ export default function ProductPage() {
                 )}
               </div>
             )}
-
-            {/* Payment Mode — 2×2 compact grid */}
-            <div>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">Payment Mode</p>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { value: 'cash',   label: 'Cash' },
-                  { value: 'gold',   label: 'Gold' },
-                  { value: 'rtgs',   label: 'RTGS' },
-                  { value: 'online', label: 'Advanced / Online' },
-                ].map(({ value, label }) => (
-                  <button key={value} type="button" onClick={() => setSelectedPayment(value)}
-                    className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all duration-150 ${
-                      selectedPayment === value
-                        ? 'border-primary bg-primary/6 text-primary shadow-sm'
-                        : 'border-gray-200 bg-white text-gray-600 hover:border-primary/40 hover:bg-primary/3'
-                    }`}
-                  >
-                    <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selectedPayment === value ? 'border-primary' : 'border-gray-300'}`}>
-                      {selectedPayment === value && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
-                    </span>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
 
             {/* CTA — Qty + Add to Cart */}
             <div className="space-y-3">

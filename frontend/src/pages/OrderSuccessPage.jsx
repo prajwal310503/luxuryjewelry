@@ -74,6 +74,7 @@ export default function OrderSuccessPage() {
   const [order, setOrder] = useState(null);
   const siblingOrders = state?.orders?.filter((o) => o._id !== id) || [];
   const totalOrders = (state?.orders?.length || 0) || (order ? 1 : 0);
+  const isPartial = state?.partialPayment || order?.payment?.status === 'partial';
 
   useEffect(() => {
     orderAPI.getById(id).then(({ data }) => setOrder(data.data)).catch(() => { });
@@ -121,6 +122,22 @@ export default function OrderSuccessPage() {
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+          {isPartial && (
+            <div className="max-w-lg mx-auto mb-6 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 text-left">
+              <p className="text-sm font-bold text-amber-900 mb-1">50% Payment Received</p>
+              <p className="text-sm text-amber-800 leading-relaxed">
+                Reminder sent on <strong>email, WhatsApp &amp; SMS</strong> with payment link.
+                Pay remaining 50% from{' '}
+                <Link to="/orders" className="font-semibold underline">My Orders</Link>
+                {' '}— order dispatches only after full payment.
+              </p>
+              {order && (
+                <Link to={`/orders/${order._id}`} className="inline-block mt-3 text-sm font-bold text-primary hover:underline">
+                  Pay remaining 50% now →
+                </Link>
+              )}
             </div>
           )}
           <p className="text-gray-400 text-sm max-w-md mx-auto mb-10 leading-relaxed">

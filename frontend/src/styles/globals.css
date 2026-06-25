@@ -73,6 +73,20 @@ input, textarea, select, button { font-family: "Futura Std","Futura","Jost","Cen
   animation-play-state: paused;
 }
 
+/* ── Checkout offers carousel (2 visible, infinite scroll) ── */
+@keyframes offer-marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(var(--offer-scroll-distance, -50%)); }
+}
+.offer-marquee-track {
+  display: flex;
+  gap: 0.5rem;
+  animation: offer-marquee var(--offer-scroll-duration, 24s) linear infinite;
+}
+.offer-marquee-track:hover {
+  animation-play-state: paused;
+}
+
 /* ─── Glass mixins ───────────────────────────────────────────────────────── */
 @layer components {
 

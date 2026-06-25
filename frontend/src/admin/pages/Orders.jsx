@@ -167,7 +167,7 @@ function CreateOrderModal({ onClose, onCreated }) {
   const [customer, setCustomer]   = useState(null);
   const [items, setItems]         = useState([{ title: '', sku: '', quantity: 1, price: '', product: null, image: '' }]);
   const [address, setAddress]     = useState({ fullName: '', phone: '', addressLine1: '', city: '', state: '', pincode: '', country: 'India' });
-  const [payMethod, setPayMethod] = useState('cod');
+  const [payMethod, setPayMethod] = useState('full_payment');
   const [saving, setSaving]       = useState(false);
 
   const addProduct = (p) => {
@@ -333,9 +333,9 @@ function CreateOrderModal({ onClose, onCreated }) {
             <div>
               <label className="label-luxury mb-2">Payment Method</label>
               <Select value={payMethod} onChange={(e) => setPayMethod(e.target.value)} compact className="w-full h-10">
-                <option value="cod">Cash on Delivery</option>
+                <option value="full_payment">Full Payment (100%)</option>
+                <option value="partial_payment">Partial Payment (50%)</option>
                 <option value="bank_transfer">Bank Transfer</option>
-                <option value="online">Online Payment</option>
                 <option value="quote">Quote</option>
               </Select>
             </div>
@@ -600,12 +600,13 @@ export default function AdminOrders() {
                       <td className="px-5 py-4 text-sm font-semibold text-gray-800">₹{order.total?.toLocaleString('en-IN')}</td>
                       <td className="px-5 py-4">
                         <span className="badge text-xs" style={{ backgroundColor: '#F3F4F6', color: '#374151' }}>
-                          {({ cod: 'COD', stripe: 'Online', razorpay: 'Online', wallet: 'Wallet', bank_transfer: 'Bank', quote: 'Quote' })[order.payment?.method] || order.payment?.method || '—'}
+                          {({ full_payment: 'Full Payment', partial_payment: 'Partial (50%)', cod: 'COD', stripe: 'Online', razorpay: 'Online', wallet: 'Wallet', bank_transfer: 'Bank', quote: 'Quote' })[order.payment?.method] || order.payment?.method || '—'}
                         </span>
                       </td>
                       <td className="px-5 py-4">
                         {(() => {
                           const s = order.payment?.status;
+                          if (s === 'partial')  return <span className="badge text-xs" style={{ backgroundColor: '#FFF7ED', color: '#EA580C' }}>50% Paid</span>;
                           if (s === 'paid')     return <span className="badge text-xs" style={{ backgroundColor: '#F0FDF4', color: '#16A34A' }}>Paid</span>;
                           if (s === 'failed')   return <span className="badge text-xs" style={{ backgroundColor: '#FEF2F2', color: '#EF4444' }}>Failed</span>;
                           if (s === 'refunded') return <span className="badge text-xs" style={{ backgroundColor: '#F5F3FF', color: '#7C3AED' }}>Refunded</span>;

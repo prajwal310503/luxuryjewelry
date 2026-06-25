@@ -5,16 +5,22 @@ const Store = require('../models/Store');
 const Coupon = require('../models/Coupon');
 const User = require('../models/User');
 const { sendSuccess, sendError, sendPaginated } = require('../utils/response');
-const { sendOrderConfirmationEmail } = require('../services/emailService');
-const { validateCouponHelper } = require('./couponController');
+const { sendOrderPlacedNotifications, sendPaymentCompleteNotifications } = require('../services/notificationService');
+const { enrichOrderPayment, assertCanDispatch, getRemainingAmount } = require('../utils/orderPaymentHelpers');
+const { validateCouponHelper, redeemCouponHelper } = require('./couponController');
 const { generateInvoiceBuffer } = require('../services/invoiceService');
 
 async function buildOrderItems(items) {
+  const productIds = [...new Set(items.map((i) => i.product))];
+  const products = await Product.find({ _id: { $in: productIds } }).populate('store', 'name commissionRate');
+  const productMap = new Map(products.map((p) => [String(p._id), p]));
+
   const orderItems = [];
   let subtotal = 0;
+  const stockOps = [];
 
   for (const item of items) {
-    const product = await Product.findById(item.product).populate('store', 'name commissionRate');
+    const product = productMap.get(String(item.product));
     if (!product || product.status !== 'approved' || !product.isActive) {
       throw new Error(`Product ${item.product} is not available`);
     }
@@ -28,6 +34,7 @@ async function buildOrderItems(items) {
 
     orderItems.push({
       product: product._id,
+      categoryId: product.category,
       store: store?._id || null,
       storeName: store?.name || 'VK Jewellers',
       title: product.title,
@@ -42,10 +49,26 @@ async function buildOrderItems(items) {
     });
 
     subtotal += itemSubtotal;
-    await Product.findByIdAndUpdate(product._id, { $inc: { stock: -item.quantity, totalSold: item.quantity } });
+    stockOps.push({
+      updateOne: {
+        filter: { _id: product._id, stock: { $gte: item.quantity } },
+        update: { $inc: { stock: -item.quantity, totalSold: item.quantity } },
+      },
+    });
+  }
+
+  if (stockOps.length) {
+    const stockResult = await Product.bulkWrite(stockOps);
+    if (stockResult.modifiedCount !== stockOps.length) {
+      throw new Error('Insufficient stock for one or more items');
+    }
   }
 
   return { orderItems, subtotal };
+}
+
+function generateOrderNumber() {
+  return `VK${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
 }
 
 function groupItemsByStore(orderItems) {
@@ -68,7 +91,13 @@ exports.createOrder = async (req, res, next) => {
     let couponDiscount = 0;
     let usedCoupon = null;
     if (couponCode) {
-      const result = await validateCouponHelper(couponCode, req.user.id, subtotal);
+      const cartItemsForCoupon = orderItems.map((oi) => ({
+        productId: oi.product,
+        categoryId: oi.categoryId,
+        lineTotal: oi.subtotal,
+        quantity: oi.quantity,
+      }));
+      const result = await validateCouponHelper(couponCode, req.user.id, subtotal, null, cartItemsForCoupon);
       if (!result.valid) return sendError(res, 400, result.message);
       couponDiscount = result.discount;
       usedCoupon = result.coupon;
@@ -80,26 +109,38 @@ exports.createOrder = async (req, res, next) => {
     const groupSubtotals = groups.map((g) => g.items.reduce((s, i) => s + i.subtotal, 0));
     const totalGroupSub = groupSubtotals.reduce((a, b) => a + b, 0);
 
-    const createdOrders = [];
-    const paymentStatus = payment?.method === 'cod' ? 'pending' : 'pending';
-    const orderStatus = payment?.method === 'cod' ? 'confirmed' : 'pending';
+    const method = payment?.method || 'full_payment';
+    const confirmsImmediately = ['cod', 'full_payment', 'partial_payment'].includes(method);
+    const paymentPercent = method === 'partial_payment' ? 50 : method === 'full_payment' ? 100 : null;
+    const orderStatus = confirmsImmediately ? 'confirmed' : 'pending';
 
-    for (let i = 0; i < groups.length; i++) {
-      const group = groups[i];
+    const storeIds = [...new Set(groups.map((g) => g.storeId).filter(Boolean))];
+    const stores = storeIds.length
+      ? await Store.find({ _id: { $in: storeIds } }, 'commissionRate').lean()
+      : [];
+    const storeMap = new Map(stores.map((s) => [String(s._id), s]));
+
+    const createdOrders = await Promise.all(groups.map(async (group, i) => {
       const groupSubtotal = groupSubtotals[i];
       const proportion = totalGroupSub > 0 ? groupSubtotal / totalGroupSub : 1 / groups.length;
       const groupCouponDiscount = Math.round(couponDiscount * proportion);
       const groupTotal = groupSubtotal - groupCouponDiscount + shippingCost;
 
-      let commissionRate = 0;
-      if (group.storeId) {
-        const store = await Store.findById(group.storeId);
-        commissionRate = store?.commissionRate || 0;
-      }
+      const store = group.storeId ? storeMap.get(String(group.storeId)) : null;
+      const commissionRate = store?.commissionRate || 0;
       const commissionAmount = Math.round((groupTotal * commissionRate) / 100);
       const vendorPayout = groupTotal - commissionAmount;
 
-      const order = await Order.create({
+      const payAmount = paymentPercent != null
+        ? Math.round((groupTotal * paymentPercent) / 100)
+        : groupTotal;
+      const paymentStatus = paymentPercent === 100 ? 'paid'
+        : paymentPercent === 50 ? 'partial'
+        : confirmsImmediately ? 'pending'
+        : 'pending';
+
+      return Order.create({
+        orderNumber: generateOrderNumber(),
         orderGroupId,
         customer: req.user.id,
         store: group.storeId,
@@ -107,9 +148,10 @@ exports.createOrder = async (req, res, next) => {
         items: group.items,
         shippingAddress,
         payment: {
-          method: payment?.method || 'cod',
-          status: payment?.method === 'cod' ? 'pending' : 'pending',
-          amount: groupTotal,
+          method,
+          status: paymentStatus,
+          amount: payAmount,
+          paymentPercent: paymentPercent ?? undefined,
         },
         subtotal: groupSubtotal,
         shippingCost,
@@ -125,32 +167,40 @@ exports.createOrder = async (req, res, next) => {
         status: orderStatus,
         statusHistory: [{ status: orderStatus, comment: 'Order placed', updatedBy: req.user.id }],
       });
+    }));
 
-      if (group.storeId) {
-        await Store.findByIdAndUpdate(group.storeId, {
-          $inc: { totalOrders: 1, totalRevenue: groupTotal },
-        });
-      }
+    const storeUpdates = groups
+      .map((group, i) => {
+        const groupSubtotal = groupSubtotals[i];
+        const proportion = totalGroupSub > 0 ? groupSubtotal / totalGroupSub : 1 / groups.length;
+        const groupTotal = groupSubtotal - Math.round(couponDiscount * proportion) + shippingCost;
+        return { storeId: group.storeId, total: groupTotal };
+      })
+      .filter((g) => g.storeId);
 
-      createdOrders.push(order);
-    }
-
-    if (usedCoupon) {
-      await Coupon.findByIdAndUpdate(usedCoupon._id, {
-        $inc: { usedCount: 1 },
-        $push: { usedBy: req.user.id },
-      });
-    }
-
-    try {
-      await sendOrderConfirmationEmail(req.user, createdOrders[0]);
-    } catch (_) {}
+    await Promise.all([
+      storeUpdates.length
+        ? Store.bulkWrite(storeUpdates.map(({ storeId, total }) => ({
+            updateOne: {
+              filter: { _id: storeId },
+              update: { $inc: { totalOrders: 1, totalRevenue: total } },
+            },
+          })))
+        : Promise.resolve(),
+      usedCoupon
+        ? redeemCouponHelper(usedCoupon._id, req.user.id, couponDiscount)
+        : Promise.resolve(),
+    ]);
 
     sendSuccess(res, 201, 'Order placed successfully', {
       orderGroupId,
-      orders: createdOrders,
+      orders: createdOrders.map(enrichOrderPayment),
       primaryOrderId: createdOrders[0]._id,
     });
+
+    for (const order of createdOrders) {
+      sendOrderPlacedNotifications(req.user, order).catch(() => {});
+    }
   } catch (error) {
     if (error.message?.includes('not available') || error.message?.includes('Insufficient')) {
       return sendError(res, 400, error.message);
@@ -175,7 +225,7 @@ exports.getMyOrders = async (req, res, next) => {
       .populate('items.product', 'title images slug')
       .populate('store', 'name slug logo');
 
-    sendPaginated(res, orders, page, limit, total);
+    sendPaginated(res, orders.map(enrichOrderPayment), page, limit, total);
   } catch (error) {
     next(error);
   }
@@ -195,7 +245,7 @@ exports.getOrder = async (req, res, next) => {
     const isStaff = ['admin', 'child_admin', 'vendor'].includes(req.user.role);
     if (!isOwner && !isStaff) return sendError(res, 403, 'Not authorized');
 
-    sendSuccess(res, 200, 'Order fetched', order);
+    sendSuccess(res, 200, 'Order fetched', enrichOrderPayment(order));
   } catch (error) {
     next(error);
   }
@@ -280,7 +330,7 @@ exports.adminGetOrders = async (req, res, next) => {
 
 exports.adminCreateOrder = async (req, res, next) => {
   try {
-    const { customerId, items, shippingAddress, paymentMethod = 'cod', notes } = req.body;
+    const { customerId, items, shippingAddress, paymentMethod = 'full_payment', notes } = req.body;
     if (!customerId || !items?.length) return sendError(res, 400, 'Customer and items required');
 
     let subtotal = 0;
@@ -308,13 +358,28 @@ exports.adminCreateOrder = async (req, res, next) => {
       subtotal += itemSubtotal;
     }
 
+    const method = paymentMethod || 'full_payment';
+    const paymentPercent = method === 'partial_payment' ? 50 : method === 'full_payment' ? 100 : null;
+    const orderTotal = subtotal;
+    const payAmount = paymentPercent != null
+      ? Math.round((orderTotal * paymentPercent) / 100)
+      : orderTotal;
+    const paymentStatus = paymentPercent === 100 ? 'paid'
+      : paymentPercent === 50 ? 'partial'
+      : 'pending';
+
     const order = await Order.create({
       customer: customerId,
       items: orderItems,
       store: orderItems[0]?.store,
       storeName: orderItems[0]?.storeName,
       shippingAddress: shippingAddress || {},
-      payment: { method: paymentMethod, status: 'pending' },
+      payment: {
+        method,
+        status: paymentStatus,
+        amount: payAmount,
+        paymentPercent: paymentPercent ?? undefined,
+      },
       subtotal,
       total: subtotal,
       notes: notes || '',
@@ -330,11 +395,46 @@ exports.adminCreateOrder = async (req, res, next) => {
   }
 };
 
+exports.payRemainingBalance = async (req, res, next) => {
+  try {
+    const order = await Order.findOne({ _id: req.params.id, customer: req.user.id });
+    if (!order) return sendError(res, 404, 'Order not found');
+    if (order.payment?.status !== 'partial') {
+      return sendError(res, 400, 'No remaining balance on this order');
+    }
+
+    const remaining = getRemainingAmount(order);
+    if (remaining <= 0) return sendError(res, 400, 'No remaining balance on this order');
+
+    order.payment.status = 'paid';
+    order.payment.amount = order.total;
+    order.payment.paymentPercent = 100;
+    order.payment.paidAt = new Date();
+    order.statusHistory.push({
+      status: order.status,
+      comment: `Remaining 50% payment of ₹${remaining.toLocaleString('en-IN')} received`,
+      updatedBy: req.user.id,
+      timestamp: new Date(),
+    });
+    await order.save();
+
+    sendSuccess(res, 200, 'Payment completed. Your order is ready for dispatch.', enrichOrderPayment(order));
+    sendPaymentCompleteNotifications(req.user, order).catch(() => {});
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.adminUpdateOrderStatus = async (req, res, next) => {
   try {
     const { status, paymentStatus, comment, cancellationAction, returnAction } = req.body;
     const order = await Order.findById(req.params.id);
     if (!order) return sendError(res, 404, 'Order not found');
+
+    if (status && ['processing', 'shipped', 'delivered'].includes(status)) {
+      const dispatchCheck = assertCanDispatch(order);
+      if (!dispatchCheck.allowed) return sendError(res, 400, dispatchCheck.message);
+    }
 
     const setFields = {};
     const pushFields = {};

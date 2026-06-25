@@ -3,6 +3,7 @@ const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
 const {
   validateCoupon,
+  getAvailableCoupons,
   adminGetCoupons,
   adminCreateCoupon,
   adminUpdateCoupon,
@@ -13,6 +14,7 @@ const {
 } = require('../controllers/couponController');
 
 router.post('/validate', protect, validateCoupon);
+router.get('/available', protect, getAvailableCoupons);
 
 router.get('/admin', protect, authorize('admin'), adminGetCoupons);
 router.post('/admin', protect, authorize('admin'), adminCreateCoupon);

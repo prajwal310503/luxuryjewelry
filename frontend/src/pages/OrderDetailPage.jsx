@@ -3,6 +3,7 @@ import SelectionBadges from '../components/product/SelectionBadges';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { orderAPI } from '../services/api';
+import PartialPaymentBanner from '../components/orders/PartialPaymentBanner';
 
 const STATUS_COLORS = {
   pending:    'bg-amber-100 text-amber-700',
@@ -28,6 +29,10 @@ export default function OrderDetailPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [id]);
+
+  const reloadOrder = () => {
+    orderAPI.getById(id).then(({ data }) => setOrder(data.data)).catch(() => {});
+  };
 
   if (loading) return (
     <div className="container-luxury py-10">
@@ -60,6 +65,8 @@ export default function OrderDetailPage() {
             {order.status}
           </span>
         </div>
+
+        <PartialPaymentBanner order={order} onPaid={reloadOrder} />
 
         {/* Status tracker */}
         {!isCancelled && (
@@ -135,6 +142,18 @@ export default function OrderDetailPage() {
                   <span>Total</span>
                   <span className="price-tag">₹{order.total?.toLocaleString('en-IN')}</span>
                 </div>
+                {order.payment?.status === 'partial' && order.remainingAmount > 0 && (
+                  <>
+                    <div className="flex justify-between text-sm text-green-700">
+                      <span>Paid (50%)</span>
+                      <span>₹{(order.payment?.amount || 0).toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-semibold text-amber-700">
+                      <span>Remaining</span>
+                      <span>₹{order.remainingAmount.toLocaleString('en-IN')}</span>
+                    </div>
+                  </>
+                )}
               </div>
 
               {order.shippingAddress?.fullName && (
