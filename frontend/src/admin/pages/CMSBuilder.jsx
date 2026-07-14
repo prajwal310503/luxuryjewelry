@@ -251,7 +251,7 @@ const DEFAULTS = {
       { heading: 'About LUXURY JEWELRY', links: [{ label: 'About Our Company', to: '/about' }, { label: 'Terms & Conditions', to: '/terms' }, { label: 'Privacy Policy', to: '/privacy' }, { label: 'Shipping Policy', to: '/shipping' }] },
       { heading: 'Jewelry Guide', links: [{ label: 'Diamond Education', to: '/guides/diamonds' }, { label: 'Metal Education', to: '/guides/metals' }, { label: 'Size Guide', to: '/guides/size' }, { label: 'Jewelry Care Tips', to: '/guides/care' }] },
       { heading: 'Why Choose Us', links: [{ label: '15 Days Return', to: '/policies/return' }, { label: 'Lifetime Exchange', to: '/policies/exchange' }, { label: 'Old Gold Exchange', to: '/old-gold' }, { label: "FAQ's", to: '/faq' }] },
-      { heading: 'For Retailers', links: [{ label: 'Retailer Registration', to: '/register' }, { label: 'Request a Quote', to: '/account' }, { label: 'Bulk Orders', to: '/contact' }] },
+      { heading: 'For Customers', links: [{ label: 'Create Account', to: '/register' }, { label: 'My Orders', to: '/orders' }, { label: 'Contact Us', to: '/contact' }] },
     ],
   },
   footer_payment: { methods: ['Visa', 'Mastercard', 'UPI', 'Razorpay', 'GPay', 'Paytm'] },

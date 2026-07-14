@@ -1,5 +1,6 @@
 const Product = require('../models/Product');
 const Category = require('../models/Category');
+const Store = require('../models/Store');
 const APIFeatures = require('../utils/apiFeatures');
 const { sendSuccess, sendError, sendPaginated } = require('../utils/response');
 const { getFileUrl, cloudinary, isCloudinaryConfigured } = require('../config/cloudinary');
@@ -383,21 +384,15 @@ exports.adminGetProductById = async (req, res, next) => {
   }
 };
 
-// @desc    Admin: create product (published immediately)
+// @desc    Admin cannot create products — vendors only (marketplace rule)
 // @route   POST /api/admin/products
 // @access  Admin
-exports.adminCreateProduct = async (req, res, next) => {
-  try {
-    const product = await Product.create({
-      ...req.body,
-      status: req.body.status || 'approved',
-      approvedBy: req.user.id,
-      approvedAt: new Date(),
-    });
-    sendSuccess(res, 201, 'Product published', product);
-  } catch (error) {
-    next(error);
-  }
+exports.adminCreateProduct = async (req, res) => {
+  return sendError(
+    res,
+    403,
+    'Admins cannot upload products. Only vendors can add products — approve them from the Products list after review.'
+  );
 };
 
 // @desc    Admin: update any product
@@ -571,171 +566,15 @@ exports.adminBulkArchiveProducts = async (req, res, next) => {
   }
 };
 
-// @desc    Admin: bulk upload products via CSV / Excel (SSE streaming)
+// @desc    Admin bulk create disabled — vendors own product catalog
 // @route   POST /api/admin/products/bulk-upload
 // @access  Admin
-exports.adminBulkUploadProducts = async (req, res, next) => {
-  try {
-    const XLSX = require('xlsx');
-
-    if (!req.file) return sendError(res, 400, 'No file uploaded');
-
-    const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
-
-    if (!rows.length) return sendError(res, 400, 'File is empty or has no data rows');
-
-    // Build category lookup map (by name and slug, case-insensitive)
-    const categories = await Category.find({}, 'name slug _id').lean();
-    const catMap = {};
-    categories.forEach((c) => {
-      catMap[c.name.toLowerCase().trim()] = c._id;
-      catMap[c.slug.toLowerCase().trim()] = c._id;
-    });
-
-    // Switch to SSE — all validation passed, stream row-by-row progress
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
-    res.flushHeaders();
-
-    const emit = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
-
-    emit({ type: 'start', total: rows.length });
-
-    // Parsing helpers
-    const str  = (v) => String(v == null ? '' : v).trim();
-    const num  = (v) => { const n = parseFloat(v); return isNaN(n) ? undefined : n; };
-    const int  = (v) => { const n = parseInt(v);   return isNaN(n) ? undefined : n; };
-    const bool = (v) => { const s = str(v).toLowerCase(); return ['true','yes','1'].includes(s) ? true : ['false','no','0'].includes(s) ? false : undefined; };
-    const arr  = (v) => str(v) ? str(v).split(',').map((s) => s.trim()).filter(Boolean) : [];
-    const pick = (row, ...keys) => { for (const k of keys) { if (row[k] !== undefined && row[k] !== '') return row[k]; } return ''; };
-
-    let successCount = 0, failCount = 0;
-
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      const rowNum = i + 2;
-
-      try {
-        // ── Required ──────────────────────────────────────
-        const title       = str(pick(row, 'title', 'Title'));
-        const price       = parseFloat(pick(row, 'price', 'Price') || 0);
-        const categoryRaw = str(pick(row, 'category', 'Category'));
-
-        if (!title)             throw new Error('title is required');
-        if (!price || price<=0) throw new Error('price must be a positive number');
-        if (!categoryRaw)       throw new Error('category is required');
-
-        const categoryId = catMap[categoryRaw.toLowerCase()];
-        if (!categoryId) throw new Error(`Category "${categoryRaw}" not found — check spelling`);
-
-        const rawStatus = str(pick(row, 'status')).toLowerCase();
-        const status = ['approved','draft','pending','archived'].includes(rawStatus) ? rawStatus : 'approved';
-
-        const data = {
-          title, price, category: categoryId, stock: 0, status,
-          approvedBy: req.user.id, approvedAt: new Date(),
-        };
-
-        // ── Basic Information ──────────────────────────────
-        const sku       = str(pick(row, 'sku', 'SKU'));
-        const shortDesc = str(pick(row, 'shortDescription', 'short_description'));
-        const desc      = str(pick(row, 'description', 'Description'));
-        if (sku)       data.sku              = sku;
-        if (shortDesc) data.shortDescription = shortDesc;
-        if (desc)      data.description      = desc;
-
-        // ── Category (subcategory optional) ───────────────
-        const subRaw = str(pick(row, 'subcategory', 'Subcategory'));
-        if (subRaw) {
-          const subId = catMap[subRaw.toLowerCase()];
-          if (subId) data.subcategory = subId;
-        }
-
-        // ── Pricing & Stock ────────────────────────────────
-        const cst  = num(pick(row, 'costPrice',  'cost_price')); if (cst  != null) data.costPrice = cst;
-        const disc = num(pick(row, 'discount'));                  if (disc != null) data.discount  = disc;
-        const stk  = int(pick(row, 'stock', 'Stock'));            if (stk  != null) data.stock     = stk;
-
-        // ── Jewelry Details ────────────────────────────────
-        const purity   = str(pick(row, 'purity'));       data.purity = purity || '22kt';
-        const mw       = num(pick(row, 'metalWeight', 'metal_weight'));   if (mw  != null) data.metalWeight  = mw;
-        const dd       = int(pick(row, 'deliveryDays', 'delivery_days')); if (dd  != null) data.deliveryDays = dd;
-
-        const dc = str(pick(row, 'diamondClarity', 'diamond_clarity'));
-        if (dc) data.diamondClarity = dc;
-
-        const sc = arr(pick(row, 'stoneColors', 'stone_colors'));
-        if (sc.length) data.stoneColors = sc;
-
-        const sizesEn  = bool(pick(row, 'sizesEnabled',   'sizes_enabled'));
-        const sizesAv  = arr(pick(row, 'sizesAvailable',  'sizes_available')).map(Number).filter((n) => !isNaN(n));
-        if (sizesEn !== undefined || sizesAv.length) {
-          data.sizes = { enabled: sizesEn || false, available: sizesAv };
-        }
-
-        const lenEn  = bool(pick(row, 'lengthEnabled',   'length_enabled'));
-        const lenAv  = arr(pick(row, 'lengthAvailable',  'length_available')).map(Number).filter((n) => !isNaN(n));
-        if (lenEn !== undefined || lenAv.length) {
-          data.lengths = { enabled: lenEn || false, available: lenAv };
-        }
-
-        // ── Product Images (image1…image4) — upload external URLs to Cloudinary ──
-        const rawImageUrls = [];
-        for (let n = 1; n <= 4; n++) {
-          const u = str(pick(row, `image${n}`, `Image${n}`));
-          if (u && /^https?:\/\/.+/.test(u)) rawImageUrls.push(u);
-        }
-        if (rawImageUrls.length) {
-          const uploadedImages = await Promise.all(
-            rawImageUrls.map((u) => uploadExternalUrl(u, 'image'))
-          );
-          data.images = uploadedImages.map((url, idx) => ({
-            url, publicId: '', alt: title, isPrimary: idx === 0, sortOrder: idx,
-          }));
-        }
-
-        // ── Product Videos (video1…video2) — upload external URLs to Cloudinary ──
-        const rawVideoUrls = [];
-        for (let n = 1; n <= 2; n++) {
-          const u = str(pick(row, `video${n}`, `Video${n}`));
-          if (u && /^https?:\/\/.+/.test(u)) rawVideoUrls.push(u);
-        }
-        if (rawVideoUrls.length) {
-          const uploadedVideos = await Promise.all(
-            rawVideoUrls.map((u) => uploadExternalUrl(u, 'video'))
-          );
-          data.videos = uploadedVideos.map((url, idx) => ({ url, publicId: '', sortOrder: idx }));
-        }
-
-        const product = await Product.create(data);
-        successCount++;
-        emit({ type: 'row', done: i + 1, total: rows.length, row: { rowNum, title, status: 'success', id: String(product._id) } });
-      } catch (err) {
-        const title = str(pick(row, 'title', 'Title')) || `Row ${rowNum}`;
-        failCount++;
-        let errMsg = err.message;
-        if (err.code === 11000) {
-          const field = Object.keys(err.keyPattern || {})[0] || 'field';
-          const value = err.keyValue ? err.keyValue[field] : null;
-          errMsg = value
-            ? `Duplicate ${field}: "${value}" already exists in the database`
-            : `Duplicate ${field} — already exists in the database`;
-        }
-        emit({ type: 'row', done: i + 1, total: rows.length, row: { rowNum, title, status: 'error', error: errMsg } });
-      }
-    }
-
-    emit({ type: 'done', successCount, failCount, total: rows.length });
-    res.end();
-  } catch (error) {
-    if (!res.headersSent) return next(error);
-    res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
-    res.end();
-  }
+exports.adminBulkUploadProducts = async (req, res) => {
+  return sendError(
+    res,
+    403,
+    'Admins cannot upload products. Only vendors can add products for admin approval.'
+  );
 };
 
 // @desc    Apply jewelry field defaults to all existing products

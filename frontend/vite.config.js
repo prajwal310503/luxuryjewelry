@@ -2,6 +2,17 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
+function apiProxyTarget() {
+  const raw = process.env.VITE_API_URL;
+  if (!raw) return 'http://localhost:8000';
+  try {
+    const u = new URL(raw);
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return String(raw).replace(/\/api\/?$/, '') || 'http://localhost:8000';
+  }
+}
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -17,11 +28,17 @@ export default defineConfig({
       '@vendor': path.resolve(__dirname, './src/vendor'),
     },
   },
+  build: {
+    outDir: 'dist/client',
+  },
+  ssr: {
+    noExternal: ['react-helmet-async'],
+  },
   server: {
     port: 5173,
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL ? process.env.VITE_API_URL.replace('/api', '') : 'http://localhost:8000',
+        target: apiProxyTarget(),
         changeOrigin: true,
       },
       '/uploads': {

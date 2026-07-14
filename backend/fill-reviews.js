@@ -1,6 +1,6 @@
 /**
  * One-time script: seed 3–6 sample reviews per product.
- * Creates 10 sample reviewer accounts (role: retailer) then attaches reviews.
+ * Creates 10 sample reviewer accounts (role: customer) then attaches reviews.
  * Run from backend folder:
  *   node fill-reviews.js
  */
@@ -79,7 +79,7 @@ async function main() {
   for (const r of REVIEWERS) {
     let user = await User.findOne({ email: r.email });
     if (!user) {
-      user = await User.create({ name: r.name, email: r.email, password: hash, role: 'retailer' });
+      user = await User.create({ name: r.name, email: r.email, password: hash, role: 'customer' });
       console.log(`  + Created reviewer: ${r.name}`);
     } else {
       console.log(`  ~ Reviewer exists: ${r.name}`);

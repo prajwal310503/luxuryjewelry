@@ -82,7 +82,7 @@ exports.platformCustomerReport = async (req, res, next) => {
   try {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const [newCustomers, topBuyers] = await Promise.all([
-      User.countDocuments({ role: { $in: ['customer', 'retailer'] }, createdAt: { $gte: thirtyDaysAgo } }),
+      User.countDocuments({ role: 'customer', createdAt: { $gte: thirtyDaysAgo } }),
       Order.aggregate([
         { $match: { 'payment.status': 'paid' } },
         { $group: { _id: '$customer', totalSpent: { $sum: '$total' }, orderCount: { $sum: 1 } } },

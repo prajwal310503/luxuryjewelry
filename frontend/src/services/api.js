@@ -12,10 +12,12 @@ const api = axios.create({
 // Request interceptor — attach JWT
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+    if (typeof localStorage !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (token) config.headers.Authorization = `Bearer ${token}`;
+    }
     // Let the browser set the correct multipart/form-data boundary for FormData
-    if (config.data instanceof FormData) {
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
       delete config.headers['Content-Type'];
     }
     return config;
@@ -82,8 +84,15 @@ api.interceptors.response.use(
     const message = error.response?.data?.message || 'Something went wrong';
 
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      if (typeof localStorage !== 'undefined') localStorage.removeItem('token');
+      if (typeof window !== 'undefined') {
+        const path = window.location.pathname + window.location.search;
+        const isPublicAuth = /^\/(login|register|forgot-password|reset-password)/.test(window.location.pathname);
+        if (!isPublicAuth) {
+          const redirect = encodeURIComponent(path);
+          window.location.href = `/login?redirect=${redirect}`;
+        }
+      }
     } else if (error.response?.status === 403) {
       toast.error('You do not have permission for this action');
     } else if (error.response?.status >= 500) {
@@ -259,12 +268,19 @@ export const storeAPI = {
 export const vendorAPI = {
   register: (data) => api.post('/vendor/register', data),
   getDashboard: () => api.get('/vendor/dashboard'),
+  getKyc: () => api.get('/vendor/kyc'),
+  submitKyc: (data) => api.put('/vendor/kyc', data),
   getStore: () => api.get('/vendor/store'),
   updateStore: (formData) => api.put('/vendor/store', formData),
   getProducts: (params) => api.get('/vendor/products', { params }),
+  getProduct: (id) => api.get(`/vendor/products/${id}`),
   createProduct: (data) => api.post('/vendor/products', data),
   updateProduct: (id, data) => api.put(`/vendor/products/${id}`, data),
   deleteProduct: (id) => api.delete(`/vendor/products/${id}`),
+  uploadProductImages: (id, formData) => api.post(`/vendor/products/${id}/images`, formData),
+  removeProductImage: (id, index) => api.delete(`/vendor/products/${id}/images/${index}`),
+  uploadProductVideos: (id, formData) => api.post(`/vendor/products/${id}/videos`, formData),
+  removeProductVideo: (id, index) => api.delete(`/vendor/products/${id}/videos/${index}`),
   getOrders: (params) => api.get('/vendor/orders', { params }),
   updateOrderStatus: (id, data) => api.put(`/vendor/orders/${id}/status`, data),
   getCoupons: () => api.get('/coupons/vendor'),

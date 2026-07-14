@@ -633,16 +633,15 @@ export default function AdminProducts() {
             <span className="hidden sm:inline">Manage Images</span>
             <span className="sm:hidden">Images</span>
           </button>
-          <button onClick={() => setBulkModal(true)} className="btn-outline text-sm flex items-center gap-2 py-2 px-4">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-            <span className="hidden sm:inline">Bulk Upload</span>
-            <span className="sm:hidden">Bulk</span>
-          </button>
-          <button onClick={() => navigate('/admin/products/add')} className="btn-primary text-sm flex items-center gap-2 py-2 px-4">
+          <button onClick={() => navigate('/admin/vendors')} className="btn-primary text-sm flex items-center gap-2 py-2 px-4">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            Add Product
+            Manage Vendors
           </button>
         </div>
+      </div>
+
+      <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+        <strong>Marketplace rule:</strong> Only vendors upload products. Admin can Approve / Reject / Archive listings and set homepage flags — product content is not edited by admin. Set commission under Categories.
       </div>
 
       {/* Filters */}
@@ -832,15 +831,9 @@ export default function AdminProducts() {
                       <Toggle active={product.isLifestyle2} onClick={() => handleToggle(product._id, 'lifestyle2')} disabled={!!updating} label="Everyday"  color="bg-[#B76E79]" flagKey="lifestyle2" />
                     </div>
                   </td>
-                  {/* Actions */}
+                  {/* Actions — approve / reject / archive only (vendors own product content) */}
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-1.5">
-                      <IconBtn onClick={() => navigate(`/admin/products/edit/${product._id}`)} title="Edit" color="bg-blue-50 text-blue-600 hover:bg-blue-100">
-                        <IcEdit />
-                      </IconBtn>
-                      <IconBtn onClick={() => setDeleteConfirm(product)} disabled={!!updating} title="Delete" color="bg-red-50 text-red-500 hover:bg-red-100">
-                        <IcTrash />
-                      </IconBtn>
                       {product.status === 'pending' && (
                         <>
                           <IconBtn onClick={() => handleStatusUpdate(product._id, 'approved')} disabled={updating === product._id} title="Approve" color="bg-green-50 text-green-600 hover:bg-green-100">
@@ -865,6 +858,9 @@ export default function AdminProducts() {
                         <IconBtn onClick={() => handleStatusUpdate(product._id, 'approved')} disabled={updating === product._id} title="Re-approve" color="bg-green-50 text-green-600 hover:bg-green-100">
                           <IcRefresh />
                         </IconBtn>
+                      )}
+                      {product.status !== 'pending' && product.status !== 'approved' && product.status !== 'rejected' && product.status !== 'archived' && (
+                        <span className="text-xs text-gray-400">—</span>
                       )}
                     </div>
                   </td>

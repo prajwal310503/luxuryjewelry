@@ -128,8 +128,7 @@ export default function OrderSuccessPage() {
             <div className="max-w-lg mx-auto mb-6 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 text-left">
               <p className="text-sm font-bold text-amber-900 mb-1">50% Payment Received</p>
               <p className="text-sm text-amber-800 leading-relaxed">
-                Reminder sent on <strong>email, WhatsApp &amp; SMS</strong> with payment link.
-                Pay remaining 50% from{' '}
+                Pay the remaining 50% from{' '}
                 <Link to="/orders" className="font-semibold underline">My Orders</Link>
                 {' '}— order dispatches only after full payment.
               </p>

@@ -2,7 +2,7 @@ const Quote = require('../models/Quote');
 const Order = require('../models/Order');
 const { sendSuccess, sendError, sendPaginated } = require('../utils/response');
 
-// ── Customer / Retailer: submit a quote request ───────────────────────────────
+// ── Customer: submit a quote request ───────────────────────────────────────
 exports.createQuote = async (req, res, next) => {
   try {
     const { items, shippingAddress, message } = req.body;
@@ -35,12 +35,7 @@ exports.createQuote = async (req, res, next) => {
       message: message || '',
     };
 
-    // Store submitter by role
-    if (req.user.role === 'retailer') {
-      quoteData.retailer = req.user.id;
-    } else {
-      quoteData.customer = req.user.id;
-    }
+    quoteData.customer = req.user.id;
 
     if (shippingAddress && typeof shippingAddress === 'object') {
       quoteData.shippingAddress = shippingAddress;
@@ -64,7 +59,9 @@ exports.getQuoteById = async (req, res, next) => {
     if (!quote) return sendError(res, 404, 'Quote not found');
 
     const ownerId = (quote.customer || quote.retailer)?.toString();
-    if (ownerId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'child_admin') {
+    const isAdmin = req.user.role === 'admin';
+    const isChildQuotes = req.user.role === 'child_admin' && (req.user.permissions || []).includes('quotes');
+    if (ownerId !== req.user.id && !isAdmin && !isChildQuotes) {
       return sendError(res, 403, 'Not authorised');
     }
 
@@ -74,7 +71,7 @@ exports.getQuoteById = async (req, res, next) => {
   }
 };
 
-// ── Customer / Retailer: get their own quotes ─────────────────────────────────
+// ── Customer: get their own quotes ─────────────────────────────────
 exports.getMyQuotes = async (req, res, next) => {
   try {
     const page  = parseInt(req.query.page)  || 1;

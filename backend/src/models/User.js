@@ -17,7 +17,7 @@ const AddressSchema = new mongoose.Schema({
 });
 
 // Permissions available for child_admin role
-const PERMISSIONS = ['orders', 'quotes', 'products', 'blog', 'cms', 'categories'];
+const PERMISSIONS = ['orders', 'products', 'blog', 'cms', 'categories'];
 
 const UserSchema = new mongoose.Schema(
   {
@@ -33,7 +33,7 @@ const UserSchema = new mongoose.Schema(
     password: { type: String, required: [true, 'Password is required'], minlength: 6, select: false },
     role: {
       type: String,
-      enum: ['admin', 'child_admin', 'vendor', 'customer', 'retailer'],
+      enum: ['admin', 'child_admin', 'vendor', 'customer'],
       default: 'customer',
     },
     // Granular access granted by admin to child_admin users
@@ -55,6 +55,27 @@ const UserSchema = new mongoose.Schema(
       accountNumber:  { type: String },
       ifscCode:       { type: String },
       accountHolder:  { type: String },
+      aadhaarNumber:  { type: String },
+    },
+    // KYC for vendors — completed inside portal after basic registration
+    kyc: {
+      status: {
+        type: String,
+        enum: ['incomplete', 'submitted', 'approved', 'rejected'],
+        default: 'incomplete',
+      },
+      documents: [{
+        docType: { type: String, enum: ['gst', 'pan', 'aadhaar', 'bank', 'other'] },
+        url: String,
+        name: String,
+        uploadedAt: { type: Date, default: Date.now },
+      }],
+      submittedAt: Date,
+      reviewedAt: Date,
+      reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      rejectionReason: String,
+      termsAcceptedAt: Date,
+      termsVersion: { type: String, default: '1.0' },
     },
     // Vendor approval status: pending → approved | rejected
     vendorStatus: {
@@ -90,7 +111,8 @@ UserSchema.methods.comparePassword = async function (enteredPassword) {
 };
 
 UserSchema.methods.getJWTToken = function () {
-  return jwt.sign({ id: this._id, role: this.role }, process.env.JWT_SECRET);
+  const expiresIn = process.env.JWT_EXPIRE || '7d';
+  return jwt.sign({ id: this._id, role: this.role }, process.env.JWT_SECRET, { expiresIn });
 };
 
 UserSchema.methods.getResetPasswordToken = function () {

@@ -4,7 +4,7 @@ import { categoryAPI } from '../../services/api';
 import Pagination from '../components/Pagination';
 import { resizeImage } from '../../utils/resizeImage';
 
-const EMPTY = { name: '', description: '', parent: '', sortOrder: 0, isFeatured: false, isActive: true };
+const EMPTY = { name: '', description: '', parent: '', sortOrder: 0, isFeatured: false, isActive: true, commissionRate: 0 };
 const PAGE_SIZE = 8;
 
 // ── Tooltip wrapper ───────────────────────────────────────────────────────────
@@ -111,6 +111,7 @@ export default function AdminCategories() {
       sortOrder: cat.sortOrder || 0,
       isFeatured: cat.isFeatured || false,
       isActive: cat.isActive !== false,
+      commissionRate: cat.commissionRate ?? 0,
     });
     setImageFile(null); setImagePreview(null);
     setShowModal(true);
@@ -204,6 +205,9 @@ export default function AdminCategories() {
         </div>
       </td>
       <td className="px-5 py-3.5 text-sm text-gray-500">{cat.level === 0 ? 'Root' : `Sub (L${cat.level})`}</td>
+      <td className="px-5 py-3.5 text-sm font-semibold text-primary">
+        {`${Number(cat.commissionRate) || 0}%`}
+      </td>
       <td className="px-5 py-3.5">
         <span className={`badge text-xs ${cat.isActive ? 'badge-success' : 'badge-danger'}`}>
           {cat.isActive ? 'Active' : 'Inactive'}
@@ -256,7 +260,7 @@ export default function AdminCategories() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-heading text-2xl font-bold text-gray-900">Categories</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Root categories and their subcategories. Both are available in Add Product.</p>
+          <p className="text-sm text-gray-400 mt-0.5">Set commission % per category. Fee is cut from vendor payout on sale — never added to customer price.</p>
         </div>
         <button onClick={openCreate} className="btn-primary text-sm py-2.5">+ Add Category</button>
       </div>
@@ -266,7 +270,7 @@ export default function AdminCategories() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                {['Category', 'Level', 'Active', 'Actions'].map((h) => (
+                {['Category', 'Level', 'Commission', 'Active', 'Actions'].map((h) => (
                   <th key={h} className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-5 py-3">{h}</th>
                 ))}
               </tr>
@@ -279,7 +283,7 @@ export default function AdminCategories() {
                   ))}</tr>
                 ))
               ) : rootCategories.length === 0 ? (
-                <tr><td colSpan={4} className="text-center py-10 text-gray-300">No categories</td></tr>
+                <tr><td colSpan={5} className="text-center py-10 text-gray-300">No categories</td></tr>
               ) : pagedRoots.map((root) => [
                 renderRow(root, false),
                 ...subsOf(root._id).map((sub) => renderRow(sub, true)),
@@ -381,6 +385,23 @@ export default function AdminCategories() {
 
                 </>
               )}
+
+              <div>
+                <label className="label-luxury">Platform commission % *</label>
+                <p className="text-[11px] text-gray-400 mb-1.5">
+                  Cut from vendor payout on every sale in this category. Not added to customer price.
+                </p>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  value={form.commissionRate}
+                  onChange={(e) => setForm({ ...form, commissionRate: e.target.value })}
+                  className="input-luxury"
+                  placeholder="e.g. 5 for Gold, 8 for Diamond"
+                />
+              </div>
 
               {/* Active / Inactive toggle — always visible */}
               <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50 border border-gray-100">

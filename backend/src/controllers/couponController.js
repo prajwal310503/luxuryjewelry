@@ -98,14 +98,17 @@ async function validateCoupon(code, userId, subtotal, storeId = null, cartItems 
   const now = Date.now();
   if (coupon.startDate && coupon.startDate > now) return { valid: false, message: 'Code not yet active' };
   if (coupon.endDate && coupon.endDate < now) return { valid: false, message: 'Code expired' };
-  if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
-    return { valid: false, message: 'Code usage limit reached' };
+  // Gift cards are balance-based — allow re-use until balance is exhausted
+  if (coupon.couponKind !== 'gift_card') {
+    if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
+      return { valid: false, message: 'Code usage limit reached' };
+    }
+    if (coupon.perUserLimit && coupon.usedBy?.filter((u) => u.toString() === userId).length >= coupon.perUserLimit) {
+      return { valid: false, message: 'You have already used this code' };
+    }
   }
   if (coupon.store && storeId && coupon.store.toString() !== storeId.toString()) {
     return { valid: false, message: 'Code not valid for this shop' };
-  }
-  if (coupon.perUserLimit && coupon.usedBy?.filter((u) => u.toString() === userId).length >= coupon.perUserLimit) {
-    return { valid: false, message: 'You have already used this code' };
   }
   if (subtotal < coupon.minOrderAmount) {
     return { valid: false, message: `Minimum order ₹${coupon.minOrderAmount} required` };
@@ -141,12 +144,21 @@ async function redeemCoupon(couponId, userId, discount) {
   const coupon = await Coupon.findById(couponId);
   if (!coupon) return;
 
+  const amount = Math.max(0, Math.round(Number(discount) || 0));
+
+  if (coupon.couponKind === 'gift_card') {
+    const current = Number(coupon.balance ?? coupon.value ?? 0);
+    await Coupon.findByIdAndUpdate(couponId, {
+      $set: { balance: Math.max(0, current - amount) },
+      $inc: { usedCount: 1 },
+      $addToSet: { usedBy: userId },
+    });
+    return;
+  }
+
   await Coupon.findByIdAndUpdate(couponId, {
     $inc: { usedCount: 1 },
-    ...(coupon.couponKind === 'gift_card'
-      ? { $set: { balance: Math.max(0, (coupon.balance ?? coupon.value ?? 0) - discount) } }
-      : {}),
-    $push: { usedBy: userId },
+    $addToSet: { usedBy: userId },
   });
 }
 
@@ -252,6 +264,10 @@ exports.adminCreateCoupon = async (req, res, next) => {
       if (!body.balance || body.balance <= 0) {
         return sendError(res, 400, 'Gift card amount must be greater than 0');
       }
+      // Balance-based: no one-shot usage caps
+      body.showOnFrontend = false;
+      body.perUserLimit = null;
+      body.usageLimit = null;
     } else if (!/^[A-Z0-9]{6}$/.test(body.code)) {
       return sendError(res, 400, 'Coupon code must be 6 characters (A-Z, 0-9)');
     }
@@ -259,8 +275,6 @@ exports.adminCreateCoupon = async (req, res, next) => {
     if (kind === 'category' && !body.applicableCategories?.length && !body.applicableProducts?.length) {
       return sendError(res, 400, 'Category coupon requires at least one category or product');
     }
-
-    if (kind === 'gift_card') body.showOnFrontend = false;
 
     const coupon = await Coupon.create({
       ...body,

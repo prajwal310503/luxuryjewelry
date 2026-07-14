@@ -4,13 +4,19 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import VendorLayout from '../components/VendorLayout';
 import { EmptyStateIcon, IconRing } from '../../components/ui/Icons';
+import Pagination from '../../admin/components/Pagination';
 
 const API = import.meta.env.VITE_API_URL || '/api';
+const PAGE_SIZE = 12;
 
 const STATUS_COLORS = {
-  active:   { bg: 'rgba(16,185,129,0.1)',  text: '#065f46' },
-  inactive: { bg: 'rgba(156,163,175,0.15)', text: '#6b7280' },
-  draft:    { bg: 'rgba(251,191,36,0.12)', text: '#d97706' },
+  pending:   { background: 'rgba(251,191,36,0.92)', color: '#92400e' },
+  approved:  { background: 'rgba(16,185,129,0.92)', color: '#fff' },
+  rejected:  { background: 'rgba(239,68,68,0.92)', color: '#fff' },
+  archived:  { background: 'rgba(107,114,128,0.9)', color: '#fff' },
+  draft:     { background: 'rgba(251,191,36,0.92)', color: '#92400e' },
+  active:    { background: 'rgba(16,185,129,0.92)', color: '#fff' },
+  inactive:  { background: 'rgba(156,163,175,0.9)', color: '#fff' },
 };
 
 export default function VendorProducts() {
@@ -25,7 +31,7 @@ export default function VendorProducts() {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const params = { page, limit: 12 };
+      const params = { page, limit: PAGE_SIZE };
       if (search) params.search = search;
       const { data } = await axios.get(`${API}/vendor/products`, { params, withCredentials: true });
       setProducts(data.data?.products || []);
@@ -120,17 +126,17 @@ export default function VendorProducts() {
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-300"><IconRing className="w-10 h-10" /></div>
                   )}
-                  {/* Status badge */}
                   <div className="absolute top-2 left-2">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold capitalize"
-                      style={{ ...(STATUS_COLORS[p.status] || STATUS_COLORS.active), backdropFilter: 'blur(4px)' }}>
-                      {p.status || 'active'}
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold capitalize shadow-sm"
+                      style={STATUS_COLORS[p.status] || STATUS_COLORS.pending}>
+                      {p.status || 'pending'}
                     </span>
                   </div>
                   {/* Hover actions */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                    <a href={`/admin/products/edit/${p._id}`}
-                      className="w-9 h-9 rounded-full bg-white flex items-center justify-center hover:scale-110 transition-transform">
+                    <a href={`/vendor/products/edit/${p._id}`}
+                      className="w-9 h-9 rounded-full bg-white flex items-center justify-center hover:scale-110 transition-transform"
+                      title="Edit">
                       <svg className="w-4 h-4 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                       </svg>
@@ -156,21 +162,15 @@ export default function VendorProducts() {
         )}
 
         {/* Pagination */}
-        {total > 12 && (
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">Page {page} of {Math.ceil(total / 12)}</p>
-            <div className="flex gap-2">
-              <button onClick={() => setPage((p) => Math.max(p - 1, 1))} disabled={page === 1}
-                className="px-4 py-1.5 rounded-lg text-sm font-medium border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors">
-                Previous
-              </button>
-              <button onClick={() => setPage((p) => p + 1)} disabled={page >= Math.ceil(total / 12)}
-                className="px-4 py-1.5 rounded-lg text-sm font-medium border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors">
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        <div className="bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(0,0,0,0.06)' }}>
+          <Pagination
+            page={page}
+            pages={Math.max(1, Math.ceil(total / PAGE_SIZE))}
+            total={total}
+            shown={products.length}
+            onPage={setPage}
+          />
+        </div>
 
         {/* Delete Confirm Modal */}
         <AnimatePresence>

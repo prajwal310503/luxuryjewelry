@@ -50,6 +50,10 @@ exports.createCategory = async (req, res, next) => {
   try {
     const data = { ...req.body };
 
+    if (data.commissionRate !== undefined && data.commissionRate !== '') {
+      data.commissionRate = Math.min(100, Math.max(0, Number(data.commissionRate) || 0));
+    }
+
     if (data.parent) {
       const parentCategory = await Category.findById(data.parent);
       if (!parentCategory) return sendError(res, 404, 'Parent category not found');
@@ -59,6 +63,10 @@ exports.createCategory = async (req, res, next) => {
         { _id: parentCategory._id, name: parentCategory.name, slug: parentCategory.slug },
       ];
       data.level = parentCategory.level + 1;
+      // Subcategory inherits parent rate if not set
+      if (data.commissionRate === undefined || data.commissionRate === '' || Number.isNaN(Number(data.commissionRate))) {
+        data.commissionRate = parentCategory.commissionRate || 0;
+      }
     }
 
     if (req.file) {
@@ -82,7 +90,12 @@ exports.updateCategory = async (req, res, next) => {
     const category = await Category.findById(req.params.id);
     if (!category) return sendError(res, 404, 'Category not found');
 
-    Object.assign(category, req.body);
+    const body = { ...req.body };
+    if (body.commissionRate !== undefined && body.commissionRate !== '') {
+      body.commissionRate = Math.min(100, Math.max(0, Number(body.commissionRate) || 0));
+    }
+
+    Object.assign(category, body);
 
     if (req.file) {
       category.image = getFileUrl(req.file);

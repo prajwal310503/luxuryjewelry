@@ -336,7 +336,6 @@ function CreateOrderModal({ onClose, onCreated }) {
                 <option value="full_payment">Full Payment (100%)</option>
                 <option value="partial_payment">Partial Payment (50%)</option>
                 <option value="bank_transfer">Bank Transfer</option>
-                <option value="quote">Quote</option>
               </Select>
             </div>
             <div className="flex flex-col justify-end">
@@ -375,7 +374,7 @@ function CreateOrderModal({ onClose, onCreated }) {
 }
 
 // ── Expandable Order Detail ──────────────────────────────────────────────────
-function OrderDetail({ order, onUpdateStatus }) {
+function OrderDetail({ order }) {
   const fmt = (n) => n != null ? `₹${Math.round(n).toLocaleString('en-IN')}` : '—';
   return (
     <div className="bg-gray-50 border-t border-gray-100 px-6 py-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -399,6 +398,11 @@ function OrderDetail({ order, onUpdateStatus }) {
               <div className="text-right flex-shrink-0">
                 <p className="text-sm font-bold text-gray-800">{fmt((it.price || 0) * it.quantity)}</p>
                 <p className="text-xs text-gray-400">{fmt(it.price)} each</p>
+                {(it.commissionAmount > 0 || it.commissionRate > 0) && (
+                  <p className="text-[10px] text-amber-700 mt-0.5">
+                    Platform fee {it.commissionRate || 0}% · {fmt(it.commissionAmount)}
+                  </p>
+                )}
               </div>
             </div>
           ))}
@@ -406,12 +410,14 @@ function OrderDetail({ order, onUpdateStatus }) {
       </div>
       {/* Sidebar */}
       <div className="space-y-4">
-        {/* Summary */}
         <div className="bg-white rounded-xl border border-gray-100 p-4">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Summary</p>
           <div className="space-y-1.5 text-sm">
             <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{fmt(order.subtotal)}</span></div>
             <div className="flex justify-between text-gray-600"><span>Shipping</span><span className={order.shippingCost === 0 ? 'text-green-600 font-medium' : ''}>{order.shippingCost === 0 ? 'FREE' : fmt(order.shippingCost)}</span></div>
+            {(order.commissionAmount > 0) && (
+              <div className="flex justify-between text-amber-800"><span>Platform commission</span><span>{fmt(order.commissionAmount)}</span></div>
+            )}
             <div className="flex justify-between font-bold text-gray-800 border-t border-gray-100 pt-2"><span>Total</span><span>{fmt(order.total)}</span></div>
           </div>
           <div className="mt-3 pt-3 border-t border-gray-100">
@@ -424,7 +430,6 @@ function OrderDetail({ order, onUpdateStatus }) {
             <p className="text-xs text-gray-400 mt-0.5">Source: <span className="font-medium text-gray-700 capitalize">{order.source || 'direct'}</span></p>
           </div>
         </div>
-        {/* Address */}
         {order.shippingAddress?.fullName && (
           <div className="bg-white rounded-xl border border-gray-100 p-4">
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Delivery Address</p>
@@ -435,9 +440,6 @@ function OrderDetail({ order, onUpdateStatus }) {
             </p>
           </div>
         )}
-        <button onClick={onUpdateStatus} className="w-full btn-primary text-sm py-2.5 justify-center">
-          Update Order Status
-        </button>
       </div>
     </div>
   );
@@ -450,10 +452,6 @@ export default function AdminOrders() {
   const [meta,      setMeta]      = useState({});
   const [loading,   setLoading]   = useState(true);
   const [expanded,  setExpanded]  = useState(null);
-  const [selected,      setSelected]      = useState(null);
-  const [statusSaving,  setStatusSaving]  = useState(false);
-  const [statusUpdate,  setStatusUpdate]  = useState({ status: '', comment: '' });
-  const [showCreate, setShowCreate] = useState(false);
 
   const statusFilter = searchParams.get('status') || '';
   const page         = parseInt(searchParams.get('page')) || 1;
@@ -473,42 +471,15 @@ export default function AdminOrders() {
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
-  const openStatus = (order) => {
-    setSelected(order);
-    setStatusUpdate({ status: order.status, paymentStatus: order.payment?.status || 'pending', comment: '' });
-  };
-
-  const handleUpdateStatus = async () => {
-    setStatusSaving(true);
-    try {
-      await orderAPI.adminUpdateStatus(selected._id, {
-        status: statusUpdate.status,
-        paymentStatus: statusUpdate.paymentStatus,
-        comment: statusUpdate.comment,
-      });
-      toast.success('Order updated successfully');
-      setSelected(null);
-      fetchOrders();
-    } catch (err) {
-      console.error('[handleUpdateStatus]', err);
-      toast.error(err?.message || 'Failed to update order');
-    } finally { setStatusSaving(false); }
-  };
-
   const setPage = (p) => setSearchParams({ status: statusFilter, search, page: p });
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="font-heading text-2xl font-bold text-gray-900">Orders</h1>
-        <button
-          type="button"
-          onClick={() => setShowCreate(true)}
-          className="btn-primary text-sm px-4 py-2 flex items-center gap-2"
-        >
-          <IcPlus />
-          Create Order
-        </button>
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-gray-900">Orders</h1>
+          <p className="text-sm text-gray-400 mt-0.5">View-only — vendors update fulfilment status from their panel</p>
+        </div>
       </div>
 
       <div className="card-luxury p-4 flex flex-wrap gap-3">
@@ -570,9 +541,6 @@ export default function AdminOrders() {
                     >
                       <td className="px-5 py-4">
                         <p className="text-sm font-semibold text-primary">#{order.orderNumber}</p>
-                        {order.source === 'quote' && (
-                          <span className="text-[10px] bg-blue-50 text-blue-500 px-1.5 py-0.5 rounded font-medium">From Quote</span>
-                        )}
                       </td>
                       <td className="px-5 py-4">
                         <p className="text-sm text-gray-800 font-medium">{order.customer?.name}</p>
@@ -620,17 +588,9 @@ export default function AdminOrders() {
                       </td>
                       <td className="px-5 py-4 text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('en-IN')}</td>
                       <td className="px-5 py-4">
-                        <div className="flex items-center gap-1.5">
-                          <Tip label="Update Status">
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); openStatus(order); }}
-                              className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                            >
-                              <IcEdit />
-                            </button>
-                          </Tip>
-                          <svg className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <div className="flex items-center gap-1.5 text-gray-400">
+                          <span className="text-[10px] font-semibold uppercase tracking-wide">View</span>
+                          <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                           </svg>
                         </div>
@@ -639,7 +599,7 @@ export default function AdminOrders() {
                     {isOpen && (
                       <tr key={`${order._id}-detail`}>
                         <td colSpan={9} className="p-0">
-                          <OrderDetail order={order} onUpdateStatus={() => openStatus(order)} />
+                          <OrderDetail order={order} />
                         </td>
                       </tr>
                     )}
@@ -651,62 +611,6 @@ export default function AdminOrders() {
         </div>
         <Pagination page={page} pages={meta.pages} total={meta.total} shown={orders.length} onPage={setPage} />
       </div>
-
-      {/* Update Status Modal */}
-      {selected && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setSelected(null)}>
-          <div className="bg-white rounded-2xl shadow-luxury-lg w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="font-heading text-lg font-bold">Update Order #{selected.orderNumber}</h3>
-              <button type="button" onClick={() => setSelected(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 transition-colors">
-                <IcX />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Order Status</label>
-                  <Select value={statusUpdate.status} onChange={(e) => { const v = e.target.value; setStatusUpdate((p) => ({ ...p, status: v })); }}>
-                    {['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned', 'refunded'].map((s) => (
-                      <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                    ))}
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Payment Status</label>
-                  <Select value={statusUpdate.paymentStatus} onChange={(e) => { const v = e.target.value; setStatusUpdate((p) => ({ ...p, paymentStatus: v })); }}>
-                    {['pending', 'paid', 'failed', 'refunded'].map((s) => (
-                      <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                    ))}
-                  </Select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Comment</label>
-                <textarea
-                  value={statusUpdate.comment}
-                  onChange={(e) => { const v = e.target.value; setStatusUpdate((p) => ({ ...p, comment: v })); }}
-                  className="input-luxury resize-none"
-                  rows={2}
-                  placeholder="Optional comment..."
-                />
-              </div>
-              <div className="flex gap-3">
-                <button type="button" onClick={() => setSelected(null)} className="btn-outline flex-1 justify-center">Cancel</button>
-                <button type="button" onClick={handleUpdateStatus} disabled={statusSaving} className="btn-primary flex-1 justify-center disabled:opacity-60">{statusSaving ? 'Updating...' : 'Update'}</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Create Order Modal */}
-      {showCreate && (
-        <CreateOrderModal
-          onClose={() => setShowCreate(false)}
-          onCreated={fetchOrders}
-        />
-      )}
     </div>
   );
 }

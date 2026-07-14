@@ -1,0 +1,84 @@
+### VK Jewellers — All Role API Tests (REST Client / Thunder Client)
+
+@baseUrl = http://localhost:5000/api
+@loginUrl = http://localhost:5173/login
+
+# ── ADMIN ──
+@adminEmail = admin@yourdomain.com
+@adminPassword = StrongAdminPassword@123
+
+# ── VENDOR ──
+@vendorEmail = vendor@vkjewellers.com
+@vendorPassword = Vendor@123456
+
+# ── CUSTOMER ──
+@customerEmail = customer@vkjewellers.com
+@customerPassword = Customer@123456
+
+# ── CHILD ADMIN (staff) ──
+@staffEmail = staff@vkjewellers.com
+@staffPassword = Staff@123456
+
+### ────────── ADMIN ──────────
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+### Admin dashboard (paste token above)
+# @adminToken = 
+GET {{baseUrl}}/admin/dashboard
+Authorization: Bearer {{adminToken}}
+
+### ────────── VENDOR ──────────
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{vendorEmail}}",
+  "password": "{{vendorPassword}}"
+}
+
+### Vendor dashboard
+# @vendorToken = 
+GET {{baseUrl}}/vendor/dashboard
+Authorization: Bearer {{vendorToken}}
+
+### ────────── CUSTOMER ──────────
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{customerEmail}}",
+  "password": "{{customerPassword}}"
+}
+
+### Customer profile
+# @customerToken = 
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{customerToken}}
+
+### Customer blocked from admin (expect 403)
+GET {{baseUrl}}/admin/dashboard
+Authorization: Bearer {{customerToken}}
+
+### ────────── CHILD ADMIN (staff) ──────────
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{staffEmail}}",
+  "password": "{{staffPassword}}"
+}
+
+### Staff orders (allowed)
+# @staffToken = 
+GET {{baseUrl}}/orders/admin/all
+Authorization: Bearer {{staffToken}}
+
+### Staff blocked from admin dashboard (expect 403)
+GET {{baseUrl}}/admin/dashboard
+Authorization: Bearer {{staffToken}}

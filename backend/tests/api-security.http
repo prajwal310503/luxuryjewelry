@@ -1,0 +1,52 @@
+### VK Jewellers — API Security Checks (VS Code REST Client / Thunder Client)
+
+@baseUrl = http://localhost:5000/api
+@adminEmail = admin@yourdomain.com
+@adminPassword = StrongAdminPassword@123
+
+### Health (public)
+GET {{baseUrl}}/health
+
+### Admin dashboard — must be 401 without token
+GET {{baseUrl}}/admin/dashboard
+
+### Admin dashboard — must be 401 with bad token
+GET {{baseUrl}}/admin/dashboard
+Authorization: Bearer invalid.token.value
+
+### Login brute-force guard (repeat to test 429)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "wrong@test.com",
+  "password": "wrongpassword"
+}
+
+### Register role escalation — must create customer, not admin
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Escalation Test",
+  "email": "escalation-{{$timestamp}}@test.local",
+  "password": "TestPass@123",
+  "role": "admin"
+}
+
+### Admin login (save token from response)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+### Admin dashboard — must be 200 with valid token
+# @token = paste-token-here
+GET {{baseUrl}}/admin/dashboard
+Authorization: Bearer {{token}}
+
+### Vendor dashboard — must be 401 without token
+GET {{baseUrl}}/vendor/dashboard

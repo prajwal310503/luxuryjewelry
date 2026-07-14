@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import VendorLayout from '../components/VendorLayout';
-import { IconPlus, IconStore, IconCurrency, IconBox, EmptyStateIcon, StarRating } from '../../components/ui/Icons';
+import { IconPlus, IconCurrency, IconBox, EmptyStateIcon, StarRating } from '../../components/ui/Icons';
 
 const API = import.meta.env.VITE_API_URL || '/api';
 
@@ -99,14 +99,9 @@ export default function VendorDashboard() {
               </p>
             </div>
             <div className="flex gap-3">
-              <Link to="/vendor/products" className="px-4 py-2 text-xs font-bold uppercase tracking-wide text-gray-900 rounded-full"
+              <Link to="/vendor/products/add" className="px-4 py-2 text-xs font-bold uppercase tracking-wide text-gray-900 rounded-full"
                 style={{ background: 'linear-gradient(135deg, #C9A84C, #E2C97E)' }}>
                 + Add Product
-              </Link>
-              <Link to={`/stores/${store.slug}`} target="_blank"
-                className="px-4 py-2 text-xs font-semibold text-white/80 rounded-full hover:bg-white/10 transition-colors"
-                style={{ border: '1px solid rgba(255,255,255,0.2)' }}>
-                View Store
               </Link>
             </div>
           </div>
@@ -170,8 +165,7 @@ export default function VendorDashboard() {
             <h2 className="font-bold text-gray-900 text-[15px] mb-5">Quick Actions</h2>
             <div className="space-y-3">
               {[
-                { to: '/vendor/products', label: 'Add New Product', Icon: IconPlus, accent: '#C9A84C' },
-                { to: '/vendor/store',    label: 'Edit Store Profile', Icon: IconStore, accent: '#B76E79' },
+                { to: '/vendor/products/add', label: 'Add New Product', Icon: IconPlus, accent: '#C9A84C' },
                 { to: '/vendor/pricing',  label: 'Update Making Charges', Icon: IconCurrency, accent: '#5a413f' },
                 { to: '/vendor/orders',   label: 'Process Pending Orders', Icon: IconBox, accent: '#f59e0b' },
               ].map((a) => (

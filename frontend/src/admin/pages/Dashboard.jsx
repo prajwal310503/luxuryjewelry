@@ -7,12 +7,13 @@ import { adminAPI } from '../../services/api';
 const formatPrice = (p) => `₹${Math.round(p || 0).toLocaleString('en-IN')}`;
 const formatNum = (n) => (n || 0).toLocaleString('en-IN');
 
-const StatCard = ({ title, value, icon, change, to }) => (
+const StatCard = ({ title, value, icon, change, to, sub }) => (
   <motion.div whileHover={{ y: -2 }} className="card-luxury p-4 sm:p-6">
     <div className="flex items-start justify-between gap-2">
       <div className="min-w-0 flex-1">
         <p className="text-[10px] sm:text-xs font-medium text-gray-400 uppercase tracking-wider mb-1.5 truncate">{title}</p>
         <p className="font-heading text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate">{value}</p>
+        {sub && <p className="text-xs text-amber-700/90 font-medium mt-1.5">{sub}</p>}
         {change !== undefined && (
           <p className={`text-xs font-medium mt-1.5 ${change >= 0 ? 'text-green-600' : 'text-red-500'}`}>
             {change >= 0 ? '↑' : '↓'} {Math.abs(change)}%
@@ -124,10 +125,64 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* Admin earnings — sales vs commission */}
+      <div
+        className="rounded-2xl p-5 sm:p-6 text-white"
+        style={{ background: 'linear-gradient(135deg, #1a0e08 0%, #3a2520 55%, #5a413f 100%)' }}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-5">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-white/50 font-bold mb-1">Platform earnings</p>
+            <h2 className="font-heading text-xl sm:text-2xl font-bold">Admin commission earned</h2>
+            <p className="text-sm text-white/60 mt-1">
+              Cut from vendor payout by category rate — not added to customer price.
+            </p>
+          </div>
+          <Link to="/admin/categories" className="text-xs font-bold px-4 py-2 rounded-full self-start"
+            style={{ background: 'linear-gradient(135deg, #C9A84C, #E2C97E)', color: '#1a0e08' }}>
+            Set category rates →
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div className="rounded-xl bg-white/10 border border-white/10 p-4">
+            <p className="text-[10px] uppercase tracking-wider text-white/50 mb-1">Total sales (GMV)</p>
+            <p className="font-heading text-2xl font-bold">{formatPrice(stats.totalRevenue)}</p>
+            <p className="text-[10px] text-white/40 mt-1">Customer ne pay kiya</p>
+          </div>
+          <div className="rounded-xl bg-white/10 border border-white/10 p-4">
+            <p className="text-[10px] uppercase tracking-wider text-amber-200/80 mb-1">Your commission (all time)</p>
+            <p className="font-heading text-2xl font-bold" style={{ color: '#E2C97E' }}>
+              {formatPrice(stats.totalCommissionEarned)}
+            </p>
+            <p className="text-[10px] text-white/40 mt-1">Admin ka cut · abhi 5% sab categories</p>
+          </div>
+          <div className="rounded-xl bg-white/10 border border-white/10 p-4">
+            <p className="text-[10px] uppercase tracking-wider text-white/50 mb-1">Vendor payout (all time)</p>
+            <p className="font-heading text-2xl font-bold">{formatPrice(stats.totalVendorPayout)}</p>
+            <p className="text-[10px] text-white/40 mt-1">Vendors ko milne wala hissa</p>
+          </div>
+          <div className="rounded-xl bg-white/10 border border-white/10 p-4">
+            <p className="text-[10px] uppercase tracking-wider text-white/50 mb-1">Commission (30 days)</p>
+            <p className="font-heading text-2xl font-bold">{formatPrice(stats.commissionThisMonth)}</p>
+            <p className="text-[10px] text-white/40 mt-1">Sales {formatPrice(stats.monthlyRevenue)}</p>
+          </div>
+          <div className="rounded-xl bg-white/10 border border-white/10 p-4 col-span-2 lg:col-span-1">
+            <p className="text-[10px] uppercase tracking-wider text-white/50 mb-1">Commission today</p>
+            <p className="font-heading text-2xl font-bold">{formatPrice(stats.commissionToday)}</p>
+            <p className="text-[10px] text-white/40 mt-1">Sales {formatPrice(stats.todayRevenue)}</p>
+          </div>
+        </div>
+      </div>
+
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard title="Total Revenue" value={formatPrice(stats.totalRevenue)} to="/admin/orders" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
-        <StatCard title="Monthly Revenue" value={formatPrice(stats.monthlyRevenue)} icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>} />
+        <StatCard
+          title="Monthly Revenue (30d)"
+          value={formatPrice(stats.monthlyRevenue)}
+          sub={`Your commission: ${formatPrice(stats.monthlyCommission)} · ${formatNum(stats.monthlyOrders)} orders`}
+          icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>}
+        />
         <StatCard title="Total Orders" value={formatNum(stats.totalOrders)} to="/admin/orders" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 10V11" /></svg>} />
         <StatCard title="Weekly Orders" value={formatNum(stats.weeklyOrders)} icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>} />
         <StatCard title="Total Customers" value={formatNum(stats.totalUsers)} to="/admin/customers" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>} />
@@ -135,7 +190,15 @@ export default function AdminDashboard() {
         <StatCard title="Total Products" value={formatNum(stats.totalProducts)} to="/admin/products" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 9l10 13L22 9z" /></svg>} />
         <StatCard title="Pending Products" value={formatNum(stats.pendingProducts)} to="/admin/products?status=pending" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
         <StatCard title="Today's Revenue" value={formatPrice(stats.todayRevenue)} icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
-        <StatCard title="Commission (Month)" value={formatPrice(stats.commissionThisMonth)} to="/admin/reports" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg>} />
+        <StatCard title="Your Commission (All)" value={formatPrice(stats.totalCommissionEarned)} to="/admin/categories" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg>} />
+        <StatCard title="Commission (30d)" value={formatPrice(stats.commissionThisMonth)} to="/admin/categories" icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" /></svg>} />
+        <StatCard title="Commission Today" value={formatPrice(stats.commissionToday)} icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+      </div>
+
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+        <strong>Kaise calculate hota hai:</strong> har category par <strong>5% commission</strong> set hai (
+        <Link to="/admin/categories" className="font-bold underline">Categories</Link>
+        ). Customer ko same price milta hai. Sale hone par 5% admin ke paas, baaki vendor payout. Coupon lagne par commission product value (coupon ke baad) par lagta hai.
       </div>
 
       {/* Top Vendors */}

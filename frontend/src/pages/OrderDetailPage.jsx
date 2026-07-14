@@ -168,17 +168,6 @@ export default function OrderDetailPage() {
                 </div>
               )}
 
-              {order.source === 'quote' && (
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <div className="flex items-center gap-2 text-xs text-primary font-medium">
-                    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    This order was placed from a quote confirmed by LUXURY JEWELRY.
-                  </div>
-                </div>
-              )}
-
               <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
                 <button type="button" onClick={async () => {
                   try {

@@ -2,6 +2,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../../store/authStore';
+import { vendorAPI } from '../../services/api';
 
 // ─── Nav Icons ────────────────────────────────────────────────────────────────
 const icons = {
@@ -44,21 +45,35 @@ const icons = {
 
 const NAV = [
   { to: '/vendor/dashboard',  label: 'Dashboard',      icon: 'dashboard' },
+  { to: '/vendor/kyc',        label: 'KYC & Policies', icon: 'store' },
   { to: '/vendor/products',   label: 'My Products',    icon: 'products' },
   { to: '/vendor/orders',     label: 'My Orders',      icon: 'orders' },
-  { to: '/vendor/store',      label: 'My Store',       icon: 'store' },
   { to: '/vendor/pricing',    label: 'Making Charges', icon: 'pricing' },
   { to: '/vendor/analytics',  label: 'Analytics',      icon: 'chart' },
-  { to: '/vendor/coupons',    label: 'Coupons',        icon: 'pricing' },
 ];
 
 export default function VendorLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [kycStatus, setKycStatus] = useState(null);
   const { user, logout } = useAuthStore();
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
+
+  useEffect(() => {
+    vendorAPI.getKyc()
+      .then(({ data }) => setKycStatus(data.data?.kyc?.status || 'incomplete'))
+      .catch(() => setKycStatus('incomplete'));
+  }, []);
+
+  useEffect(() => {
+    if (!kycStatus) return;
+    const needsKyc = kycStatus === 'incomplete' || kycStatus === 'rejected';
+    if (needsKyc && pathname.startsWith('/vendor/products')) {
+      navigate('/vendor/kyc', { replace: true });
+    }
+  }, [kycStatus, pathname, navigate]);
 
   const handleLogout = () => { logout(); navigate('/login'); };
 

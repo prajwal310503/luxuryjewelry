@@ -2,18 +2,52 @@ const crypto = require('crypto');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Store = require('../models/Store');
+const Category = require('../models/Category');
 const Coupon = require('../models/Coupon');
 const User = require('../models/User');
 const { sendSuccess, sendError, sendPaginated } = require('../utils/response');
 const { sendOrderPlacedNotifications, sendPaymentCompleteNotifications } = require('../services/notificationService');
-const { enrichOrderPayment, assertCanDispatch, getRemainingAmount } = require('../utils/orderPaymentHelpers');
+const { enrichOrderPayment, hideCommissionFromCustomer, assertCanDispatch, getRemainingAmount } = require('../utils/orderPaymentHelpers');
 const { validateCouponHelper, redeemCouponHelper } = require('./couponController');
 const { generateInvoiceBuffer } = require('../services/invoiceService');
 
 async function buildOrderItems(items) {
   const productIds = [...new Set(items.map((i) => i.product))];
-  const products = await Product.find({ _id: { $in: productIds } }).populate('store', 'name commissionRate');
+  const products = await Product.find({ _id: { $in: productIds } })
+    .populate('store', 'name commissionRate')
+    .populate('category', 'name commissionRate ancestors parent');
   const productMap = new Map(products.map((p) => [String(p._id), p]));
+
+  const parentIds = [];
+  products.forEach((p) => {
+    (p.category?.ancestors || []).forEach((a) => {
+      if (a._id) parentIds.push(String(a._id));
+    });
+    if (p.category?.parent) parentIds.push(String(p.category.parent));
+  });
+  const categoryIds = products.map((p) => p.category?._id).filter(Boolean).map(String);
+  const allCatIds = [...new Set([...categoryIds, ...parentIds])];
+  const cats = allCatIds.length
+    ? await Category.find({ _id: { $in: allCatIds } }).select('commissionRate').lean()
+    : [];
+  const catMap = new Map(cats.map((c) => [String(c._id), c]));
+
+  function resolveCommissionRate(product) {
+    const cat = product.category;
+    if (!cat) return Number(product.store?.commissionRate) || 0;
+    const direct = catMap.get(String(cat._id));
+    if (direct && Number(direct.commissionRate) > 0) return Number(direct.commissionRate);
+    const ancestors = [...(cat.ancestors || [])].reverse();
+    for (const a of ancestors) {
+      const ac = catMap.get(String(a._id));
+      if (ac && Number(ac.commissionRate) > 0) return Number(ac.commissionRate);
+    }
+    if (cat.parent) {
+      const pc = catMap.get(String(cat.parent));
+      if (pc && Number(pc.commissionRate) > 0) return Number(pc.commissionRate);
+    }
+    return Number(product.store?.commissionRate) || 0;
+  }
 
   const orderItems = [];
   let subtotal = 0;
@@ -31,10 +65,11 @@ async function buildOrderItems(items) {
     const price = item.price ?? product.discountedPrice ?? product.price;
     const itemSubtotal = price * item.quantity;
     const store = product.store;
+    const commissionRate = resolveCommissionRate(product);
 
     orderItems.push({
       product: product._id,
-      categoryId: product.category,
+      categoryId: product.category?._id || product.category || null,
       store: store?._id || null,
       storeName: store?.name || 'VK Jewellers',
       title: product.title,
@@ -46,6 +81,8 @@ async function buildOrderItems(items) {
       quantity: item.quantity,
       discount: product.discount || 0,
       subtotal: itemSubtotal,
+      commissionRate,
+      commissionAmount: 0,
     });
 
     subtotal += itemSubtotal;
@@ -103,7 +140,7 @@ exports.createOrder = async (req, res, next) => {
       usedCoupon = result.coupon;
     }
 
-    const shippingCost = usedCoupon?.type === 'free_shipping' ? 0 : 0;
+    const shippingCost = 0;
     const orderGroupId = crypto.randomUUID();
     const groups = groupItemsByStore(orderItems);
     const groupSubtotals = groups.map((g) => g.items.reduce((s, i) => s + i.subtotal, 0));
@@ -114,30 +151,53 @@ exports.createOrder = async (req, res, next) => {
     const paymentPercent = method === 'partial_payment' ? 50 : method === 'full_payment' ? 100 : null;
     const orderStatus = confirmsImmediately ? 'confirmed' : 'pending';
 
-    const storeIds = [...new Set(groups.map((g) => g.storeId).filter(Boolean))];
-    const stores = storeIds.length
-      ? await Store.find({ _id: { $in: storeIds } }, 'commissionRate').lean()
-      : [];
-    const storeMap = new Map(stores.map((s) => [String(s._id), s]));
-
     const createdOrders = await Promise.all(groups.map(async (group, i) => {
       const groupSubtotal = groupSubtotals[i];
       const proportion = totalGroupSub > 0 ? groupSubtotal / totalGroupSub : 1 / groups.length;
       const groupCouponDiscount = Math.round(couponDiscount * proportion);
-      const groupTotal = groupSubtotal - groupCouponDiscount + shippingCost;
+      // GST / delivery stay separate later — commission is only on product net (after coupon)
+      const shippingCostForOrder = shippingCost;
+      const groupTotal = Math.max(0, groupSubtotal - groupCouponDiscount + shippingCostForOrder);
 
-      const store = group.storeId ? storeMap.get(String(group.storeId)) : null;
-      const commissionRate = store?.commissionRate || 0;
-      const commissionAmount = Math.round((groupTotal * commissionRate) / 100);
-      const vendorPayout = groupTotal - commissionAmount;
+      // Category-wise commission on each line (Amazon-style: cut from vendor, not added to customer)
+      let commissionAmount = 0;
+      const itemsWithCommission = group.items.map((item) => {
+        const itemShare = groupSubtotal > 0 ? item.subtotal / groupSubtotal : 0;
+        const itemCoupon = Math.round(groupCouponDiscount * itemShare);
+        const itemNet = Math.max(0, item.subtotal - itemCoupon);
+        const rate = Number(item.commissionRate) || 0;
+        const itemCommission = Math.round((itemNet * rate) / 100);
+        commissionAmount += itemCommission;
+        return { ...item, commissionRate: rate, commissionAmount: itemCommission };
+      });
 
-      const payAmount = paymentPercent != null
-        ? Math.round((groupTotal * paymentPercent) / 100)
-        : groupTotal;
-      const paymentStatus = paymentPercent === 100 ? 'paid'
-        : paymentPercent === 50 ? 'partial'
-        : confirmsImmediately ? 'pending'
-        : 'pending';
+      const commissionRate = groupTotal > 0
+        ? Math.round((commissionAmount / Math.max(1, groupSubtotal - groupCouponDiscount)) * 10000) / 100
+        : 0;
+      const vendorPayout = Math.max(0, groupTotal - shippingCostForOrder - commissionAmount) + shippingCostForOrder;
+      // payout = (product net - commission) + shipping (shipping usually passes through; adjust if needed)
+      // Simpler: vendorPayout = groupTotal - commissionAmount (shipping included in total stays with whoever you decide)
+      const finalVendorPayout = Math.max(0, groupTotal - commissionAmount);
+
+      // If total is fully covered (gift card etc.), mark paid even for partial_payment selection
+      let paymentStatus;
+      let payAmount;
+      let appliedPercent = paymentPercent;
+      if (groupTotal <= 0) {
+        paymentStatus = 'paid';
+        payAmount = 0;
+        appliedPercent = 100;
+      } else if (paymentPercent === 100) {
+        paymentStatus = 'paid';
+        payAmount = groupTotal;
+      } else if (paymentPercent === 50) {
+        paymentStatus = 'partial';
+        payAmount = Math.round(groupTotal * 0.5);
+      } else {
+        paymentStatus = confirmsImmediately ? 'pending' : 'pending';
+        payAmount = groupTotal;
+        appliedPercent = undefined;
+      }
 
       return Order.create({
         orderNumber: generateOrderNumber(),
@@ -145,22 +205,22 @@ exports.createOrder = async (req, res, next) => {
         customer: req.user.id,
         store: group.storeId,
         storeName: group.storeName,
-        items: group.items,
+        items: itemsWithCommission,
         shippingAddress,
         payment: {
           method,
           status: paymentStatus,
           amount: payAmount,
-          paymentPercent: paymentPercent ?? undefined,
+          paymentPercent: appliedPercent,
         },
         subtotal: groupSubtotal,
-        shippingCost,
+        shippingCost: shippingCostForOrder,
         couponCode: usedCoupon ? couponCode.toUpperCase() : null,
         couponDiscount: groupCouponDiscount,
         total: groupTotal,
         commissionRate,
         commissionAmount,
-        vendorPayout,
+        vendorPayout: finalVendorPayout,
         notes,
         isGift,
         giftMessage,
@@ -173,7 +233,7 @@ exports.createOrder = async (req, res, next) => {
       .map((group, i) => {
         const groupSubtotal = groupSubtotals[i];
         const proportion = totalGroupSub > 0 ? groupSubtotal / totalGroupSub : 1 / groups.length;
-        const groupTotal = groupSubtotal - Math.round(couponDiscount * proportion) + shippingCost;
+        const groupTotal = Math.max(0, groupSubtotal - Math.round(couponDiscount * proportion) + shippingCost);
         return { storeId: group.storeId, total: groupTotal };
       })
       .filter((g) => g.storeId);
@@ -194,7 +254,7 @@ exports.createOrder = async (req, res, next) => {
 
     sendSuccess(res, 201, 'Order placed successfully', {
       orderGroupId,
-      orders: createdOrders.map(enrichOrderPayment),
+      orders: createdOrders.map(hideCommissionFromCustomer),
       primaryOrderId: createdOrders[0]._id,
     });
 
@@ -225,7 +285,7 @@ exports.getMyOrders = async (req, res, next) => {
       .populate('items.product', 'title images slug')
       .populate('store', 'name slug logo');
 
-    sendPaginated(res, orders.map(enrichOrderPayment), page, limit, total);
+    sendPaginated(res, orders.map(hideCommissionFromCustomer), page, limit, total);
   } catch (error) {
     next(error);
   }
@@ -242,10 +302,14 @@ exports.getOrder = async (req, res, next) => {
 
     const customerId = order.customer?._id?.toString() || order.customer?.toString();
     const isOwner = customerId === req.user.id;
-    const isStaff = ['admin', 'child_admin', 'vendor'].includes(req.user.role);
+    const isAdmin = req.user.role === 'admin';
+    const isChildOrders = req.user.role === 'child_admin' && (req.user.permissions || []).includes('orders');
+    const isVendor = req.user.role === 'vendor';
+    const isStaff = isAdmin || isChildOrders || isVendor;
     if (!isOwner && !isStaff) return sendError(res, 403, 'Not authorized');
 
-    sendSuccess(res, 200, 'Order fetched', enrichOrderPayment(order));
+    const payload = (isAdmin || isChildOrders || isVendor) ? enrichOrderPayment(order) : hideCommissionFromCustomer(order);
+    sendSuccess(res, 200, 'Order fetched', payload);
   } catch (error) {
     next(error);
   }
@@ -322,7 +386,7 @@ exports.adminGetOrders = async (req, res, next) => {
       .skip(skip)
       .limit(limit);
 
-    sendPaginated(res, orders, page, limit, total);
+    sendPaginated(res, orders.map(enrichOrderPayment), page, limit, total);
   } catch (error) {
     next(error);
   }
@@ -404,7 +468,15 @@ exports.payRemainingBalance = async (req, res, next) => {
     }
 
     const remaining = getRemainingAmount(order);
-    if (remaining <= 0) return sendError(res, 400, 'No remaining balance on this order');
+    if (remaining <= 0) {
+      // Heal stuck partial orders with ₹0 remaining (e.g. fully covered by gift card)
+      order.payment.status = 'paid';
+      order.payment.amount = order.total;
+      order.payment.paymentPercent = 100;
+      order.payment.paidAt = new Date();
+      await order.save();
+      return sendSuccess(res, 200, 'Order already fully paid', hideCommissionFromCustomer(order));
+    }
 
     order.payment.status = 'paid';
     order.payment.amount = order.total;
@@ -418,7 +490,7 @@ exports.payRemainingBalance = async (req, res, next) => {
     });
     await order.save();
 
-    sendSuccess(res, 200, 'Payment completed. Your order is ready for dispatch.', enrichOrderPayment(order));
+    sendSuccess(res, 200, 'Payment completed. Your order is ready for dispatch.', hideCommissionFromCustomer(order));
     sendPaymentCompleteNotifications(req.user, order).catch(() => {});
   } catch (error) {
     next(error);

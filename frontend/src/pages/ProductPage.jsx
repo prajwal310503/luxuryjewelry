@@ -696,8 +696,7 @@ export default function ProductPage() {
             </div>
 
             {product.store && (
-              <Link to={`/stores/${product.store.slug}`}
-                className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50/80 hover:border-primary/30 transition-colors">
+              <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50/80">
                 {product.store.logo ? (
                   <img src={product.store.logo} alt="" className="w-10 h-10 rounded-full object-cover" />
                 ) : (
@@ -707,7 +706,7 @@ export default function ProductPage() {
                   <p className="text-[10px] text-gray-400 uppercase tracking-wide">Sold by</p>
                   <p className="text-sm font-semibold text-gray-900">{product.store.name}</p>
                 </div>
-              </Link>
+              </div>
             )}
 
             {/* Title */}

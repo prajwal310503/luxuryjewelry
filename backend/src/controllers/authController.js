@@ -9,17 +9,21 @@ const { sendWelcomeEmail, sendPasswordResetEmail } = require('../services/emailS
 // @access  Public
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, phone, role } = req.body;
+    const { name, email, password, phone } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return sendError(res, 400, 'Email already registered');
     }
 
-    const user = await User.create({ name, email, password, phone, role: role || 'customer' });
+    // Public registration — never allow privileged roles
+    const user = await User.create({ name, email, password, phone, role: 'customer' });
 
-    // Send verification email for customers/retailers
-    if (['customer', 'retailer'].includes(user.role)) {
+    // Dev: auto-verify so new users can login immediately after register
+    if (process.env.NODE_ENV !== 'production') {
+      user.isEmailVerified = true;
+      await user.save({ validateBeforeSave: false });
+    } else {
       try {
         const verificationToken = user.getEmailVerificationToken();
         await user.save({ validateBeforeSave: false });
@@ -61,7 +65,7 @@ exports.login = async (req, res, next) => {
       return sendError(res, 403, 'Account has been deactivated. Contact support.');
     }
 
-    if (['customer', 'retailer'].includes(user.role) && !user.isEmailVerified) {
+    if (user.role === 'customer' && !user.isEmailVerified) {
       return sendError(res, 403, 'Please verify your email before logging in. Check your inbox or request a new link.');
     }
 

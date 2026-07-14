@@ -9,49 +9,58 @@ const { getFileUrl } = require('../config/cloudinary');
 // ─── Public ──────────────────────────────────────────────────────────────────
 
 // @route  POST /api/vendor/register
-// @access Public
+// @access Public — basic details only; KYC completed in vendor portal
 exports.registerVendor = async (req, res, next) => {
   try {
     const {
       name, email, password, phone,
-      shopName, businessType, gstNumber, panNumber,
-      businessAddress, city, state, pincode,
+      shopName, city, agreeTerms,
     } = req.body;
 
+    if (!agreeTerms) {
+      return sendError(res, 400, 'You must accept the Terms & Conditions to register');
+    }
     if (await User.findOne({ email })) {
       return sendError(res, 400, 'Email already registered');
     }
 
     const user = await User.create({
-      name, email, password, phone,
+      name,
+      email,
+      password,
+      phone,
       role: 'vendor',
       vendorStatus: 'pending',
       vendorDetails: {
-        shopName, businessType, gstNumber, panNumber,
-        businessAddress, city, state, pincode,
+        shopName: shopName?.trim(),
+        city: city?.trim() || '',
+      },
+      kyc: {
+        status: 'incomplete',
+        termsAcceptedAt: new Date(),
+        termsVersion: '1.0',
       },
     });
 
-    // Pre-create a store in pending state
     const slug = await generateUniqueSlug(shopName);
     const store = await Store.create({
-      name: shopName,
+      name: shopName.trim(),
       slug,
       vendor: user._id,
-      city, state, pincode,
+      city: city?.trim() || '',
       phone,
       email,
-      gstNumber,
       status: 'pending',
     });
 
     user.store = store._id;
     await user.save({ validateBeforeSave: false });
 
-    sendSuccess(res, 201, 'Vendor registration submitted. Awaiting admin approval.', {
+    sendSuccess(res, 201, 'Registration successful. Log in and complete KYC to get approved.', {
       userId: user._id,
       storeId: store._id,
       status: 'pending',
+      nextStep: 'kyc',
     });
   } catch (error) {
     next(error);
@@ -289,8 +298,21 @@ exports.adminApproveVendor = async (req, res, next) => {
     const user = await User.findOne({ _id: req.params.id, role: 'vendor' });
     if (!user) return sendError(res, 404, 'Vendor not found');
 
+    const kycStatus = user.kyc?.status || 'incomplete';
+    if (kycStatus === 'incomplete') {
+      return sendError(res, 400, 'Vendor has not completed KYC yet. Ask them to finish KYC in the vendor portal.');
+    }
+    if (kycStatus === 'rejected') {
+      return sendError(res, 400, 'Vendor KYC was rejected. They must re-submit KYC before approval.');
+    }
+
     user.vendorStatus = 'approved';
     user.isActive = true;
+    if (user.kyc) {
+      user.kyc.status = 'approved';
+      user.kyc.reviewedAt = new Date();
+      user.kyc.reviewedBy = req.user.id;
+    }
     await user.save({ validateBeforeSave: false });
 
     await Store.findOneAndUpdate(
@@ -298,7 +320,7 @@ exports.adminApproveVendor = async (req, res, next) => {
       { status: 'approved', approvedAt: new Date(), approvedBy: req.user.id }
     );
 
-    sendSuccess(res, 200, 'Vendor approved');
+    sendSuccess(res, 200, 'Vendor approved — they can now list products for review');
   } catch (error) {
     next(error);
   }
@@ -398,17 +420,89 @@ function mapUploadedImages(files = []) {
   })).filter((img) => img.url);
 }
 
+function mapUploadedVideos(files = []) {
+  return files.map((file, idx) => ({
+    url: getFileUrl(file),
+    publicId: file.filename || file.public_id || '',
+    sortOrder: idx,
+  })).filter((v) => v.url);
+}
+
+function parseMaybeJson(value) {
+  if (value == null || value === '') return undefined;
+  if (typeof value !== 'string') return value;
+  const t = value.trim();
+  if ((t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']'))) {
+    try { return JSON.parse(t); } catch { return value; }
+  }
+  if (t === 'true') return true;
+  if (t === 'false') return false;
+  return value;
+}
+
 function parseVendorProductBody(body) {
   const payload = {};
-  if (body.title !== undefined) payload.title = body.title;
-  if (body.description !== undefined) payload.description = body.description;
-  if (body.category) payload.category = body.category;
-  if (body.purity !== undefined) payload.purity = body.purity;
-  if (body.price !== undefined && body.price !== '') payload.price = Number(body.price);
-  if (body.stock !== undefined && body.stock !== '') payload.stock = Number(body.stock);
-  if (body.metalWeight !== undefined && body.metalWeight !== '') payload.metalWeight = Number(body.metalWeight);
+  const b = body || {};
+
+  if (b.title !== undefined) payload.title = b.title;
+  if (b.sku !== undefined) payload.sku = b.sku || undefined;
+  if (b.shortDescription !== undefined) payload.shortDescription = b.shortDescription;
+  if (b.description !== undefined) payload.description = b.description;
+  if (b.category) payload.category = b.category;
+  if (b.subcategory !== undefined) payload.subcategory = b.subcategory || undefined;
+  if (b.purity !== undefined) payload.purity = b.purity;
+  if (b.price !== undefined && b.price !== '') payload.price = Number(b.price);
+  if (b.costPrice !== undefined && b.costPrice !== '') payload.costPrice = Number(b.costPrice);
+  if (b.discount !== undefined && b.discount !== '') payload.discount = Number(b.discount);
+  if (b.stock !== undefined && b.stock !== '') payload.stock = Number(b.stock);
+  if (b.metalWeight !== undefined && b.metalWeight !== '') payload.metalWeight = Number(b.metalWeight);
+  if (b.deliveryDays !== undefined && b.deliveryDays !== '') payload.deliveryDays = Number(b.deliveryDays);
+  if (b.diamondClarity !== undefined) payload.diamondClarity = b.diamondClarity || undefined;
+
+  const boolFields = ['isFeatured', 'isNewArrival', 'isBestSeller'];
+  boolFields.forEach((field) => {
+    if (b[field] !== undefined) payload[field] = parseMaybeJson(b[field]) === true || b[field] === 'true' || b[field] === true;
+  });
+
+  ['giftTags', 'wearingTypes', 'stoneColors', 'attributes', 'sizes', 'lengths', 'seo'].forEach((field) => {
+    if (b[field] !== undefined) {
+      const parsed = parseMaybeJson(b[field]);
+      if (parsed !== undefined) payload[field] = parsed;
+    }
+  });
+
+  // Vendor products stay pending until admin approves — ignore client status for create; allow draft only if sent as draft
+  if (b.status === 'draft') payload.status = 'draft';
+
   return payload;
 }
+
+async function findVendorOwnedProduct(vendorId, productId) {
+  const store = await Store.findOne({ vendor: vendorId }).select('_id');
+  if (!store) return { error: 'Store not found', status: 404 };
+  const product = await Product.findOne({ _id: productId, store: store._id });
+  if (!product) return { error: 'Product not found', status: 404 };
+  return { store, product };
+}
+
+// @route  GET /api/vendor/products/:id
+// @access Vendor
+exports.getVendorProduct = async (req, res, next) => {
+  try {
+    const store = await Store.findOne({ vendor: req.user.id }).select('_id');
+    if (!store) return sendError(res, 404, 'Store not found');
+
+    const product = await Product.findOne({ _id: req.params.id, store: store._id })
+      .populate('category', 'name slug commissionRate')
+      .populate('subcategory', 'name slug')
+      .populate('attributes.attribute', 'name');
+    if (!product) return sendError(res, 404, 'Product not found');
+
+    sendSuccess(res, 200, 'Product fetched', product);
+  } catch (error) {
+    next(error);
+  }
+};
 
 // @route  POST /api/vendor/products
 // @access Vendor
@@ -416,13 +510,23 @@ exports.createVendorProduct = async (req, res, next) => {
   try {
     const store = await Store.findOne({ vendor: req.user.id });
     if (!store) return sendError(res, 404, 'Store not found');
-    if (store.status !== 'approved') return sendError(res, 403, 'Store must be approved to add products');
+    if (store.status !== 'approved') {
+      return sendError(res, 403, 'Complete KYC and wait for admin approval before adding products');
+    }
+
+    const vendorUser = await User.findById(req.user.id).select('vendorStatus kyc');
+    if (vendorUser?.vendorStatus !== 'approved') {
+      return sendError(res, 403, 'Your seller account is not approved yet');
+    }
 
     const payload = {
       ...parseVendorProductBody(req.body),
       store: store._id,
-      status: 'pending',
+      status: req.body?.status === 'draft' ? 'draft' : 'pending',
       isActive: true,
+      // Vendors cannot self-feature products on homepage
+      isFeatured: false,
+      isBestSeller: false,
     };
 
     if (!payload.title || !payload.category || payload.price == null) {
@@ -431,6 +535,9 @@ exports.createVendorProduct = async (req, res, next) => {
 
     const imageFiles = req.files?.images || [];
     if (imageFiles.length) payload.images = mapUploadedImages(imageFiles);
+
+    const videoFiles = req.files?.videos || [];
+    if (videoFiles.length) payload.videos = mapUploadedVideos(videoFiles);
 
     if (!payload.slug && payload.title) {
       payload.slug = await generateUniqueProductSlug(payload.title);
@@ -455,6 +562,13 @@ exports.updateVendorProduct = async (req, res, next) => {
     if (!product) return sendError(res, 404, 'Product not found');
 
     const updates = parseVendorProductBody(req.body);
+    // Never let vendor force-approve or feature
+    delete updates.isFeatured;
+    delete updates.isBestSeller;
+    if (updates.status && !['draft', 'pending'].includes(updates.status)) {
+      delete updates.status;
+    }
+
     Object.keys(updates).forEach((key) => {
       product[key] = updates[key];
     });
@@ -469,8 +583,114 @@ exports.updateVendorProduct = async (req, res, next) => {
       product.images.push(...newImages);
     }
 
+    const videoFiles = req.files?.videos || [];
+    if (videoFiles.length) {
+      if (!product.videos) product.videos = [];
+      const newVideos = mapUploadedVideos(videoFiles).map((v, idx) => ({
+        ...v,
+        sortOrder: product.videos.length + idx,
+      }));
+      product.videos.push(...newVideos);
+    }
+
+    // Re-moderation: any material edit of an approved product goes back to pending
+    if (['approved', 'rejected'].includes(product.status)) {
+      product.status = 'pending';
+      product.approvedAt = undefined;
+      product.approvedBy = undefined;
+      product.rejectionReason = undefined;
+    }
+
     await product.save();
-    sendSuccess(res, 200, 'Product updated', product);
+    sendSuccess(res, 200, 'Product updated and submitted for admin review', product);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @route  POST /api/vendor/products/:id/images
+exports.uploadVendorProductImages = async (req, res, next) => {
+  try {
+    const result = await findVendorOwnedProduct(req.user.id, req.params.id);
+    if (result.error) return sendError(res, result.status, result.error);
+    const { product } = result;
+    const files = req.files || [];
+    if (!files.length) return sendError(res, 400, 'No images uploaded');
+
+    const newImages = mapUploadedImages(files).map((img, idx) => ({
+      ...img,
+      alt: product.title,
+      isPrimary: product.images.length === 0 && idx === 0,
+      sortOrder: product.images.length + idx,
+    }));
+    product.images.push(...newImages);
+    if (['approved', 'rejected'].includes(product.status)) product.status = 'pending';
+    await product.save();
+    sendSuccess(res, 200, 'Images uploaded', product.images);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @route  DELETE /api/vendor/products/:id/images/:imageIndex
+exports.removeVendorProductImage = async (req, res, next) => {
+  try {
+    const result = await findVendorOwnedProduct(req.user.id, req.params.id);
+    if (result.error) return sendError(res, result.status, result.error);
+    const { product } = result;
+
+    const idx = parseInt(req.params.imageIndex, 10);
+    if (Number.isNaN(idx) || idx < 0 || idx >= product.images.length) {
+      return sendError(res, 400, 'Invalid image index');
+    }
+    product.images.splice(idx, 1);
+    if (product.images.length > 0) {
+      product.images[0].isPrimary = true;
+      product.images[0].sortOrder = 0;
+    }
+    if (['approved', 'rejected'].includes(product.status)) product.status = 'pending';
+    await product.save();
+    sendSuccess(res, 200, 'Image removed', product.images);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @route  POST /api/vendor/products/:id/videos
+exports.uploadVendorProductVideos = async (req, res, next) => {
+  try {
+    const result = await findVendorOwnedProduct(req.user.id, req.params.id);
+    if (result.error) return sendError(res, result.status, result.error);
+    const { product } = result;
+    if (!req.files || req.files.length === 0) return sendError(res, 400, 'No videos uploaded');
+    if (!product.videos) product.videos = [];
+    const newVideos = mapUploadedVideos(req.files).map((v, idx) => ({
+      ...v,
+      sortOrder: product.videos.length + idx,
+    }));
+    product.videos.push(...newVideos);
+    if (['approved', 'rejected'].includes(product.status)) product.status = 'pending';
+    await product.save();
+    sendSuccess(res, 200, 'Videos uploaded', product.videos);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @route  DELETE /api/vendor/products/:id/videos/:videoIndex
+exports.removeVendorProductVideo = async (req, res, next) => {
+  try {
+    const result = await findVendorOwnedProduct(req.user.id, req.params.id);
+    if (result.error) return sendError(res, result.status, result.error);
+    const { product } = result;
+    const idx = parseInt(req.params.videoIndex, 10);
+    if (Number.isNaN(idx) || idx < 0 || !product.videos || idx >= product.videos.length) {
+      return sendError(res, 400, 'Invalid video index');
+    }
+    product.videos.splice(idx, 1);
+    if (['approved', 'rejected'].includes(product.status)) product.status = 'pending';
+    await product.save();
+    sendSuccess(res, 200, 'Video removed', product.videos);
   } catch (error) {
     next(error);
   }
@@ -509,3 +729,97 @@ async function generateUniqueProductSlug(title) {
   while (await Product.findOne({ slug: count === 0 ? slug : `${slug}-${count}` })) count++;
   return count === 0 ? slug : `${slug}-${count}`;
 }
+
+// ─── Vendor KYC (inside portal) ───────────────────────────────────────────────
+
+// @route  GET /api/vendor/kyc
+// @access Vendor
+exports.getVendorKyc = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id).select('vendorDetails kyc vendorStatus name email phone store');
+    if (!user) return sendError(res, 404, 'User not found');
+    sendSuccess(res, 200, 'KYC status', {
+      vendorDetails: user.vendorDetails || {},
+      kyc: user.kyc || { status: 'incomplete' },
+      vendorStatus: user.vendorStatus,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @route  PUT /api/vendor/kyc
+// @access Vendor — submit / update KYC + accept marketplace T&Cs
+exports.submitVendorKyc = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user || user.role !== 'vendor') return sendError(res, 404, 'Vendor not found');
+
+    const {
+      businessType, gstNumber, panNumber, aadhaarNumber,
+      businessAddress, city, state, pincode,
+      bankName, accountNumber, ifscCode, accountHolder,
+      agreeTerms, documents,
+    } = req.body;
+
+    if (!agreeTerms) {
+      return sendError(res, 400, 'Please accept the seller Terms & Conditions');
+    }
+    if (!gstNumber?.trim() || !panNumber?.trim()) {
+      return sendError(res, 400, 'GST and PAN numbers are required');
+    }
+    if (!businessAddress?.trim() || !city?.trim() || !state?.trim() || !pincode?.trim()) {
+      return sendError(res, 400, 'Complete business address is required');
+    }
+    if (!bankName?.trim() || !accountNumber?.trim() || !ifscCode?.trim() || !accountHolder?.trim()) {
+      return sendError(res, 400, 'Bank account details are required for payouts');
+    }
+
+    user.vendorDetails = {
+      ...user.vendorDetails?.toObject?.() || user.vendorDetails || {},
+      businessType: businessType || user.vendorDetails?.businessType,
+      gstNumber: gstNumber.trim().toUpperCase(),
+      panNumber: panNumber.trim().toUpperCase(),
+      aadhaarNumber: aadhaarNumber?.trim() || '',
+      businessAddress: businessAddress.trim(),
+      city: city.trim(),
+      state: state.trim(),
+      pincode: pincode.trim(),
+      bankName: bankName.trim(),
+      accountNumber: accountNumber.trim(),
+      ifscCode: ifscCode.trim().toUpperCase(),
+      accountHolder: accountHolder.trim(),
+    };
+
+    user.kyc = {
+      status: 'submitted',
+      documents: Array.isArray(documents) ? documents : (user.kyc?.documents || []),
+      submittedAt: new Date(),
+      termsAcceptedAt: new Date(),
+      termsVersion: '1.0',
+      rejectionReason: undefined,
+    };
+
+    await user.save({ validateBeforeSave: false });
+
+    await Store.findOneAndUpdate(
+      { vendor: user._id },
+      {
+        city: city.trim(),
+        state: state.trim(),
+        pincode: pincode.trim(),
+        gstNumber: gstNumber.trim().toUpperCase(),
+      }
+    );
+
+    sendSuccess(res, 200, 'KYC submitted. Admin will review and approve your seller account.', {
+      kyc: user.kyc,
+      vendorStatus: user.vendorStatus,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

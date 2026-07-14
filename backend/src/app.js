@@ -2,8 +2,9 @@
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
+const { apiLimiter, authLimiter, adminLimiter } = require('./middleware/rateLimiters');
 const cookieParser = require('cookie-parser');
 const path = require('path');
 
@@ -31,6 +32,7 @@ const paymentRoutes  = require('./routes/payments');
 const reportRoutes   = require('./routes/reports');
 
 const app = express();
+const isProd = process.env.NODE_ENV === 'production';
 
 // ── Sanitise localhost URLs from every API response ───────────────────────────
 // Images uploaded locally (before Cloudinary was configured) have URLs like
@@ -79,7 +81,10 @@ app.use((req, res, next) => {
 });
 
 // Security headers
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: isProd ? undefined : false,
+}));
 
 // CORS — allow localhost in dev + deployed frontend URL(s)
 const allowedOrigins = [
@@ -108,21 +113,8 @@ app.use(
   })
 );
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'development' ? 10000 : 2000,
-  skip: () => process.env.NODE_ENV === 'development',
-  message: { success: false, message: 'Too many requests, please try again later.' },
-});
-app.use('/api', limiter);
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'development' ? 1000 : 100,
-  skip: () => process.env.NODE_ENV === 'development',
-  message: { success: false, message: 'Too many auth attempts.' },
-});
+// Rate limiting — always active (stricter in production)
+app.use('/api', apiLimiter);
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
@@ -131,6 +123,7 @@ app.use(cookieParser());
 
 // Data sanitization
 app.use(mongoSanitize());
+app.use(xss());
 
 // Request logging
 if (process.env.NODE_ENV === 'development') {
@@ -158,7 +151,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/attributes', attributeRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/cms', cmsRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/admin', adminLimiter, adminRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/stores', storeRoutes);
 app.use('/api/blog',     blogRoutes);

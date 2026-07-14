@@ -28,7 +28,7 @@ Payment data is processed securely through Razorpay. We retain order history as 
     title: 'Terms & Conditions',
     content: `By using VK Jewellers marketplace you agree to these terms. Each vendor is responsible for their listed products, pricing accuracy, and order fulfillment.
 
-Orders are subject to availability. Returns and exchanges follow individual shop policies and platform guidelines. Commission is deducted from vendor payouts as agreed during onboarding.`,
+Orders are subject to availability. Returns and exchanges follow individual shop policies and platform guidelines.`,
   },
   faq: {
     title: 'FAQ',

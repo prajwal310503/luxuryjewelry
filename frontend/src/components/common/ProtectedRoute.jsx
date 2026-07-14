@@ -1,9 +1,14 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
+import PageLoader from '../ui/PageLoader';
 
 export default function ProtectedRoute({ children, roles, permission }) {
-  const { user, token } = useAuthStore();
+  const { user, token, authReady } = useAuthStore();
   const location = useLocation();
+
+  if (!authReady) {
+    return <PageLoader />;
+  }
 
   if (!token || !user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
@@ -15,8 +20,8 @@ export default function ProtectedRoute({ children, roles, permission }) {
     if (user.role === 'child_admin') {
       const perms = user.permissions || [];
       if (perms.includes('orders')) return <Navigate to="/admin/orders" replace />;
-      if (perms.includes('quotes')) return <Navigate to="/admin/quotes" replace />;
     }
+    if (user.role === 'vendor') return <Navigate to="/vendor/dashboard" replace />;
     return <Navigate to="/" replace />;
   }
 
@@ -25,7 +30,6 @@ export default function ProtectedRoute({ children, roles, permission }) {
     if (!(user.permissions || []).includes(permission)) {
       const perms = user.permissions || [];
       if (perms.includes('orders')) return <Navigate to="/admin/orders" replace />;
-      if (perms.includes('quotes')) return <Navigate to="/admin/quotes" replace />;
       return <Navigate to="/" replace />;
     }
   }

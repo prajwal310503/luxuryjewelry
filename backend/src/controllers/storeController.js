@@ -26,7 +26,7 @@ exports.getStores = async (req, res) => {
 
 exports.getStoreBySlug = async (req, res) => {
   try {
-    const store = await Store.findOne({ slug: req.params.slug, isActive: true });
+    const store = await Store.findOne({ slug: req.params.slug, isActive: true, status: 'approved' });
     if (!store) return res.status(404).json({ success: false, message: 'Store not found' });
     res.json({ success: true, data: store });
   } catch (err) {

@@ -946,6 +946,12 @@ export default function Header() {
                               Admin Panel
                             </Link>
                           )}
+                          {user.role === 'vendor' && (
+                            <Link onClick={() => setAccountOpen(false)} to="/vendor/dashboard"
+                              className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
+                              Vendor Panel
+                            </Link>
+                          )}
                           <Link onClick={() => setAccountOpen(false)} to="/account"
                             className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
                             <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
@@ -1149,6 +1155,9 @@ export default function Header() {
                   <p className="text-[10px] text-gray-400 mb-2 uppercase tracking-wider">Account</p>
                   {(user.role === 'admin' || user.role === 'child_admin') && (
                     <Link to="/admin/dashboard" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Admin Panel</Link>
+                  )}
+                  {user.role === 'vendor' && (
+                    <Link to="/vendor/dashboard" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Vendor Panel</Link>
                   )}
                   <Link to="/account" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">My Account</Link>
                   <Link to="/orders" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Track Orders</Link>

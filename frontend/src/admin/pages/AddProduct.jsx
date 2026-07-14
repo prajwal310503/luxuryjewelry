@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { productAPI, categoryAPI, attributeAPI, adminAPI } from '../../services/api';
+import { productAPI, categoryAPI, attributeAPI, adminAPI, vendorAPI } from '../../services/api';
 import Select from '../../components/ui/Select';
 import { resizeImage } from '../../utils/resizeImage';
 
@@ -71,10 +71,12 @@ function DescriptionEditor({ value, onChange }) {
   );
 }
 
-export default function AdminAddProduct() {
+export default function AdminAddProduct({ mode = 'admin' }) {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = !!id;
+  const isVendor = mode === 'vendor';
+  const listPath = isVendor ? '/vendor/products' : '/admin/products';
 
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -109,7 +111,7 @@ export default function AdminAddProduct() {
     attributes: [],
     seoTitle: '',
     seoDescription: '',
-    status: 'approved',
+    status: isVendor ? 'pending' : 'approved',
     // Jewelry details
     purity: '22kt',
     metalWeight: '',
@@ -138,7 +140,7 @@ export default function AdminAddProduct() {
       categoryAPI.getAll({ parent: 'null', limit: 200 }),
       attributeAPI.getAll({ limit: 100 }),
     ];
-    if (isEdit) fetches.push(productAPI.adminGetById(id));
+    if (isEdit) fetches.push(isVendor ? vendorAPI.getProduct(id) : productAPI.adminGetById(id));
 
     Promise.all(fetches).then(([catRes, attrRes, prodRes]) => {
       setCategories(catRes.data.data || []);
@@ -171,7 +173,7 @@ export default function AdminAddProduct() {
             attributes: p.attributes?.map((a) => ({ attribute: a.attribute?._id || a.attribute, customValue: a.customValue || '' })) || [],
             seoTitle: p.seo?.metaTitle || '',
             seoDescription: p.seo?.metaDescription || '',
-            status: p.status || 'approved',
+            status: isVendor ? (p.status === 'draft' ? 'draft' : 'pending') : (p.status || 'approved'),
             purity: p.purity || '22kt',
             metalWeight: p.metalWeight || '',
             deliveryDays: p.deliveryDays || '',
@@ -185,7 +187,7 @@ export default function AdminAddProduct() {
     }).catch(() => {
       toast.error('Failed to load data');
     }).finally(() => setLoading(false));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (form.category) {
@@ -220,14 +222,14 @@ export default function AdminAddProduct() {
     costPrice: form.costPrice ? parseFloat(form.costPrice) : undefined,
     discount: parseInt(form.discount) || 0,
     stock: parseInt(form.stock) || 0,
-    isFeatured: form.isFeatured,
+    isFeatured: isVendor ? false : form.isFeatured,
     isNewArrival: form.isNewArrival,
-    isBestSeller: form.isBestSeller,
+    isBestSeller: isVendor ? false : form.isBestSeller,
     giftTags: form.giftTags,
     wearingTypes: form.wearingTypes,
     attributes: form.attributes.filter((a) => a.customValue),
     seo: { metaTitle: form.seoTitle || form.title, metaDescription: form.seoDescription },
-    status: form.status,
+    status: isVendor ? (form.status === 'draft' ? 'draft' : 'pending') : form.status,
     purity: form.purity || '22kt',
     metalWeight: form.metalWeight ? parseFloat(form.metalWeight) : undefined,
     deliveryDays: form.deliveryDays ? parseInt(form.deliveryDays) : undefined,
@@ -245,6 +247,45 @@ export default function AdminAddProduct() {
     setSaving(true);
     try {
       const payload = buildPayload();
+      if (isVendor) {
+        if (isEdit) {
+          await vendorAPI.updateProduct(id, payload);
+          toast.success('Product updated — pending admin review');
+        } else {
+          const { data } = await vendorAPI.createProduct(payload);
+          const newId = data.data._id;
+          setProductId(newId);
+          const slots = pendingImageFiles.filter(Boolean);
+          if (slots.length > 0) {
+            const formData = new FormData();
+            slots.forEach(({ file }) => formData.append('images', file));
+            try {
+              const imgRes = await vendorAPI.uploadProductImages(newId, formData);
+              setCurrentImages(imgRes.data.data || []);
+            } catch {
+              toast.error('Product created but image upload failed');
+            }
+            slots.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+            setPendingImageFiles([]);
+          }
+          if (pendingVideoFiles.length > 0) {
+            const formData = new FormData();
+            pendingVideoFiles.forEach(({ file }) => formData.append('videos', file));
+            try {
+              const vidRes = await vendorAPI.uploadProductVideos(newId, formData);
+              setCurrentVideos(vidRes.data.data || []);
+            } catch {
+              toast.error('Product created but video upload failed');
+            }
+            pendingVideoFiles.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+            setPendingVideoFiles([]);
+          }
+          toast.success('Product submitted for admin review');
+        }
+        navigate(listPath);
+        return;
+      }
+
       if (isEdit) {
         await productAPI.adminUpdate(id, payload);
         toast.success('Product updated');
@@ -279,7 +320,7 @@ export default function AdminAddProduct() {
         }
         toast.success('Product published');
       }
-      navigate('/admin/products');
+      navigate(listPath);
     } catch (error) {
       toast.error(error.message || 'Failed to save product');
     } finally {
@@ -307,7 +348,8 @@ export default function AdminAddProduct() {
 
     if (currentImages[slotIndex]) {
       try {
-        const { data } = await productAPI.adminRemoveImage(productId, slotIndex);
+        const removeApi = isVendor ? vendorAPI.removeProductImage : productAPI.adminRemoveImage;
+        const { data } = await removeApi(productId, slotIndex);
         setCurrentImages(data.data || []);
       } catch { /* ignore */ }
     }
@@ -316,7 +358,8 @@ export default function AdminAddProduct() {
     try {
       const formData = new FormData();
       formData.append('images', resized);
-      const { data } = await adminAPI.uploadProductImages(productId, formData);
+      const uploadApi = isVendor ? vendorAPI.uploadProductImages : adminAPI.uploadProductImages;
+      const { data } = await uploadApi(productId, formData);
       setCurrentImages(data.data || []);
       toast.success(slotIndex === 0 ? 'Main image updated' : 'Hover image updated');
     } catch {
@@ -340,7 +383,8 @@ export default function AdminAddProduct() {
     if (!currentImages[slotIndex]) return;
     setUpdating(true);
     try {
-      const { data } = await productAPI.adminRemoveImage(productId, slotIndex);
+      const removeApi = isVendor ? vendorAPI.removeProductImage : productAPI.adminRemoveImage;
+      const { data } = await removeApi(productId, slotIndex);
       setCurrentImages(data.data || []);
       toast.success('Image removed');
     } catch {
@@ -362,7 +406,8 @@ export default function AdminAddProduct() {
     setUploadingVideo(true);
     const formData = new FormData();
     files.forEach((f) => formData.append('videos', f));
-    adminAPI.uploadProductVideos(productId, formData)
+    const uploadApi = isVendor ? vendorAPI.uploadProductVideos : adminAPI.uploadProductVideos;
+    uploadApi(productId, formData)
       .then(({ data }) => { setCurrentVideos(data.data || []); toast.success('Video uploaded'); })
       .catch(() => toast.error('Video upload failed'))
       .finally(() => { setUploadingVideo(false); e.target.value = ''; });
@@ -379,7 +424,8 @@ export default function AdminAddProduct() {
     }
     setUpdating(true);
     try {
-      const { data } = await adminAPI.removeProductVideo(productId, idx);
+      const removeApi = isVendor ? vendorAPI.removeProductVideo : adminAPI.removeProductVideo;
+      const { data } = await removeApi(productId, idx);
       setCurrentVideos(data.data || []);
       toast.success('Video removed');
     } catch {
@@ -405,12 +451,16 @@ export default function AdminAddProduct() {
           <h1 className="font-heading text-2xl font-bold text-gray-900">
             {isEdit ? 'Edit Product' : 'Add New Product'}
           </h1>
-          <p className="text-sm text-gray-400 mt-0.5">Admin — product goes live immediately on publish</p>
+          <p className="text-sm text-gray-400 mt-0.5">
+            {isVendor
+              ? 'Vendor — product is submitted for admin approval before going live'
+              : 'Admin — product goes live immediately on publish'}
+          </p>
         </div>
         <div className="flex gap-3">
-          <button onClick={() => navigate('/admin/products')} className="btn-outline text-sm">Cancel</button>
+          <button onClick={() => navigate(listPath)} className="btn-outline text-sm">Cancel</button>
           <button onClick={handleSave} disabled={saving} className="btn-primary text-sm">
-            {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Publish Product'}
+            {saving ? 'Saving...' : isEdit ? 'Save Changes' : (isVendor ? 'Submit for Review' : 'Publish Product')}
           </button>
         </div>
       </div>
@@ -450,7 +500,11 @@ export default function AdminAddProduct() {
                 <label className="label-luxury">Category *</label>
                 <Select value={form.category} onChange={(e) => set('category', e.target.value)} placeholder="Select Category">
                   <option value="">Select Category</option>
-                  {categories.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+                  {categories.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.name}{isVendor && Number(c.commissionRate) > 0 ? ` (${c.commissionRate}% fee)` : ''}
+                    </option>
+                  ))}
                 </Select>
               </div>
               <div>
@@ -472,13 +526,39 @@ export default function AdminAddProduct() {
               <div><label className="label-luxury">Discount (%)</label><input type="number" value={form.discount} onChange={(e) => set('discount', e.target.value)} min="0" max="100" className="input-luxury" /></div>
               <div><label className="label-luxury">Stock Quantity</label><input type="number" value={form.stock} onChange={(e) => set('stock', e.target.value)} min="0" className="input-luxury" /></div>
             </div>
+            {isVendor && form.category && (() => {
+              const selectedCat = categories.find((c) => c._id === form.category);
+              const commissionRate = Number(selectedCat?.commissionRate) || 0;
+              const priceNum = Number(form.price) || 0;
+              const estimatedCut = Math.round((priceNum * commissionRate) / 100);
+              const estimatedPayout = Math.max(0, priceNum - estimatedCut);
+              return (
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 space-y-1">
+                  <p className="font-bold text-amber-900">Platform fee on sale (not added to customer price)</p>
+                  <p>
+                    Category <strong>{selectedCat?.name || '—'}</strong> — commission{' '}
+                    <strong>{commissionRate}%</strong> will be deducted from your payout when this product sells.
+                  </p>
+                  {priceNum > 0 && (
+                    <p className="text-xs text-amber-800/90 pt-1">
+                      Example on ₹{priceNum.toLocaleString('en-IN')}: customer pays ₹{priceNum.toLocaleString('en-IN')} ·
+                      platform cuts ₹{estimatedCut.toLocaleString('en-IN')} · you receive ≈ ₹{estimatedPayout.toLocaleString('en-IN')}
+                    </p>
+                  )}
+                  <p className="text-[11px] text-amber-700/80">GST &amp; delivery (if any) are separate from this fee.</p>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Visibility flags */}
           <div className="card-luxury p-6">
             <SectionTitle>Visibility Flags</SectionTitle>
             <div className="flex flex-wrap gap-4">
-              {[['isFeatured', 'Featured'], ['isNewArrival', 'New Arrival'], ['isBestSeller', 'Best Seller']].map(([field, label]) => (
+              {(isVendor
+                ? [['isNewArrival', 'New Arrival']]
+                : [['isFeatured', 'Featured'], ['isNewArrival', 'New Arrival'], ['isBestSeller', 'Best Seller']]
+              ).map(([field, label]) => (
                 <label key={field} className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={form[field]} onChange={(e) => set(field, e.target.checked)} className="w-4 h-4 accent-primary" />
                   <span className="text-sm text-gray-700">{label}</span>
@@ -487,11 +567,18 @@ export default function AdminAddProduct() {
             </div>
             <div className="mt-4">
               <label className="label-luxury">Status</label>
-              <Select value={form.status} onChange={(e) => set('status', e.target.value)} className="max-w-xs">
-                <option value="approved">Approved (Live)</option>
-                <option value="draft">Draft (Hidden)</option>
-                <option value="archived">Archived</option>
-              </Select>
+              {isVendor ? (
+                <Select value={form.status === 'draft' ? 'draft' : 'pending'} onChange={(e) => set('status', e.target.value)} className="max-w-xs">
+                  <option value="pending">Submit for Review</option>
+                  <option value="draft">Draft (Hidden)</option>
+                </Select>
+              ) : (
+                <Select value={form.status} onChange={(e) => set('status', e.target.value)} className="max-w-xs">
+                  <option value="approved">Approved (Live)</option>
+                  <option value="draft">Draft (Hidden)</option>
+                  <option value="archived">Archived</option>
+                </Select>
+              )}
             </div>
           </div>
 
@@ -791,9 +878,9 @@ export default function AdminAddProduct() {
 
           <div className="card-luxury p-4 flex flex-col gap-2">
             <button onClick={handleSave} disabled={saving} className="btn-primary w-full">
-              {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Publish Product'}
+              {saving ? 'Saving...' : isEdit ? 'Save Changes' : (isVendor ? 'Submit for Review' : 'Publish Product')}
             </button>
-            <button onClick={() => navigate('/admin/products')} className="btn-outline w-full">Cancel</button>
+            <button onClick={() => navigate(listPath)} className="btn-outline w-full">Cancel</button>
           </div>
         </div>
       </div>

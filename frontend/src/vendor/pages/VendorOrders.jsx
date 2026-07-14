@@ -5,8 +5,10 @@ import toast from 'react-hot-toast';
 import VendorLayout from '../components/VendorLayout';
 import { EmptyStateIcon, IconBox } from '../../components/ui/Icons';
 import { orderAPI } from '../../services/api';
+import Pagination from '../../admin/components/Pagination';
 
 const API = import.meta.env.VITE_API_URL || '/api';
+const PAGE_SIZE = 15;
 
 const STATUS_OPTS = ['all', 'pending', 'processing', 'shipped', 'delivered', 'cancelled'];
 const STATUS_COLORS = {
@@ -43,7 +45,7 @@ export default function VendorOrders() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const params = { page, limit: 15 };
+      const params = { page, limit: PAGE_SIZE };
       if (statusFilter !== 'all') params.status = statusFilter;
       const { data } = await axios.get(`${API}/vendor/orders`, { params, withCredentials: true });
       setOrders(data.data.orders || []);
@@ -178,7 +180,13 @@ export default function VendorOrders() {
                       <p className="text-sm text-gray-700">{order.items?.length || 0} item(s)</p>
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-gray-900">₹{(order.totalAmount || 0).toLocaleString('en-IN')}</p>
+                      <p className="text-sm font-bold text-gray-900">₹{(order.total || order.totalAmount || 0).toLocaleString('en-IN')}</p>
+                      {order.vendorPayout != null && (
+                        <p className="text-[10px] text-green-700 mt-0.5">
+                          Your payout ₹{Math.round(order.vendorPayout).toLocaleString('en-IN')}
+                          {order.commissionAmount > 0 ? ` (fee ₹${Math.round(order.commissionAmount).toLocaleString('en-IN')})` : ''}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <StatusBadge status={order.status} />
@@ -206,22 +214,13 @@ export default function VendorOrders() {
                 ))}
               </div>
 
-              {/* Pagination */}
-              {total > 15 && (
-                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
-                  <p className="text-sm text-gray-500">Page {page} of {Math.ceil(total / 15)}</p>
-                  <div className="flex gap-2">
-                    <button onClick={() => setPage((p) => Math.max(p - 1, 1))} disabled={page === 1}
-                      className="px-4 py-1.5 rounded-lg text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 disabled:opacity-40">
-                      Previous
-                    </button>
-                    <button onClick={() => setPage((p) => p + 1)} disabled={page >= Math.ceil(total / 15)}
-                      className="px-4 py-1.5 rounded-lg text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 disabled:opacity-40">
-                      Next
-                    </button>
-                  </div>
-                </div>
-              )}
+              <Pagination
+                page={page}
+                pages={Math.max(1, Math.ceil(total / PAGE_SIZE))}
+                total={total}
+                shown={orders.length}
+                onPage={setPage}
+              />
             </>
           )}
         </div>

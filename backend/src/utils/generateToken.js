@@ -11,6 +11,7 @@ const sendTokenResponse = (user, statusCode, res, message = 'Success') => {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   };
 
   const userResponse = {
@@ -21,6 +22,13 @@ const sendTokenResponse = (user, statusCode, res, message = 'Success') => {
     role: user.role,
     avatar: user.avatar,
     isEmailVerified: user.isEmailVerified,
+    permissions: user.permissions || [],
+    vendorStatus: user.vendorStatus,
+    kyc: user.kyc,
+    store: user.store,
+    vendorDetails: user.vendorDetails
+      ? { shopName: user.vendorDetails.shopName, city: user.vendorDetails.city }
+      : undefined,
   };
 
   res.status(statusCode).cookie('token', token, cookieOptions).json({

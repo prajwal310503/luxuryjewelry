@@ -26,6 +26,8 @@ const CategorySchema = new mongoose.Schema(
       metaKeywords: [String],
     },
     productCount: { type: Number, default: 0 },
+    /** Platform commission % on sales in this category (deducted from vendor payout, not added to customer price) */
+    commissionRate: { type: Number, default: 0, min: 0, max: 100 },
     applicableAttributes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Attribute' }],
   },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }

@@ -41,7 +41,10 @@ export default function LoginPage() {
   const { login, loading }    = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from?.pathname || '/';
+  const searchParams = new URLSearchParams(location.search);
+  const redirectParam = searchParams.get('redirect');
+  const safePath = (p) => (p && typeof p === 'string' && p.startsWith('/') && !p.startsWith('//') ? p : null);
+  const from = safePath(location.state?.from?.pathname) || safePath(redirectParam) || '/';
 
   const validate = () => {
     const e = {};
@@ -71,8 +74,9 @@ export default function LoginPage() {
         else if (user.role === 'child_admin') {
           const perms = user.permissions || [];
           if (perms.includes('orders')) navigate('/admin/orders');
-          else if (perms.includes('quotes')) navigate('/admin/quotes');
           else navigate('/');
+        } else if (user.role === 'vendor') {
+          navigate('/vendor/dashboard');
         } else navigate('/');
       }
     } catch (err) {

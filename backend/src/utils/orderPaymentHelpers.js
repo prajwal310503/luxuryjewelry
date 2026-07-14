@@ -15,9 +15,26 @@ function enrichOrderPayment(order) {
   return doc;
 }
 
+/** Never expose platform commission / vendor payout to customers */
+function hideCommissionFromCustomer(order) {
+  const doc = enrichOrderPayment(order);
+  delete doc.commissionRate;
+  delete doc.commissionAmount;
+  delete doc.vendorPayout;
+  if (Array.isArray(doc.items)) {
+    doc.items = doc.items.map((item) => {
+      const { commissionRate, commissionAmount, ...rest } = item;
+      return rest;
+    });
+  }
+  return doc;
+}
+
 function assertCanDispatch(order) {
   if (order?.payment?.status === 'partial') {
     const remaining = getRemainingAmount(order);
+    // Fully covered (e.g. gift card zeroed total) — allow dispatch
+    if (remaining <= 0) return { allowed: true };
     return {
       allowed: false,
       message: `Cannot dispatch — remaining payment of ₹${remaining.toLocaleString('en-IN')} pending. Customer must pay 50% balance first.`,
@@ -26,4 +43,9 @@ function assertCanDispatch(order) {
   return { allowed: true };
 }
 
-module.exports = { getRemainingAmount, enrichOrderPayment, assertCanDispatch };
+module.exports = {
+  getRemainingAmount,
+  enrichOrderPayment,
+  hideCommissionFromCustomer,
+  assertCanDispatch,
+};

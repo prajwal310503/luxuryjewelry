@@ -5,6 +5,40 @@ const Review = require('../models/Review');
 const Store = require('../models/Store');
 const { sendSuccess, sendError, sendPaginated } = require('../utils/response');
 
+/** Effective commission on an order (order-level or sum of line items). */
+const COMMISSION_ADD_FIELDS = {
+  $addFields: {
+    effectiveCommission: {
+      $let: {
+        vars: {
+          orderComm: { $ifNull: ['$commissionAmount', 0] },
+          itemsComm: {
+            $sum: {
+              $map: {
+                input: { $ifNull: ['$items', []] },
+                as: 'it',
+                in: { $ifNull: ['$$it.commissionAmount', 0] },
+              },
+            },
+          },
+        },
+        in: {
+          $cond: [
+            { $gt: ['$$orderComm', 0] },
+            '$$orderComm',
+            '$$itemsComm',
+          ],
+        },
+      },
+    },
+  },
+};
+
+const paidMatch = {
+  status: { $nin: ['cancelled', 'refunded'] },
+  'payment.status': { $in: ['paid', 'partial'] },
+};
+
 // @desc    Admin dashboard analytics
 // @route   GET /api/admin/dashboard
 // @access  Admin
@@ -14,6 +48,24 @@ exports.getDashboard = async (req, res, next) => {
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+
+    const commissionPipeline = (dateFrom) => {
+      const match = { ...paidMatch };
+      if (dateFrom) match.createdAt = { $gte: dateFrom };
+      return [
+        { $match: match },
+        COMMISSION_ADD_FIELDS,
+        {
+          $group: {
+            _id: null,
+            commission: { $sum: '$effectiveCommission' },
+            sales: { $sum: '$total' },
+            vendorPayout: { $sum: { $ifNull: ['$vendorPayout', 0] } },
+            orders: { $sum: 1 },
+          },
+        },
+      ];
+    };
 
     const [
       totalUsers,
@@ -27,35 +79,36 @@ exports.getDashboard = async (req, res, next) => {
       weeklyOrders,
       totalVendors,
       pendingVendors,
+      commissionLifetime,
       commissionThisMonth,
+      commissionToday,
       topVendors,
     ] = await Promise.all([
-      User.countDocuments({ role: { $in: ['customer', 'retailer'] } }),
+      User.countDocuments({ role: 'customer' }),
       Product.countDocuments({ status: 'approved', isActive: true }),
       Order.countDocuments(),
       Product.countDocuments({ status: 'pending' }),
       Order.find().sort('-createdAt').limit(10).populate('customer', 'name email').populate('store', 'name'),
       Order.aggregate([
-        { $match: { 'payment.status': 'paid' } },
+        { $match: { 'payment.status': { $in: ['paid', 'partial'] }, status: { $nin: ['cancelled', 'refunded'] } } },
         { $group: { _id: null, total: { $sum: '$total' } } },
       ]),
       Order.aggregate([
-        { $match: { createdAt: { $gte: thirtyDaysAgo }, 'payment.status': 'paid' } },
+        { $match: { createdAt: { $gte: thirtyDaysAgo }, 'payment.status': { $in: ['paid', 'partial'] }, status: { $nin: ['cancelled', 'refunded'] } } },
         { $group: { _id: null, total: { $sum: '$total' }, count: { $sum: 1 } } },
       ]),
       Order.aggregate([
-        { $match: { createdAt: { $gte: startOfDay }, 'payment.status': 'paid' } },
+        { $match: { createdAt: { $gte: startOfDay }, 'payment.status': { $in: ['paid', 'partial'] }, status: { $nin: ['cancelled', 'refunded'] } } },
         { $group: { _id: null, total: { $sum: '$total' } } },
       ]),
       Order.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
       Store.countDocuments({ status: 'approved' }),
       User.countDocuments({ role: 'vendor', vendorStatus: 'pending' }),
+      Order.aggregate(commissionPipeline(null)),
+      Order.aggregate(commissionPipeline(thirtyDaysAgo)),
+      Order.aggregate(commissionPipeline(startOfDay)),
       Order.aggregate([
-        { $match: { createdAt: { $gte: thirtyDaysAgo }, 'payment.status': 'paid' } },
-        { $group: { _id: null, total: { $sum: '$commissionAmount' } } },
-      ]),
-      Order.aggregate([
-        { $match: { 'payment.status': 'paid', store: { $ne: null } } },
+        { $match: { 'payment.status': { $in: ['paid', 'partial'] }, store: { $ne: null }, status: { $nin: ['cancelled', 'refunded'] } } },
         { $group: { _id: '$store', revenue: { $sum: '$total' }, orders: { $sum: 1 } } },
         { $sort: { revenue: -1 } },
         { $limit: 5 },
@@ -67,7 +120,7 @@ exports.getDashboard = async (req, res, next) => {
 
     // Revenue chart (last 30 days)
     const revenueChart = await Order.aggregate([
-      { $match: { createdAt: { $gte: thirtyDaysAgo }, 'payment.status': 'paid' } },
+      { $match: { createdAt: { $gte: thirtyDaysAgo }, 'payment.status': { $in: ['paid', 'partial'] }, status: { $nin: ['cancelled', 'refunded'] } } },
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
@@ -83,6 +136,10 @@ exports.getDashboard = async (req, res, next) => {
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ]);
 
+    const lifetime = commissionLifetime[0] || {};
+    const month = commissionThisMonth[0] || {};
+    const today = commissionToday[0] || {};
+
     sendSuccess(res, 200, 'Dashboard data fetched', {
       stats: {
         totalUsers,
@@ -93,10 +150,18 @@ exports.getDashboard = async (req, res, next) => {
         totalRevenue: totalRevenue[0]?.total || 0,
         monthlyRevenue: monthlyRevenue[0]?.total || 0,
         monthlyOrders: monthlyRevenue[0]?.count || 0,
+        monthlyCommission: month.commission || 0,
         todayRevenue: todayRevenue[0]?.total || 0,
         totalVendors,
         pendingVendors,
-        commissionThisMonth: commissionThisMonth[0]?.total || 0,
+        // Admin earnings from category commission
+        totalCommissionEarned: lifetime.commission || 0,
+        commissionThisMonth: month.commission || 0,
+        commissionToday: today.commission || 0,
+        commissionSalesLifetime: lifetime.sales || 0,
+        commissionOrdersLifetime: lifetime.orders || 0,
+        totalVendorPayout: lifetime.vendorPayout || 0,
+        vendorPayoutThisMonth: month.vendorPayout || 0,
       },
       recentOrders,
       revenueChart,
@@ -147,7 +212,7 @@ exports.createUser = async (req, res, next) => {
     const { name, email, password, phone, role, permissions } = req.body;
     if (!name || !email || !password) return sendError(res, 400, 'Name, email and password are required');
 
-    const validRoles = ['admin', 'child_admin', 'retailer'];
+    const validRoles = ['admin', 'child_admin'];
     if (role && !validRoles.includes(role)) return sendError(res, 400, 'Invalid role');
 
     const exists = await User.findOne({ email });
@@ -158,7 +223,7 @@ exports.createUser = async (req, res, next) => {
       email,
       password,
       phone: phone || undefined,
-      role: role || 'retailer',
+      role: role || 'child_admin',
       permissions: role === 'child_admin' ? (permissions || []) : [],
     });
 
@@ -176,7 +241,7 @@ exports.createUser = async (req, res, next) => {
 exports.changeUserRole = async (req, res, next) => {
   try {
     const { role } = req.body;
-    if (!['admin', 'child_admin', 'retailer'].includes(role)) return sendError(res, 400, 'Invalid role');
+    if (!['admin', 'child_admin'].includes(role)) return sendError(res, 400, 'Invalid role');
 
     const user = await User.findById(req.params.id);
     if (!user) return sendError(res, 404, 'User not found');

@@ -166,9 +166,9 @@ export default function CheckoutPage() {
 
   const subtotal = getSubtotal();
   const shipping = getShipping();
-  const total = getTotal() - couponDiscount;
+  const total = Math.max(0, getTotal() - couponDiscount);
   const payNow = paymentMethod === 'partial_payment' ? Math.round(total * 0.5) : total;
-  const payLater = paymentMethod === 'partial_payment' ? total - payNow : 0;
+  const payLater = paymentMethod === 'partial_payment' ? Math.max(0, total - payNow) : 0;
 
   return (
     <>
@@ -518,7 +518,7 @@ export default function CheckoutPage() {
                 </div>
                 {shipping === 0 && (
                   <p className="text-xs text-green-600 bg-green-50 rounded-lg px-3 py-1.5">
-                    You save ₹199 on shipping!
+                    Free shipping on this order
                   </p>
                 )}
                 <div className="border-t pt-3 flex justify-between text-base font-semibold">

@@ -1686,7 +1686,7 @@ const StoresSection = ({ stores, cmsContent }) => {
                   <p className="text-white/70 text-xs tracking-widest uppercase mb-5" style={{ letterSpacing: '0.2em' }}>{store.city}</p>
                 )}
                 <Link
-                  to={store.slug ? `/stores/${store.slug}` : '/stores'}
+                  to="/"
                   className="inline-block bg-white text-gray-900 font-semibold text-[11px] uppercase tracking-widest px-8 py-2.5 hover:bg-white/90 transition-colors mt-4"
                   style={{ letterSpacing: '0.14em' }}
                 >

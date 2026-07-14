@@ -23,17 +23,10 @@ const OrdersPage = lazy(() => import('./pages/OrdersPage'));
 const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage'));
 const WishlistPage = lazy(() => import('./pages/WishlistPage'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
-const StorePage = lazy(() => import('./pages/StorePage'));
-const StoresListPage = lazy(() => import('./pages/StoresListPage'));
 const BlogPage = lazy(() => import('./pages/BlogPage'));
 const BlogDetailPage = lazy(() => import('./pages/BlogDetailPage'));
 const MyAddressesPage   = lazy(() => import('./pages/MyAddressesPage'));
 const MySupportPage     = lazy(() => import('./pages/MySupportPage'));
-const MyQuotesPage      = lazy(() => import('./pages/MyQuotesPage'));
-const QuoteRequestPage  = lazy(() => import('./pages/QuoteRequestPage'));
-const QuoteDetailPage   = lazy(() => import('./pages/QuoteDetailPage'));
-const QuotePaymentPage  = lazy(() => import('./pages/QuotePaymentPage'));
-const QuoteSuccessPage  = lazy(() => import('./pages/QuoteSuccessPage'));
 
 // Auth Pages
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
@@ -51,7 +44,6 @@ const AdminCategories = lazy(() => import('./admin/pages/Categories'));
 const AdminCMSBuilder = lazy(() => import('./admin/pages/CMSBuilder'));
 const AdminAddProduct = lazy(() => import('./admin/pages/AddProduct'));
 const AdminOrders = lazy(() => import('./admin/pages/Orders'));
-const AdminQuotes = lazy(() => import('./admin/pages/Quotes'));
 const AdminCustomers = lazy(() => import('./admin/pages/Customers'));
 const AdminReviews = lazy(() => import('./admin/pages/Reviews'));
 const AdminAttributes = lazy(() => import('./admin/pages/Attributes'));
@@ -77,11 +69,10 @@ const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage'));
 const VendorDashboard = lazy(() => import('./vendor/pages/VendorDashboard'));
 const VendorProducts  = lazy(() => import('./vendor/pages/VendorProducts'));
 const VendorOrders    = lazy(() => import('./vendor/pages/VendorOrders'));
-const VendorStore     = lazy(() => import('./vendor/pages/VendorStore'));
 const VendorPricing   = lazy(() => import('./vendor/pages/VendorPricing'));
 const VendorAnalytics = lazy(() => import('./vendor/pages/VendorAnalytics'));
-const VendorAddProduct = lazy(() => import('./vendor/pages/VendorAnalytics').then(m => ({ default: m.VendorAddProduct })));
-const VendorCouponsPage = lazy(() => import('./vendor/pages/VendorAnalytics').then(m => ({ default: m.VendorCoupons })));
+const VendorAddProduct = lazy(() => import('./vendor/pages/VendorAddProduct'));
+const VendorKyc = lazy(() => import('./vendor/pages/VendorKyc'));
 
 
 function ScrollToTop() {
@@ -91,12 +82,12 @@ function ScrollToTop() {
 }
 
 export default function App() {
-  const { fetchMe, token } = useAuthStore();
+  const { bootstrapAuth } = useAuthStore();
 
   useEffect(() => {
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-    if (token) fetchMe();
-  }, []);
+    bootstrapAuth();
+  }, [bootstrapAuth]);
 
   return (
     <Suspense fallback={<PageLoader />}>
@@ -109,8 +100,8 @@ export default function App() {
           <Route path="/products/:slug" element={<ProductPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/search" element={<SearchPage />} />
-          <Route path="/stores" element={<StoresListPage />} />
-          <Route path="/stores/:slug" element={<StorePage />} />
+          <Route path="/stores" element={<Navigate to="/" replace />} />
+          <Route path="/stores/:slug" element={<Navigate to="/" replace />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/blog/:slug" element={<BlogDetailPage />} />
           <Route path="/become-a-seller" element={<BecomeSellerPage />} />
@@ -170,39 +161,11 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/my-quotes"
-            element={
-              <ProtectedRoute roles={['retailer', 'customer', 'admin']}>
-                <MyQuotesPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/request-quote"
-            element={
-              <ProtectedRoute roles={['retailer', 'customer', 'admin']}>
-                <QuoteRequestPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/quotes/:id"
-            element={
-              <ProtectedRoute roles={['retailer', 'customer', 'admin', 'child_admin']}>
-                <QuoteDetailPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/quotes/:id/pay"
-            element={
-              <ProtectedRoute roles={['retailer', 'customer', 'admin']}>
-                <QuotePaymentPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/quote-success" element={<QuoteSuccessPage />} />
+          <Route path="/my-quotes" element={<Navigate to="/orders" replace />} />
+          <Route path="/request-quote" element={<Navigate to="/" replace />} />
+          <Route path="/quotes/:id" element={<Navigate to="/orders" replace />} />
+          <Route path="/quotes/:id/pay" element={<Navigate to="/orders" replace />} />
+          <Route path="/quote-success" element={<Navigate to="/" replace />} />
           <Route path="/order-success/:id" element={<OrderSuccessPage />} />
         </Route>
 
@@ -215,6 +178,10 @@ export default function App() {
           element={<ProtectedRoute roles={['vendor']}><VendorDashboard /></ProtectedRoute>}
         />
         <Route
+          path="/vendor/kyc"
+          element={<ProtectedRoute roles={['vendor']}><VendorKyc /></ProtectedRoute>}
+        />
+        <Route
           path="/vendor/products"
           element={<ProtectedRoute roles={['vendor']}><VendorProducts /></ProtectedRoute>}
         />
@@ -224,7 +191,7 @@ export default function App() {
         />
         <Route
           path="/vendor/store"
-          element={<ProtectedRoute roles={['vendor']}><VendorStore /></ProtectedRoute>}
+          element={<ProtectedRoute roles={['vendor']}><Navigate to="/vendor/dashboard" replace /></ProtectedRoute>}
         />
         <Route
           path="/vendor/pricing"
@@ -244,7 +211,7 @@ export default function App() {
         />
         <Route
           path="/vendor/coupons"
-          element={<ProtectedRoute roles={['vendor']}><VendorCouponsPage /></ProtectedRoute>}
+          element={<ProtectedRoute roles={['vendor']}><Navigate to="/vendor/dashboard" replace /></ProtectedRoute>}
         />
 
         {/* Auth */}
@@ -269,8 +236,8 @@ export default function App() {
           <Route path="dashboard"           element={<ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>} />
           <Route path="products"            element={<ProtectedRoute roles={['admin']}><AdminProducts /></ProtectedRoute>} />
           <Route path="products/images"     element={<ProtectedRoute roles={['admin']}><AdminProductImages /></ProtectedRoute>} />
-          <Route path="products/add"        element={<ProtectedRoute roles={['admin']}><AdminAddProduct /></ProtectedRoute>} />
-          <Route path="products/edit/:id"   element={<ProtectedRoute roles={['admin']}><AdminAddProduct /></ProtectedRoute>} />
+          <Route path="products/add"        element={<Navigate to="/admin/products" replace />} />
+          <Route path="products/edit/:id"   element={<Navigate to="/admin/products" replace />} />
           <Route path="categories"          element={<ProtectedRoute roles={['admin']}><AdminCategories /></ProtectedRoute>} />
           <Route path="categories/images"   element={<ProtectedRoute roles={['admin']}><AdminCategoryImages /></ProtectedRoute>} />
           <Route path="site-images"         element={<ProtectedRoute roles={['admin']}><AdminSiteImages /></ProtectedRoute>} />
@@ -284,10 +251,10 @@ export default function App() {
           <Route path="menus"               element={<ProtectedRoute roles={['admin']}><AdminMenus /></ProtectedRoute>} />
           <Route path="stores"              element={<ProtectedRoute roles={['admin']}><AdminStores /></ProtectedRoute>} />
           <Route path="settings"            element={<ProtectedRoute roles={['admin']}><AdminSettings /></ProtectedRoute>} />
-          <Route path="support"             element={<ProtectedRoute roles={['admin', 'child_admin']}><AdminSupport /></ProtectedRoute>} />
+          <Route path="support"             element={<ProtectedRoute roles={['admin', 'child_admin']} permission="orders"><AdminSupport /></ProtectedRoute>} />
           {/* Shared: admin + child_admin with permissions */}
           <Route path="orders"  element={<ProtectedRoute roles={['admin', 'child_admin']} permission="orders"><AdminOrders /></ProtectedRoute>} />
-          <Route path="quotes"  element={<ProtectedRoute roles={['admin', 'child_admin']} permission="quotes"><AdminQuotes /></ProtectedRoute>} />
+          <Route path="quotes" element={<Navigate to="/admin/orders" replace />} />
           <Route path="vendors"     element={<ProtectedRoute roles={['admin']}><AdminVendors /></ProtectedRoute>} />
           <Route path="master-data" element={<ProtectedRoute roles={['admin']}><AdminMasterData /></ProtectedRoute>} />
           <Route path="coupons"     element={<ProtectedRoute roles={['admin']}><AdminCoupons /></ProtectedRoute>} />

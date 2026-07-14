@@ -13,6 +13,9 @@ const OrderItemSchema = new mongoose.Schema({
   quantity:          { type: Number, required: true, min: 1 },
   discount:          { type: Number, default: 0 },
   subtotal:          { type: Number, required: true },
+  categoryId:        { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null },
+  commissionRate:    { type: Number, default: 0 },
+  commissionAmount:  { type: Number, default: 0 },
   itemStatus: {
     type: String,
     enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'],

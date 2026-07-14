@@ -1,30 +1,21 @@
 /**
- * Fix gift cards created with percentage type / low default balance.
+ * Fix existing gift cards that were created with perUserLimit/usageLimit
+ * blocking remaining-balance re-use.
  * Run: node scripts/fixGiftCards.js
  */
-require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+require('dotenv').config();
 const mongoose = require('mongoose');
 const Coupon = require('../src/models/Coupon');
 
-async function run() {
-  await mongoose.connect(process.env.MONGO_URI);
-  const cards = await Coupon.find({ couponKind: 'gift_card' });
-  let fixed = 0;
-  for (const c of cards) {
-    const updates = { type: 'fixed' };
-    if (c.balance == null || c.balance === undefined) {
-      updates.balance = c.value;
-    }
-    await Coupon.updateOne({ _id: c._id }, { $set: updates });
-    console.log(`  ✓ ${c.code} → balance ₹${updates.balance ?? c.balance ?? c.value}, type: fixed`);
-    fixed++;
-  }
-  console.log(`\nFixed ${fixed} gift card(s).`);
-  console.log('Edit balance in Admin → Coupons if amount is still wrong (e.g. was created with ₹10 default).');
+(async () => {
+  await mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI);
+  const result = await Coupon.updateMany(
+    { couponKind: 'gift_card' },
+    { $set: { perUserLimit: null, usageLimit: null } }
+  );
+  console.log(`Updated ${result.modifiedCount} gift card(s)`);
   await mongoose.disconnect();
-}
-
-run().catch((e) => {
-  console.error(e);
+})().catch((err) => {
+  console.error(err);
   process.exit(1);
 });

@@ -8,7 +8,6 @@ import Select from '../../components/ui/Select';
 
 const ALL_PERMISSIONS = [
   { key: 'orders',     label: 'Orders' },
-  { key: 'quotes',     label: 'Quotes' },
   { key: 'products',   label: 'Products' },
   { key: 'categories', label: 'Categories' },
   { key: 'blog',       label: 'Blog' },
@@ -24,7 +23,7 @@ function permSummary(perms) {
 const ROLE_CFG = {
   admin:       { label: 'Admin',    bg: '#F3E8FF', color: '#7C3AED' },
   child_admin: { label: 'Staff',    bg: '#EFF6FF', color: '#2563EB' },
-  retailer:    { label: 'Retailer', bg: '#FFFBEB', color: '#D97706' },
+  customer:    { label: 'Customer', bg: '#ECFDF5', color: '#059669' },
 };
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -51,7 +50,7 @@ function Toggle({ on, onChange, loading }) {
 
 // ── Create User Modal ─────────────────────────────────────────────────────────
 function CreateUserModal({ onClose, onCreated }) {
-  const [form, setForm]     = useState({ name: '', email: '', password: '', phone: '', role: 'retailer', permissions: [] });
+  const [form, setForm]     = useState({ name: '', email: '', password: '', phone: '', role: 'child_admin', permissions: [] });
   const [saving, setSaving] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
 
@@ -128,7 +127,6 @@ function CreateUserModal({ onClose, onCreated }) {
           <div>
             <label className="label-luxury mb-1">Role</label>
             <Select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value, permissions: [] })} compact className="w-full">
-              <option value="retailer">Retailer — browse &amp; request quotes</option>
               <option value="child_admin">Staff (Child Admin) — limited admin access</option>
               <option value="admin">Admin — full access</option>
             </Select>
@@ -214,7 +212,6 @@ function RoleEditor({ user, onSaved, onCancel }) {
   return (
     <div className="flex items-center gap-1.5">
       <Select value={role} onChange={(e) => setRole(e.target.value)} compact className="w-36 text-xs">
-        <option value="retailer">Retailer</option>
         <option value="child_admin">Staff</option>
         <option value="admin">Admin</option>
       </Select>
@@ -314,7 +311,7 @@ export default function AdminUsers() {
       {/* Role guide */}
       <div className="card-luxury p-4">
         <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Role Guide</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="flex items-start gap-2.5 p-3 bg-purple-50 rounded-xl">
             <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 flex-shrink-0">Admin</span>
             <p className="text-xs text-gray-500 leading-relaxed">Full access to all features — products, orders, users, settings</p>
@@ -322,10 +319,6 @@ export default function AdminUsers() {
           <div className="flex items-start gap-2.5 p-3 bg-blue-50 rounded-xl">
             <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 flex-shrink-0">Staff</span>
             <p className="text-xs text-gray-500 leading-relaxed">Limited access — expand row to toggle individual permissions</p>
-          </div>
-          <div className="flex items-start gap-2.5 p-3 bg-amber-50 rounded-xl">
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 flex-shrink-0">Retailer</span>
-            <p className="text-xs text-gray-500 leading-relaxed">Can browse products, raise quote requests, and receive confirmed orders</p>
           </div>
         </div>
       </div>
@@ -343,7 +336,6 @@ export default function AdminUsers() {
           <option value="">All Roles</option>
           <option value="admin">Admin</option>
           <option value="child_admin">Staff (Child Admin)</option>
-          <option value="retailer">Retailer</option>
         </Select>
       </div>
 
@@ -382,7 +374,7 @@ export default function AdminUsers() {
               ) : users.length === 0 ? (
                 <tr><td colSpan={7} className="text-center py-12 text-gray-300">No users found</td></tr>
               ) : users.map((user) => {
-                const rc      = ROLE_CFG[user.role] || ROLE_CFG.retailer;
+                const rc      = ROLE_CFG[user.role] || { label: user.role, bg: '#F3F4F6', color: '#6B7280' };
                 const isOpen  = expanded === user._id;
                 const isEditingRole = editingRole === user._id;
 

@@ -64,11 +64,7 @@ export default function CartPage() {
               <div key={group.name}>
                 <div className="flex items-center gap-2 mb-3">
                   <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349" /></svg>
-                  {group.slug ? (
-                    <Link to={`/stores/${group.slug}`} className="text-sm font-semibold text-gray-800 hover:text-primary">{group.name}</Link>
-                  ) : (
-                    <span className="text-sm font-semibold text-gray-800">{group.name}</span>
-                  )}
+                  <span className="text-sm font-semibold text-gray-800">{group.name}</span>
                   <span className="text-xs text-gray-400">({group.items.length} item{group.items.length !== 1 ? 's' : ''})</span>
                 </div>
                 <div className="space-y-4">

@@ -9,12 +9,30 @@ const useAuthStore = create(
       user: null,
       token: null,
       loading: false,
+      authReady: false,
+
+      bootstrapAuth: async () => {
+        const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+        const token = get().token || stored;
+        if (!token) {
+          set({ authReady: true });
+          return;
+        }
+        try {
+          const { data } = await authAPI.getMe();
+          if (typeof localStorage !== 'undefined') localStorage.setItem('token', token);
+          set({ user: data.data.user || data.data, token, authReady: true });
+        } catch (_) {
+          if (typeof localStorage !== 'undefined') localStorage.removeItem('token');
+          set({ user: null, token: null, authReady: true });
+        }
+      },
 
       login: async (credentials) => {
         set({ loading: true });
         try {
           const { data } = await authAPI.login(credentials);
-          localStorage.setItem('token', data.token);
+          if (typeof localStorage !== 'undefined') localStorage.setItem('token', data.token);
           set({ user: data.data, token: data.token, loading: false });
           toast.success('Welcome back!');
           return data.data;
@@ -29,7 +47,7 @@ const useAuthStore = create(
         set({ loading: true });
         try {
           const { data } = await authAPI.register(userData);
-          localStorage.setItem('token', data.token);
+          if (typeof localStorage !== 'undefined') localStorage.setItem('token', data.token);
           set({ user: data.data, token: data.token, loading: false });
           toast.success('Account created successfully!');
           return data.data;
@@ -44,8 +62,8 @@ const useAuthStore = create(
         try {
           await authAPI.logout();
         } catch (_) {}
-        localStorage.removeItem('token');
-        set({ user: null, token: null });
+        if (typeof localStorage !== 'undefined') localStorage.removeItem('token');
+        set({ user: null, token: null, authReady: true });
         toast.success('Logged out successfully');
       },
 
@@ -63,7 +81,6 @@ const useAuthStore = create(
       isAuthenticated: () => !!get().token,
       isAdmin: () => get().user?.role === 'admin',
       isChildAdmin: () => get().user?.role === 'child_admin',
-      isRetailer: () => get().user?.role === 'retailer',
       hasPermission: (perm) => {
         const u = get().user;
         if (!u) return false;

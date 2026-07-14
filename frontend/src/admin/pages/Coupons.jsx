@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { couponAPI, categoryAPI } from '../../services/api';
 import Tip from '../components/Tip';
+import Pagination from '../components/Pagination';
+
+const PAGE_SIZE = 10;
 
 const EMPTY = {
   couponKind: 'global',
@@ -102,21 +105,24 @@ export default function AdminCoupons() {
   const [editingId, setEditingId] = useState(null);
   const [viewCoupon, setViewCoupon] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState({ total: 0, pages: 1 });
 
-  const load = () => {
+  const load = (p = page) => {
     setLoading(true);
     Promise.all([
-      couponAPI.adminGetAll({ limit: 100 }),
-      categoryAPI.getAll(),
+      couponAPI.adminGetAll({ page: p, limit: PAGE_SIZE }),
+      categoryAPI.getAll({ limit: 200 }),
     ])
       .then(([cRes, catRes]) => {
         setCoupons(cRes.data.data || []);
+        setMeta(cRes.data.meta || { total: 0, pages: 1 });
         setCategories(catRes.data.data || catRes.data || []);
       })
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(page); }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -147,25 +153,26 @@ export default function AdminCoupons() {
   };
 
   const buildPayload = () => {
+    const isGift = form.couponKind === 'gift_card';
     const payload = {
       couponKind: form.couponKind,
       title: form.title,
       description: form.description,
-      type: form.couponKind === 'gift_card' ? 'fixed' : form.type,
+      type: isGift ? 'fixed' : form.type,
       value: Number(form.value),
       minOrderAmount: Number(form.minOrderAmount) || 0,
-      usageLimit: form.usageLimit ? Number(form.usageLimit) : null,
-      perUserLimit: Number(form.perUserLimit) || 1,
-      showOnFrontend: form.couponKind !== 'gift_card' ? form.showOnFrontend : false,
+      usageLimit: isGift ? null : (form.usageLimit ? Number(form.usageLimit) : null),
+      perUserLimit: isGift ? null : (Number(form.perUserLimit) || 1),
+      showOnFrontend: !isGift && form.showOnFrontend,
       isActive: form.isActive,
       applicableCategories: form.couponKind === 'category' ? form.applicableCategories : [],
       applicableProducts: form.applicableProducts,
     };
-    if (form.couponKind === 'gift_card') {
+    if (isGift) {
       payload.balance = Number(form.value);
     }
     if (!editingId && !form.autoGenerate && form.code.trim()) {
-      payload.code = form.couponKind === 'gift_card'
+      payload.code = isGift
         ? form.code.replace(/\D/g, '')
         : form.code.toUpperCase();
     }
@@ -185,7 +192,8 @@ export default function AdminCoupons() {
         toast.success(`Created: ${data.data.code}`);
       }
       closeForm();
-      load();
+      setPage(1);
+      load(1);
     } catch (err) {
       toast.error(err?.message || (editingId ? 'Failed to update' : 'Failed to create'));
     } finally {
@@ -211,7 +219,10 @@ export default function AdminCoupons() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-heading text-2xl font-bold">Coupons & Gift Cards</h1>
-          <p className="text-sm text-gray-500 mt-1">Type 1: category · Type 2: global · Type 3: gift card</p>
+          <p className="text-sm text-gray-500 mt-1">
+            Type 1: category · Type 2: global · Type 3: gift card
+            {meta.total != null && <span className="text-gray-400"> · {meta.total} total</span>}
+          </p>
         </div>
         <button type="button" onClick={() => (showForm && !editingId ? closeForm() : openCreate())} className="btn-primary text-sm">
           + Create New
@@ -440,6 +451,13 @@ export default function AdminCoupons() {
             ))}
           </tbody>
         </table>
+        <Pagination
+          page={page}
+          pages={meta.pages || 1}
+          total={meta.total || 0}
+          shown={coupons.length}
+          onPage={setPage}
+        />
       </div>
     </div>
   );
