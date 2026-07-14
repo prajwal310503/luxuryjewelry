@@ -2,7 +2,11 @@
 
 Full-stack B2C marketplace with admin panel, vendor portal, and customer storefront.
 
-**GitHub:** https://github.com/prajwal310503/luxuryjewelry
+| Repo | GitHub |
+|------|--------|
+| Monorepo (this) | https://github.com/prajwal310503/luxuryjewelry |
+| Backend only | https://github.com/prajwal310503/B2C-Backend |
+| Frontend only | https://github.com/prajwal310503/B2C-Frontend |
 
 ---
 
@@ -16,12 +20,15 @@ Full-stack B2C marketplace with admin panel, vendor portal, and customer storefr
 
 ---
 
-## Login Credentials (after seeding)
+## Login Credentials (test accounts)
 
-| Role   | Email                   | Password    |
-|--------|-------------------------|-------------|
-| Admin  | admin@luxuryjewelry.com | admin@123   |
-| Vendor | (from seedProducts.js)  | (see .env)  |
+Run `cd backend && npm run seed:logins` to create/reset:
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@test.vkjewellers.com | VkAdmin@2026 |
+| Vendor | vendor@test.vkjewellers.com | VkVendor@2026 |
+| Customer | customer@test.vkjewellers.com | VkCustomer@2026 |
 
 ---
 
@@ -109,4 +116,10 @@ Frontend only needs `VITE_API_URL`.
 | Storefront | `/`, `/products/:slug`, `/cart`, `/checkout` |
 | Vendor | `/vendor/dashboard`, `/vendor/products`, `/vendor/orders` |
 | Admin | `/admin/dashboard`, `/admin/vendors`, `/admin/master-data` |
-| Quotes | `/my-quotes`, `/request-quote`, `/admin/quotes` |
+
+## Push to split repos
+
+```bash
+git subtree push --prefix=backend https://github.com/prajwal310503/B2C-Backend.git main
+git subtree push --prefix=frontend https://github.com/prajwal310503/B2C-Frontend.git main
+```

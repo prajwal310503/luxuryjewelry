@@ -1,0 +1,29 @@
+node_modules/
+.pnp
+.pnp.js
+
+# Environment (never commit secrets)
+.env
+.env.local
+.env.production
+.env.*.local
+
+dist/
+build/
+uploads/
+logs/
+*.log
+npm-debug.log*
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+.vscode/
+.idea/
+
+# One-time local utility scripts
+src/utils/downloadImages.js
+src/utils/fixImageUrls.js
+src/utils/updateImages.js
+src/utils/uploadProductImages.js
