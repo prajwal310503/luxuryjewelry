@@ -140,10 +140,24 @@ const HeroBanner = ({ banners }) => {
         className="absolute inset-0"
         style={{ pointerEvents: idx === current ? 'auto' : 'none' }}
       >
-        {b.image && (b.image.startsWith('http') || b.image.startsWith('/'))
-          ? <img src={b.image} alt="" className="w-full h-full object-cover" />
-          : <div className="w-full h-full" style={{ background: FALLBACK_SLIDES[0].bg }} />
-        }
+        {b.image && (b.image.startsWith('http') || b.image.startsWith('/')) ? (
+          <>
+            <img
+              src={b.image}
+              alt=""
+              className={`absolute inset-0 w-full h-full object-cover object-center ${b.mobileImage ? 'hidden sm:block' : ''}`}
+            />
+            {b.mobileImage && (
+              <img
+                src={b.mobileImage}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover object-center sm:hidden"
+              />
+            )}
+          </>
+        ) : (
+          <div className="w-full h-full" style={{ background: FALLBACK_SLIDES[0].bg }} />
+        )}
       </motion.div>
     );
   };
@@ -151,8 +165,7 @@ const HeroBanner = ({ banners }) => {
   return (
     <section
       id="main-content"
-      className="relative overflow-hidden w-full"
-      style={{ height: '88vh', minHeight: 480 }}
+      className="relative overflow-hidden w-full bg-transparent aspect-[16/9] sm:aspect-auto sm:h-[56vh] sm:min-h-[360px] sm:max-h-none md:h-[72vh] lg:h-[88vh] lg:min-h-[480px]"
     >
       {hasBanners
         ? banners.map((b, i) => renderSlide(b, i))
@@ -268,11 +281,13 @@ const TrustBar = ({ cmsContent }) => {
 
         <div className="flex flex-col sm:flex-row sm:justify-around gap-8 sm:gap-4 max-w-[1100px] mx-auto">
           {data.items.map((item) => (
-            <div key={item.label} className="flex items-start gap-4">
-              {TrustIcons[item.icon] ?? TrustIcons.return}
-              <div>
+            <div key={item.label} className="flex items-center sm:items-start gap-3 sm:gap-4 justify-center sm:justify-start">
+              <span className="flex-shrink-0 scale-90 sm:scale-100 origin-center">
+                {TrustIcons[item.icon] ?? TrustIcons.return}
+              </span>
+              <div className="text-center sm:text-left">
                 <p
-                  className="text-[11px] font-bold text-gray-900 uppercase leading-snug whitespace-nowrap"
+                  className="text-[10px] sm:text-[11px] font-bold text-gray-900 uppercase leading-snug"
                   style={{ letterSpacing: '0.1em' }}
                 >
                   {item.label}
@@ -318,11 +333,11 @@ const CategoryGrid = ({ categories, cmsContent }) => {
       key={keyPrefix}
       to={`/collections/${cat.slug}`}
       className="group flex-shrink-0 block"
-      style={{ width: '220px', marginRight: '20px' }}
+      style={{ width: '148px', marginRight: '12px' }}
     >
       <div
-        className="relative w-full overflow-hidden transition-all duration-500 ease-in-out group-hover:[border-radius:40px]"
-        style={{ aspectRatio: '2 / 3', background: '#f5ede4', borderRadius: '20px' }}
+        className="relative w-full overflow-hidden transition-all duration-500 ease-in-out group-hover:[border-radius:28px]"
+        style={{ aspectRatio: '3 / 4', background: '#f5ede4', borderRadius: '14px' }}
       >
         <img
           src={cat.image || CAT_FALLBACK[cat.slug] || CAT_FALLBACK.rings}
@@ -333,8 +348,8 @@ const CategoryGrid = ({ categories, cmsContent }) => {
         />
       </div>
       <p
-        className="text-center text-[12px] font-semibold text-gray-800 uppercase mt-3 tracking-widest group-hover:text-primary transition-colors duration-300"
-        style={{ letterSpacing: '0.18em' }}
+        className="text-center text-[11px] font-semibold text-gray-800 uppercase mt-2 tracking-widest group-hover:text-primary transition-colors duration-300"
+        style={{ letterSpacing: '0.14em' }}
       >
         {cat.name}
       </p>
@@ -342,9 +357,9 @@ const CategoryGrid = ({ categories, cmsContent }) => {
   );
 
   return (
-    <section className="py-16 bg-white">
+    <section className="py-12 bg-white">
       <div className="container-luxury">
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <h2
             className="text-[21px] font-semibold text-gray-900 uppercase"
             style={{ letterSpacing: '0.2em' }}
@@ -357,14 +372,9 @@ const CategoryGrid = ({ categories, cmsContent }) => {
         </div>
       </div>
 
-      {/* Full-width marquee — overflow only on x axis so text below cards is not clipped */}
-      <div className="relative w-full" style={{ overflowX: 'hidden' }}>
-        <div className="absolute left-0 top-0 bottom-0 w-20 z-10 pointer-events-none"
-          style={{ background: 'linear-gradient(to right, white 40%, transparent)' }} />
-        <div className="absolute right-0 top-0 bottom-0 w-20 z-10 pointer-events-none"
-          style={{ background: 'linear-gradient(to left, white 40%, transparent)' }} />
-
-        <div className="marquee-track" style={{ paddingBottom: '16px' }}>
+      {/* Full-bleed marquee — no side fade so cards sit edge-to-edge */}
+      <div className="relative w-full overflow-x-hidden">
+        <div className="marquee-track" style={{ paddingBottom: '8px', paddingLeft: '12px' }}>
           {items.map((cat, idx) => (
             <CatCard key={`${cat._id}-${idx}`} cat={cat} keyPrefix={`${cat._id}-${idx}`} />
           ))}
@@ -396,7 +406,7 @@ const FeaturedProducts = ({ products, title = 'FEATURED PRODUCTS', subtitle, cms
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-5">
           {displayed.map((product, idx) => (
             <ProductCard key={product._id} product={product} index={idx} />
           ))}
@@ -508,19 +518,19 @@ const DealsSection = ({ products, cmsContent }) => {
         </div>
 
         {cmsProducts.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-5">
             {cmsProducts.slice(0, 8).map((p, i) => (
               <DealCmsCard key={i} product={p} />
             ))}
           </div>
         ) : products?.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-5">
             {products.slice(0, 8).map((product, idx) => (
               <ProductCard key={product._id} product={product} index={idx} />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-5">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} style={{ borderRadius: 20, overflow: 'hidden', background: 'rgba(255,255,255,0.72)', border: '1px solid rgba(255,255,255,0.65)', boxShadow: '0 4px 20px rgba(90,65,63,0.07)' }}>
                 <div className="shimmer-img w-full" style={{ aspectRatio: '1/1' }} />
@@ -743,9 +753,8 @@ const WhyChooseSection = ({ cmsContent, siteImages = {} }) => {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08, duration: 0.5 }}
                 className="group relative rounded-2xl overflow-hidden cursor-pointer"
-                style={{ aspectRatio: '5/2' }}
               >
-                <Link to={item.link || '#'} className="block h-full">
+                <Link to={item.link || '#'} className="block relative aspect-[16/10] sm:aspect-[5/2] min-h-[140px]">
                   {/* BG gradient */}
                   <div className="absolute inset-0" style={{ background: item.bg || '#1a1a1a' }} />
 
@@ -767,7 +776,7 @@ const WhyChooseSection = ({ cmsContent, siteImages = {} }) => {
 
                   {/* Content — alternates between bottom-left and top-right */}
                   <div
-                    className={`absolute inset-0 flex flex-col p-7 sm:p-8 ${
+                    className={`absolute inset-0 flex flex-col p-4 sm:p-7 sm:p-8 ${
                       isRight
                         ? 'justify-start items-end text-right'
                         : 'justify-end items-start text-left'
@@ -779,7 +788,7 @@ const WhyChooseSection = ({ cmsContent, siteImages = {} }) => {
                     >
                       {item.title}
                     </p>
-                    <p className="text-white/70 text-[13px] mb-5 tracking-wide">{item.subtitle}</p>
+                    <p className="text-white/70 text-[12px] sm:text-[13px] mb-3 sm:mb-5 tracking-wide line-clamp-2">{item.subtitle}</p>
                     <span
                       className="inline-flex items-center px-5 py-2 bg-white text-gray-900 text-[11px] font-semibold tracking-widest uppercase hover:bg-white/90 transition-all duration-200"
                       style={{ borderRadius: '4px', letterSpacing: '0.1em' }}
@@ -1129,8 +1138,8 @@ const DiamondShapeSVG = ({ shape }) => {
 };
 
 // ─── GIFTING SECTION ──────────────────────────────────────────────────────────
-const BowSVG = () => (
-  <svg viewBox="0 0 80 52" className="w-14 h-9 mx-auto" fill="none">
+const BowSVG = ({ className = 'w-14 h-9 mx-auto' }) => (
+  <svg viewBox="0 0 80 52" className={className} fill="none">
     {/* Left loop */}
     <path d="M38 26 C32 14, 8 8, 12 24 C8 38, 30 36, 38 26Z" fill="#dc2626" />
     {/* Right loop */}
@@ -1174,10 +1183,10 @@ const GiftingSection = ({ cmsContent }) => {
   return (
     <section className="py-16 bg-white">
       <div className="container-luxury">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center min-w-0">
 
           {/* Left — title + budget cards */}
-          <div>
+          <div className="min-w-0 w-full overflow-hidden">
             <p
               className="font-heading italic text-gray-800 mb-2 leading-snug"
               style={{ fontSize: 'clamp(1.6rem, 3.5vw, 2.4rem)' }}
@@ -1189,33 +1198,35 @@ const GiftingSection = ({ cmsContent }) => {
             )}
             {!subtitle && <div className="mb-8" />}
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2.5 sm:gap-3 w-full max-w-full">
               {budgets.map((budget, idx) => (
                 <Link
                   key={budget.slug || idx}
                   to={`/collections/${budget.slug}`}
-                  className="group block rounded-xl overflow-hidden relative"
+                  className="group block rounded-xl overflow-hidden relative w-full min-w-0"
                   style={{ aspectRatio: '3/4' }}
                 >
                   {budget.image ? (
                     <img
                       src={budget.image}
                       alt={`Gift under ${budget.label}`}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (
-                    <div className="w-full h-full bg-[#fafafa] border border-gray-100 rounded-xl flex flex-col">
-                      <div className="flex-1 relative">
-                        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[3px] bg-red-500/70" />
-                        <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[3px] bg-red-500/70" />
+                    <div className="w-full h-full bg-[#fafafa] border border-gray-100 rounded-xl flex flex-col overflow-hidden">
+                      <div className="flex-1 relative min-h-0">
+                        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[2px] sm:h-[3px] bg-red-500/70" />
+                        <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] sm:w-[3px] bg-red-500/70" />
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <BowSVG />
+                          <BowSVG className="w-9 h-6 sm:w-14 sm:h-9 mx-auto" />
                         </div>
                       </div>
-                      <div className="mx-5 h-[2px] bg-red-500/60" />
-                      <div className="px-3 py-4 text-center">
-                        <p className="text-[9px] uppercase tracking-[0.2em] text-gray-400 mb-1">GIFT UNDER</p>
-                        <p className="font-heading font-bold text-red-500" style={{ fontSize: 'clamp(1.4rem, 2.5vw, 1.8rem)' }}>
+                      <div className="mx-2 sm:mx-5 h-[2px] bg-red-500/60 flex-shrink-0" />
+                      <div className="px-1.5 sm:px-3 py-2.5 sm:py-4 text-center flex-shrink-0">
+                        <p className="text-[8px] sm:text-[9px] uppercase tracking-[0.12em] sm:tracking-[0.2em] text-gray-400 mb-0.5 sm:mb-1">
+                          GIFT UNDER
+                        </p>
+                        <p className="font-heading font-bold text-red-500 text-base sm:text-[clamp(1.4rem,2.5vw,1.8rem)] leading-none">
                           {budget.label}
                         </p>
                       </div>
@@ -1302,10 +1313,9 @@ const GiftingSection = ({ cmsContent }) => {
 // Diamond cut card — uses Cloudinary image if provided via CMS, otherwise SVG shape
 const DiamondCutCard = ({ cut, slug }) => {
   const [imgFailed, setImgFailed] = useState(false);
-  // Only treat as a usable image if it's a real external URL (Cloudinary / Unsplash)
-  const imgSrc = cut.image && cut.image.startsWith('http') && !cut.image.includes('localhost')
+  const imgSrc = cut.image && cut.image.startsWith('http')
     ? cut.image
-    : null;
+    : (cut.image?.startsWith('/uploads/') ? cut.image : null);
 
   return (
     <div className="relative w-[90px] h-[90px] sm:w-full sm:aspect-square flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
@@ -1330,27 +1340,61 @@ const DiamondCutsSection = ({ cmsContent }) => {
   // CMS stores cuts under 'cuts' key; fallback to hardcoded data with upload-based images
   const cmsCuts = cmsContent?.cuts?.filter((c) => c.name);
   const cuts = cmsCuts?.length ? cmsCuts : DIAMOND_CUTS_DATA;
+  // Duplicate for seamless mobile marquee (CSS moves -50%)
+  const marqueeCuts = [...cuts, ...cuts];
+
+  const CutLink = ({ cut, i, keyPrefix }) => {
+    const slug = cut.slug || cut.name?.toLowerCase?.() || '';
+    return (
+      <motion.div
+        key={keyPrefix || slug || i}
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ delay: i * 0.07, duration: 0.45 }}
+        className="flex-shrink-0 w-[90px] sm:w-auto"
+      >
+        <Link
+          to={`/collections?cut=${slug}`}
+          className="group flex flex-col items-center gap-3"
+        >
+          <DiamondCutCard cut={cut} slug={slug} />
+          <p
+            className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest group-hover:text-gray-800 transition-colors duration-300 text-center"
+            style={{ letterSpacing: '0.12em' }}
+          >
+            {cut.name}
+          </p>
+        </Link>
+      </motion.div>
+    );
+  };
 
   return (
     <section className="py-16 bg-white">
       <div className="container-luxury">
-
         <div className="mb-10">
           <PillHeading title={heading} subtitle={subtitle} simple />
         </div>
 
-        {/* Scrollable on mobile, 8-col grid on sm+ */}
-        <div className="flex gap-6 overflow-x-auto pb-2 sm:grid sm:grid-cols-8 sm:gap-8 sm:overflow-visible scrollbar-none justify-center">
+        {/* Desktop: 8-col grid */}
+        <div className="hidden sm:grid sm:grid-cols-8 sm:gap-8">
           {cuts.map((cut, i) => {
             const slug = cut.slug || cut.name?.toLowerCase?.() || '';
+            return <CutLink key={slug || i} cut={cut} i={i} keyPrefix={slug || i} />;
+          })}
+        </div>
+      </div>
+
+      {/* Mobile: continuous full-bleed marquee */}
+      <div className="relative w-full overflow-x-hidden sm:hidden">
+        <div className="marquee-track" style={{ paddingBottom: '8px', paddingLeft: '16px', gap: '28px' }}>
+          {marqueeCuts.map((cut, idx) => {
+            const slug = cut.slug || cut.name?.toLowerCase?.() || '';
             return (
-              <motion.div
-                key={slug || i}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.07, duration: 0.45 }}
-                className="flex-shrink-0 w-[90px] sm:w-auto"
+              <div
+                key={`${slug}-${idx}`}
+                className="flex-shrink-0 w-[90px]"
               >
                 <Link
                   to={`/collections?cut=${slug}`}
@@ -1364,11 +1408,10 @@ const DiamondCutsSection = ({ cmsContent }) => {
                     {cut.name}
                   </p>
                 </Link>
-              </motion.div>
+              </div>
             );
           })}
         </div>
-
       </div>
     </section>
   );
@@ -1491,8 +1534,8 @@ const LifestyleLookbookSection = ({ panel1Products = [], panel2Products = [], fa
       return (
         <div
           key={panel.id}
-          className="flex flex-col lg:flex-row"
-          style={{ background: panel.bg, minHeight: '540px' }}
+          className="flex flex-col lg:flex-row min-h-0 lg:min-h-[540px]"
+          style={{ background: panel.bg }}
         >
           {/* ── Model photo column with jewelry chips overlaid ── */}
           <motion.div
@@ -1500,14 +1543,14 @@ const LifestyleLookbookSection = ({ panel1Products = [], panel2Products = [], fa
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, ease: 'easeOut' }}
-            className={`relative w-full lg:w-[48%] overflow-hidden flex-shrink-0 ${isLeft ? 'lg:order-1' : 'lg:order-2'}`}
-            style={{ minHeight: '480px' }}
+            className={`relative w-full lg:w-[48%] overflow-hidden flex-shrink-0 lg:min-h-[480px] ${isLeft ? 'lg:order-1' : 'lg:order-2'}`}
+            style={{ background: panel.modelFallback || panel.bg }}
           >
-            {/* Model image */}
+            {/* Mobile: full image (contain). Desktop: cover fill */}
             <img
               src={panel.modelImage}
               alt={panel.eyebrow}
-              className="absolute inset-0 w-full h-full object-cover object-top"
+              className="w-full h-auto max-h-[70vh] object-contain object-center lg:absolute lg:inset-0 lg:h-full lg:max-h-none lg:object-cover lg:object-top"
               loading="lazy"
               onError={(e) => {
                 e.target.onerror = null;
@@ -1537,7 +1580,7 @@ const LifestyleLookbookSection = ({ panel1Products = [], panel2Products = [], fa
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
-            className={`flex-1 flex flex-col justify-center px-8 py-14 lg:py-16 lg:px-14 ${isLeft ? 'lg:order-2' : 'lg:order-1'}`}
+            className={`flex-1 flex flex-col justify-center px-5 py-10 sm:px-8 sm:py-14 lg:py-16 lg:px-14 ${isLeft ? 'lg:order-2' : 'lg:order-1'}`}
           >
             <span
               className="block text-[10px] font-bold uppercase tracking-[0.35em] mb-4"
@@ -1663,7 +1706,7 @@ const StoresSection = ({ stores, cmsContent }) => {
         </div>
 
         {/* Slider */}
-        <div className="relative overflow-hidden rounded-2xl" style={{ aspectRatio: '16/7' }}>
+        <div className="relative overflow-hidden rounded-2xl aspect-[4/3] sm:aspect-[16/7]">
           {items.map((store, i) => (
             <motion.div
               key={i}
@@ -1677,7 +1720,7 @@ const StoresSection = ({ stores, cmsContent }) => {
                 : <div className="w-full h-full" style={{ background: store.bg }} />
               }
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
-              <div className="absolute bottom-0 inset-x-0 p-8 text-center z-10">
+              <div className="absolute bottom-0 inset-x-0 p-5 sm:p-8 text-center z-10">
                 <p className="font-heading font-bold text-white uppercase mb-1.5"
                   style={{ fontSize: 'clamp(1.1rem, 2.5vw, 1.8rem)', letterSpacing: '0.12em' }}>
                   {(store.name || '').toUpperCase()}
@@ -1686,11 +1729,11 @@ const StoresSection = ({ stores, cmsContent }) => {
                   <p className="text-white/70 text-xs tracking-widest uppercase mb-5" style={{ letterSpacing: '0.2em' }}>{store.city}</p>
                 )}
                 <Link
-                  to="/"
+                  to="/stores"
                   className="inline-block bg-white text-gray-900 font-semibold text-[11px] uppercase tracking-widest px-8 py-2.5 hover:bg-white/90 transition-colors mt-4"
                   style={{ letterSpacing: '0.14em' }}
                 >
-                  SHOP NOW
+                  VISIT STORES
                 </Link>
               </div>
             </motion.div>

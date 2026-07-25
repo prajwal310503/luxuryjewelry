@@ -31,6 +31,23 @@ exports.getTicket = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+// @route  PUT /api/support/:id/reply
+exports.userReply = async (req, res, next) => {
+  try {
+    const { message } = req.body;
+    if (!message?.trim()) return sendError(res, 400, 'Message is required');
+
+    const ticket = await SupportTicket.findOne({ _id: req.params.id, user: req.user.id });
+    if (!ticket) return sendError(res, 404, 'Ticket not found');
+    if (ticket.status === 'closed') return sendError(res, 400, 'This ticket is closed');
+
+    ticket.replies.push({ by: 'user', message: message.trim() });
+    if (ticket.status === 'resolved') ticket.status = 'open';
+    await ticket.save();
+    sendSuccess(res, 200, 'Reply sent', ticket);
+  } catch (e) { next(e); }
+};
+
 // ── Admin ──────────────────────────────────────────────────────────────────
 
 // @route  GET /api/support/admin/all

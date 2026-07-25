@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import VendorLayout from '../components/VendorLayout';
 import { IconWarning } from '../../components/ui/Icons';
-
-const API = import.meta.env.VITE_API_URL || '/api';
+import { vendorAPI } from '../../services/api';
 
 export default function VendorAnalytics() {
   const [tab, setTab] = useState('sales');
@@ -12,13 +10,14 @@ export default function VendorAnalytics() {
 
   useEffect(() => {
     setLoading(true);
-    const map = {
-      sales: `${API}/reports/vendor/sales`,
-      products: `${API}/reports/vendor/products`,
-      customers: `${API}/reports/vendor/customers`,
-    };
-    axios.get(map[tab], { withCredentials: true })
+    const fetcher = {
+      sales: () => vendorAPI.getReports.sales(),
+      products: () => vendorAPI.getReports.products(),
+      customers: () => vendorAPI.getReports.customers(),
+    }[tab];
+    fetcher()
       .then((r) => setData(r.data.data))
+      .catch(() => setData(null))
       .finally(() => setLoading(false));
   }, [tab]);
 
@@ -30,7 +29,7 @@ export default function VendorAnalytics() {
         <h1 className="text-xl font-bold">Shop Reports</h1>
         <div className="flex gap-2">
           {['sales', 'products', 'customers'].map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 rounded-lg text-sm font-semibold capitalize ${tab === t ? 'bg-gray-900 text-white' : 'bg-white border'}`}>{t}</button>
+            <button key={t} type="button" onClick={() => setTab(t)} className={`px-4 py-2 rounded-lg text-sm font-semibold capitalize ${tab === t ? 'bg-gray-900 text-white' : 'bg-white border'}`}>{t}</button>
           ))}
         </div>
         {loading ? <div className="h-40 shimmer-img rounded-xl" /> : (

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, requirePermission } = require('../middleware/auth');
 const {
   platformSalesReport,
   platformOrderReport,
@@ -12,11 +12,11 @@ const {
   vendorCustomerReport,
 } = require('../controllers/reportController');
 
-router.get('/admin/sales', protect, authorize('admin'), platformSalesReport);
-router.get('/admin/orders', protect, authorize('admin'), platformOrderReport);
-router.get('/admin/products', protect, authorize('admin'), platformProductReport);
-router.get('/admin/customers', protect, authorize('admin'), platformCustomerReport);
-router.get('/admin/vendors', protect, authorize('admin'), platformVendorReport);
+router.get('/admin/sales', protect, requirePermission('reports'), platformSalesReport);
+router.get('/admin/orders', protect, requirePermission('reports'), platformOrderReport);
+router.get('/admin/products', protect, requirePermission('reports'), platformProductReport);
+router.get('/admin/customers', protect, requirePermission('reports'), platformCustomerReport);
+router.get('/admin/vendors', protect, requirePermission('reports'), platformVendorReport);
 
 router.get('/vendor/sales', protect, authorize('vendor'), vendorSalesReport);
 router.get('/vendor/products', protect, authorize('vendor'), vendorProductReport);

@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import useCartStore from '../../store/cartStore';
 import useAuthStore from '../../store/authStore';
 
@@ -11,6 +12,10 @@ export default function CartDrawer() {
   const navigate = useNavigate();
 
   const handleCheckout = () => {
+    if (items.some((i) => (Number(i.product.stock) || 0) <= 0)) {
+      toast.error('Remove out-of-stock items before checkout');
+      return;
+    }
     closeCart();
     setTimeout(() => {
       if (!token) {
@@ -81,9 +86,11 @@ export default function CartDrawer() {
                   {items.map((item) => {
                     const price = item.product.discountedPrice ?? item.product.price;
                     const image = item.product.images?.[0]?.url;
+                    const stock = Number(item.product.stock) || 0;
+                    const oos = stock <= 0;
                     return (
                       <div key={item.key} className="flex gap-4">
-                        <Link to={`/products/${item.product.slug}`} onClick={closeCart} className="flex-shrink-0">
+                        <Link to={`/products/${item.product.slug}`} onClick={closeCart} className="flex-shrink-0 relative">
                           <div className="w-20 h-20 rounded-luxury bg-luxury-cream overflow-hidden">
                             {image ? (
                               <img src={image} alt={item.product.title} className="w-full h-full object-cover" />
@@ -91,6 +98,9 @@ export default function CartDrawer() {
                               <div className="w-full h-full bg-luxury-beige" />
                             )}
                           </div>
+                          {oos && (
+                            <span className="absolute inset-x-0 bottom-0 bg-gray-800/80 text-white text-[9px] font-bold text-center py-0.5 rounded-b-luxury">OOS</span>
+                          )}
                         </Link>
                         <div className="flex-1 min-w-0">
                           <Link to={`/products/${item.product.slug}`} onClick={closeCart}>
@@ -98,6 +108,7 @@ export default function CartDrawer() {
                               {item.product.title}
                             </h4>
                           </Link>
+                          {oos && <p className="text-[11px] text-red-500 font-medium mt-0.5">Out of stock</p>}
                           {(item.variantAttributes || item.selections) && (
                             <p className="text-xs text-gray-400 mt-0.5">
                               {[
@@ -120,8 +131,9 @@ export default function CartDrawer() {
                                 <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
                                 <button
                                   type="button"
+                                  disabled={oos || item.quantity >= stock}
                                   onClick={() => updateQuantity(item.key, item.quantity + 1)}
-                                  className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors text-sm"
+                                  className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors text-sm disabled:opacity-30 disabled:cursor-not-allowed"
                                 >
                                   +
                                 </button>

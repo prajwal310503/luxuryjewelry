@@ -1,18 +1,19 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { MemoryRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
 
 /**
- * Smoke tests for quote/store redirects (mirrors App.jsx redirect routes).
+ * Smoke tests for quote redirects (mirrors App.jsx).
+ * Public /stores is a real page again — not redirected.
  */
-function QuoteRedirects() {
+function LegacyRedirects() {
   return (
     <Routes>
       <Route path="/my-quotes" element={<Navigate to="/orders" replace />} />
       <Route path="/request-quote" element={<Navigate to="/" replace />} />
       <Route path="/quotes/:id" element={<Navigate to="/orders" replace />} />
       <Route path="/admin/quotes" element={<Navigate to="/admin/orders" replace />} />
-      <Route path="/stores" element={<Navigate to="/" replace />} />
+      <Route path="/stores" element={<div>Stores List</div>} />
       <Route path="/orders" element={<div>Orders Page</div>} />
       <Route path="/admin/orders" element={<div>Admin Orders</div>} />
       <Route path="/" element={<div>Home</div>} />
@@ -23,12 +24,12 @@ function QuoteRedirects() {
 function renderAt(path) {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <QuoteRedirects />
+      <LegacyRedirects />
     </MemoryRouter>
   );
 }
 
-describe('Quote & store redirects', () => {
+describe('Quote redirects & stores page', () => {
   it('redirects /my-quotes to orders', () => {
     renderAt('/my-quotes');
     expect(screen.getByText('Orders Page')).toBeInTheDocument();
@@ -49,8 +50,8 @@ describe('Quote & store redirects', () => {
     expect(screen.getByText('Admin Orders')).toBeInTheDocument();
   });
 
-  it('redirects /stores to home', () => {
+  it('renders /stores list (not redirect)', () => {
     renderAt('/stores');
-    expect(screen.getByText('Home')).toBeInTheDocument();
+    expect(screen.getByText('Stores List')).toBeInTheDocument();
   });
 });

@@ -58,11 +58,24 @@ class APIFeatures {
   }
 
   priceRange() {
-    if (this.queryStr.minPrice || this.queryStr.maxPrice) {
-      const priceFilter = {};
-      if (this.queryStr.minPrice) priceFilter.$gte = parseInt(this.queryStr.minPrice);
-      if (this.queryStr.maxPrice) priceFilter.$lte = parseInt(this.queryStr.maxPrice);
-      this.query = this.query.find({ price: priceFilter });
+    const hasMin = this.queryStr.minPrice !== undefined && this.queryStr.minPrice !== '' && this.queryStr.minPrice !== null;
+    const hasMax = this.queryStr.maxPrice !== undefined && this.queryStr.maxPrice !== '' && this.queryStr.maxPrice !== null;
+    if (hasMin || hasMax) {
+      const min = hasMin ? Number(this.queryStr.minPrice) : null;
+      const max = hasMax ? Number(this.queryStr.maxPrice) : null;
+      // Filter on effective sale price: price * (1 - discount/100)
+      const effective = {
+        $multiply: [
+          '$price',
+          { $subtract: [1, { $divide: [{ $ifNull: ['$discount', 0] }, 100] }] },
+        ],
+      };
+      const expr = { $and: [] };
+      if (min !== null && !Number.isNaN(min)) expr.$and.push({ $gte: [effective, min] });
+      if (max !== null && !Number.isNaN(max)) expr.$and.push({ $lte: [effective, max] });
+      if (expr.$and.length) {
+        this.query = this.query.find({ $expr: expr });
+      }
     }
     return this;
   }

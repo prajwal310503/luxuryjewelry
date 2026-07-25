@@ -170,7 +170,11 @@ export default function AdminAddProduct({ mode = 'admin' }) {
             isBestSeller: p.isBestSeller || false,
             giftTags: p.giftTags || [],
             wearingTypes: p.wearingTypes || [],
-            attributes: p.attributes?.map((a) => ({ attribute: a.attribute?._id || a.attribute, customValue: a.customValue || '' })) || [],
+            attributes: p.attributes?.map((a) => ({
+              attribute: a.attribute?._id || a.attribute,
+              values: (a.values || []).map((v) => String(v._id || v)),
+              customValue: a.customValue || '',
+            })) || [],
             seoTitle: p.seo?.metaTitle || '',
             seoDescription: p.seo?.metaDescription || '',
             status: isVendor ? (p.status === 'draft' ? 'draft' : 'pending') : (p.status || 'approved'),
@@ -201,13 +205,18 @@ export default function AdminAddProduct({ mode = 'admin' }) {
 
   const set = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
 
-  const handleAttributeValue = (attrId, value) => {
+  const handleAttributeValue = (attrId, valueIds, customValue = '') => {
     setForm((prev) => {
-      const existing = prev.attributes.find((a) => a.attribute === attrId);
+      const ids = Array.isArray(valueIds) ? valueIds.filter(Boolean).map(String) : (valueIds ? [String(valueIds)] : []);
+      const existing = prev.attributes.find((a) => String(a.attribute) === String(attrId));
+      const nextEntry = { attribute: attrId, values: ids, customValue: customValue || '' };
       if (existing) {
-        return { ...prev, attributes: prev.attributes.map((a) => a.attribute === attrId ? { ...a, customValue: value } : a) };
+        return {
+          ...prev,
+          attributes: prev.attributes.map((a) => (String(a.attribute) === String(attrId) ? nextEntry : a)),
+        };
       }
-      return { ...prev, attributes: [...prev.attributes, { attribute: attrId, customValue: value }] };
+      return { ...prev, attributes: [...prev.attributes, nextEntry] };
     });
   };
 
@@ -227,7 +236,13 @@ export default function AdminAddProduct({ mode = 'admin' }) {
     isBestSeller: isVendor ? false : form.isBestSeller,
     giftTags: form.giftTags,
     wearingTypes: form.wearingTypes,
-    attributes: form.attributes.filter((a) => a.customValue),
+    attributes: form.attributes
+      .filter((a) => (a.values && a.values.length) || a.customValue)
+      .map((a) => ({
+        attribute: a.attribute,
+        values: a.values || [],
+        customValue: a.customValue || undefined,
+      })),
     seo: { metaTitle: form.seoTitle || form.title, metaDescription: form.seoDescription },
     status: isVendor ? (form.status === 'draft' ? 'draft' : 'pending') : form.status,
     purity: form.purity || '22kt',
@@ -329,6 +344,11 @@ export default function AdminAddProduct({ mode = 'admin' }) {
   };
 
   const handleSlotUpload = async (e, slotIndex) => {
+    if (!isVendor) {
+      toast.error('Admin cannot change product images');
+      e.target.value = '';
+      return;
+    }
     const file = e.target.files[0];
     if (!file) return;
 
@@ -495,7 +515,7 @@ export default function AdminAddProduct({ mode = 'admin' }) {
           {/* Category */}
           <div className="card-luxury p-6">
             <SectionTitle>Category</SectionTitle>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="label-luxury">Category *</label>
                 <Select value={form.category} onChange={(e) => set('category', e.target.value)} placeholder="Select Category">
@@ -520,7 +540,7 @@ export default function AdminAddProduct({ mode = 'admin' }) {
           {/* Pricing */}
           <div className="card-luxury p-6">
             <SectionTitle>Pricing &amp; Stock</SectionTitle>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div><label className="label-luxury">Selling Price (₹) *</label><input type="number" value={form.price} onChange={(e) => set('price', e.target.value)} min="0" className="input-luxury" /></div>
               <div><label className="label-luxury">Cost Price (₹)</label><input type="number" value={form.costPrice} onChange={(e) => set('costPrice', e.target.value)} min="0" className="input-luxury" /></div>
               <div><label className="label-luxury">Discount (%)</label><input type="number" value={form.discount} onChange={(e) => set('discount', e.target.value)} min="0" max="100" className="input-luxury" /></div>
@@ -582,20 +602,93 @@ export default function AdminAddProduct({ mode = 'admin' }) {
             </div>
           </div>
 
-          {/* Dynamic Attributes */}
+          {/* Dynamic Attributes — save AttributeValue ObjectIds for storefront filters */}
           {(() => {
-            const HIDDEN_ATTRS = ['bracelet size', 'ring size', 'gemstone', 'diamond type', 'diamond clarity', 'other metal', 'chain length', 'meena color', 'metal color'];
+            // Size/length handled by dedicated jewelry fields below
+            const HIDDEN_ATTRS = ['bracelet size', 'ring size', 'chain length'];
             const visibleAttrs = attributes.filter((a) => !HIDDEN_ATTRS.includes(a.name.toLowerCase()));
             return visibleAttrs.length > 0 ? (
               <div className="card-luxury p-6">
                 <SectionTitle>Product Attributes</SectionTitle>
-                <div className="grid grid-cols-2 gap-4">
-                  {visibleAttrs.map((attr) => (
-                    <div key={attr._id}>
-                      <label className="label-luxury">{attr.name}</label>
-                      <input type="text" value={form.attributes.find((a) => a.attribute === attr._id)?.customValue || ''} onChange={(e) => handleAttributeValue(attr._id, e.target.value)} placeholder={`Enter ${attr.name}`} className="input-luxury" />
-                    </div>
-                  ))}
+                <p className="text-xs text-gray-400 mb-4">Select values so category filters (metal, purity, style…) work on the storefront.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {visibleAttrs.map((attr) => {
+                    const entry = form.attributes.find((a) => String(a.attribute) === String(attr._id));
+                    const selected = (entry?.values || []).map(String);
+                    const hasOptions = Array.isArray(attr.values) && attr.values.length > 0;
+                    const isMulti = attr.type === 'multiselect' || attr.displayType === 'checkbox';
+
+                    if (hasOptions && isMulti) {
+                      return (
+                        <div key={attr._id} className="sm:col-span-2">
+                          <label className="label-luxury">{attr.name}</label>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {attr.values.map((val) => {
+                              const id = String(val._id);
+                              const on = selected.includes(id);
+                              return (
+                                <button
+                                  key={id}
+                                  type="button"
+                                  onClick={() => {
+                                    const next = on ? selected.filter((v) => v !== id) : [...selected, id];
+                                    handleAttributeValue(attr._id, next);
+                                    if (attr.slug === 'metal-purity' && next[0]) {
+                                      const label = attr.values.find((v) => String(v._id) === next[0])?.value;
+                                      if (label) set('purity', String(label).toLowerCase().replace(/\s+/g, ''));
+                                    }
+                                  }}
+                                  className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${
+                                    on ? 'bg-primary text-white border-primary' : 'border-gray-200 text-gray-600 hover:border-primary'
+                                  }`}
+                                >
+                                  {val.value}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    if (hasOptions) {
+                      return (
+                        <div key={attr._id}>
+                          <label className="label-luxury">{attr.name}</label>
+                          <Select
+                            value={selected[0] || ''}
+                            onChange={(e) => {
+                              const id = e.target.value;
+                              handleAttributeValue(attr._id, id ? [id] : []);
+                              if (attr.slug === 'metal-purity' && id) {
+                                const label = attr.values.find((v) => String(v._id) === id)?.value;
+                                if (label) set('purity', String(label).toLowerCase().replace(/\s+/g, ''));
+                              }
+                            }}
+                            placeholder={`Select ${attr.name}`}
+                          >
+                            <option value="">Select {attr.name}</option>
+                            {attr.values.map((val) => (
+                              <option key={val._id} value={val._id}>{val.value}</option>
+                            ))}
+                          </Select>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div key={attr._id}>
+                        <label className="label-luxury">{attr.name}</label>
+                        <input
+                          type="text"
+                          value={entry?.customValue || ''}
+                          onChange={(e) => handleAttributeValue(attr._id, [], e.target.value)}
+                          placeholder={`Enter ${attr.name}`}
+                          className="input-luxury"
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ) : null;
@@ -607,7 +700,7 @@ export default function AdminAddProduct({ mode = 'admin' }) {
             <div className="space-y-5">
 
               {/* Purity + Metal Weight + Delivery Days */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="label-luxury">Purity</label>
                   <input type="text" value={form.purity} disabled className="input-luxury bg-gray-50 text-gray-500 cursor-not-allowed" />
@@ -707,13 +800,22 @@ export default function AdminAddProduct({ mode = 'admin' }) {
           {/* Images — 4 slots */}
           <div className="card-luxury p-6">
             <SectionTitle>Product Images</SectionTitle>
-            <p className="text-xs text-gray-400 mb-2 leading-snug">
-              Up to 4 images. Image 1 is the main photo; Image 2 shows on card hover.
-            </p>
-            <div className="flex items-center gap-2 mb-4 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
-              <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              <span className="text-[11px] text-gray-500"><strong className="text-gray-700">800 × 800 px</strong> &nbsp;·&nbsp; Square 1:1 &nbsp;·&nbsp; JPG, PNG, WEBP &nbsp;·&nbsp; Max 5 MB</span>
-            </div>
+            {!isVendor && (
+              <div className="mb-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
+                View only — vendors manage product images. Admin cannot upload, replace, or remove them.
+              </div>
+            )}
+            {isVendor && (
+              <>
+                <p className="text-xs text-gray-400 mb-2 leading-snug">
+                  Up to 4 images. Image 1 is the main photo; Image 2 shows on card hover.
+                </p>
+                <div className="flex items-center gap-2 mb-4 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
+                  <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <span className="text-[11px] text-gray-500"><strong className="text-gray-700">800 × 800 px</strong> &nbsp;·&nbsp; Square 1:1 &nbsp;·&nbsp; JPG, PNG, WEBP &nbsp;·&nbsp; Max 5 MB</span>
+                </div>
+              </>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               {[0, 1, 2, 3].map((slotIdx) => {
@@ -735,26 +837,28 @@ export default function AdminAddProduct({ mode = 'admin' }) {
                       {imgUrl ? (
                         <>
                           <img src={imgUrl} alt={label} className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                            <label htmlFor={inputId} className="cursor-pointer flex items-center gap-1.5 bg-white/90 text-gray-800 text-[11px] font-semibold px-3 py-1.5 rounded-lg hover:bg-white transition-colors">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                              Replace
-                            </label>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveImage(slotIdx)}
-                              disabled={updating}
-                              className="flex items-center gap-1.5 bg-red-500/90 text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg hover:bg-red-500 transition-colors disabled:opacity-50"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                              Remove
-                            </button>
-                          </div>
+                          {isVendor && (
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                              <label htmlFor={inputId} className="cursor-pointer flex items-center gap-1.5 bg-white/90 text-gray-800 text-[11px] font-semibold px-3 py-1.5 rounded-lg hover:bg-white transition-colors">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                Replace
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveImage(slotIdx)}
+                                disabled={updating}
+                                className="flex items-center gap-1.5 bg-red-500/90 text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg hover:bg-red-500 transition-colors disabled:opacity-50"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                Remove
+                              </button>
+                            </div>
+                          )}
                           {pending && !saved && (
                             <span className="absolute top-2 left-2 text-[9px] font-bold bg-amber-400 text-white px-1.5 py-0.5 rounded-full">PENDING</span>
                           )}
                         </>
-                      ) : (
+                      ) : isVendor ? (
                         <label htmlFor={inputId} className="w-full h-full flex flex-col items-center justify-center gap-1.5 cursor-pointer text-gray-300 hover:text-primary hover:border-primary transition-colors px-1 text-center">
                           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.4}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -762,18 +866,22 @@ export default function AdminAddProduct({ mode = 'admin' }) {
                           <span className="text-[11px] font-semibold text-gray-400">Upload</span>
                           <span className="text-[9px] text-gray-300 font-mono">800 × 800 px</span>
                         </label>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[11px] text-gray-400">No image</div>
                       )}
-                      <input
-                        id={inputId}
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleSlotUpload(e, slotIdx)}
-                        className="hidden"
-                        disabled={uploading || updating}
-                      />
+                      {isVendor && (
+                        <input
+                          id={inputId}
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleSlotUpload(e, slotIdx)}
+                          className="hidden"
+                          disabled={uploading || updating}
+                        />
+                      )}
                     </div>
 
-                    {uploading && (
+                    {isVendor && uploading && (
                       <p className="text-[10px] text-amber-600 text-center">Uploading…</p>
                     )}
                   </div>
@@ -781,7 +889,7 @@ export default function AdminAddProduct({ mode = 'admin' }) {
               })}
             </div>
 
-            {!productId && pendingImageFiles.some(Boolean) && (
+            {isVendor && !productId && pendingImageFiles.some(Boolean) && (
               <p className="mt-3 text-[10px] text-amber-600 text-center">
                 Images will be uploaded when you save the product.
               </p>
@@ -791,17 +899,25 @@ export default function AdminAddProduct({ mode = 'admin' }) {
           {/* Videos — unlimited */}
           <div className="card-luxury p-6">
             <SectionTitle>Product Videos</SectionTitle>
-            <p className="text-xs text-gray-400 mb-2 leading-snug">
-              Add as many videos as needed. Shown in the product gallery after images.
-            </p>
-            <div className="flex items-center gap-2 mb-4 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
-              <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-              <span className="text-[11px] text-gray-500"><strong className="text-gray-700">1280 × 720 px</strong> &nbsp;·&nbsp; 16:9 &nbsp;·&nbsp; MP4, MOV, WEBM &nbsp;·&nbsp; Max 100 MB per file</span>
-            </div>
+            {!isVendor && (
+              <div className="mb-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
+                View only — vendors manage product videos.
+              </div>
+            )}
+            {isVendor && (
+              <>
+                <p className="text-xs text-gray-400 mb-2 leading-snug">
+                  Add as many videos as needed. Shown in the product gallery after images.
+                </p>
+                <div className="flex items-center gap-2 mb-4 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
+                  <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                  <span className="text-[11px] text-gray-500"><strong className="text-gray-700">1280 × 720 px</strong> &nbsp;·&nbsp; 16:9 &nbsp;·&nbsp; MP4, MOV, WEBM &nbsp;·&nbsp; Max 100 MB per file</span>
+                </div>
+              </>
+            )}
 
             <div className="space-y-2">
-              {/* Existing / pending videos */}
-              {[...currentVideos, ...pendingVideoFiles].map((item, idx) => {
+              {[...currentVideos, ...(isVendor ? pendingVideoFiles : [])].map((item, idx) => {
                 const isPending = idx >= currentVideos.length;
                 const url = isPending ? item.previewUrl : item.url;
                 const realIdx = isPending ? null : idx;
@@ -816,40 +932,47 @@ export default function AdminAddProduct({ mode = 'admin' }) {
                       </p>
                       {isPending && <span className="text-[10px] text-amber-600 font-semibold">PENDING UPLOAD</span>}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveVideo(isPending ? idx - currentVideos.length : realIdx)}
-                      disabled={updating}
-                      className="flex-shrink-0 w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-colors disabled:opacity-40"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                    {isVendor && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveVideo(isPending ? idx - currentVideos.length : realIdx)}
+                        disabled={updating}
+                        className="flex-shrink-0 w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-colors disabled:opacity-40"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 );
               })}
 
-              {/* Add video button */}
-              <label className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl border-2 border-dashed border-gray-200 cursor-pointer text-sm font-semibold transition-colors ${uploadingVideo ? 'opacity-50 pointer-events-none' : 'hover:border-primary hover:text-primary text-gray-400'}`}>
-                {uploadingVideo ? (
-                  <>
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                    Uploading…
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                    <span className="flex flex-col items-center leading-tight">
-                      <span>Add Video</span>
-                      <span className="text-[10px] font-normal font-mono text-gray-400">1280 × 720 px</span>
-                    </span>
-                  </>
-                )}
-                <input type="file" accept="video/*" multiple className="hidden" onChange={handleVideoSelect} disabled={uploadingVideo} />
-              </label>
+              {isVendor && (
+                <label className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl border-2 border-dashed border-gray-200 cursor-pointer text-sm font-semibold transition-colors ${uploadingVideo ? 'opacity-50 pointer-events-none' : 'hover:border-primary hover:text-primary text-gray-400'}`}>
+                  {uploadingVideo ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                      Uploading…
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                      <span className="flex flex-col items-center leading-tight">
+                        <span>Add Video</span>
+                        <span className="text-[10px] font-normal font-mono text-gray-400">1280 × 720 px</span>
+                      </span>
+                    </>
+                  )}
+                  <input type="file" accept="video/*" multiple className="hidden" onChange={handleVideoSelect} disabled={uploadingVideo} />
+                </label>
+              )}
 
-              {!productId && pendingVideoFiles.length > 0 && (
+              {!currentVideos.length && !isVendor && (
+                <p className="text-xs text-gray-400 text-center py-2">No videos</p>
+              )}
+
+              {isVendor && !productId && pendingVideoFiles.length > 0 && (
                 <p className="text-[10px] text-amber-600 text-center">
                   Videos will be uploaded when you save the product.
                 </p>

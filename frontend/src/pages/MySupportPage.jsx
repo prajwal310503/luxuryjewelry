@@ -31,6 +31,8 @@ export default function MySupportPage() {
   const [showForm, setShowForm] = useState(false);
   const [activeTicket, setActiveTicket] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [replying, setReplying] = useState(false);
   const fileRef = useRef();
 
   const [form, setForm] = useState({ subject: '', body: '', reason: 'general', image: null });
@@ -38,7 +40,12 @@ export default function MySupportPage() {
   const load = async () => {
     try {
       const { data } = await supportAPI.getMyTickets();
-      setTickets(data.data || []);
+      const list = data.data || [];
+      setTickets(list);
+      if (activeTicket) {
+        const updated = list.find((t) => t._id === activeTicket._id);
+        if (updated) setActiveTicket(updated);
+      }
     } catch { toast.error('Failed to load tickets'); }
     finally { setLoading(false); }
   };
@@ -62,6 +69,29 @@ export default function MySupportPage() {
       load();
     } catch { toast.error('Failed to submit request'); }
     finally { setSubmitting(false); }
+  };
+
+  const handleReply = async (ticketId) => {
+    if (!replyText.trim()) return toast.error('Please type a reply');
+    setReplying(true);
+    try {
+      const { data } = await supportAPI.reply(ticketId, { message: replyText.trim() });
+      const updated = data.data;
+      setTickets((prev) => prev.map((t) => (t._id === ticketId ? updated : t)));
+      setActiveTicket(updated);
+      setReplyText('');
+      toast.success('Reply sent');
+    } catch (err) {
+      toast.error(err.message || 'Failed to send reply');
+    } finally {
+      setReplying(false);
+    }
+  };
+
+  const openTicket = (t) => {
+    const next = activeTicket?._id === t._id ? null : t;
+    setActiveTicket(next);
+    setReplyText('');
   };
 
   return (
@@ -176,7 +206,7 @@ export default function MySupportPage() {
             {tickets.map((t) => (
               <motion.div key={t._id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 className="card-luxury p-5 cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => setActiveTicket(activeTicket?._id === t._id ? null : t)}
+                onClick={() => openTicket(t)}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -216,12 +246,36 @@ export default function MySupportPage() {
                         {/* Replies */}
                         {t.replies?.map((r, i) => (
                           <div key={i} className={`rounded-xl p-4 ${r.by === 'admin' ? 'bg-primary/5 border border-primary/10' : 'bg-luxury-cream'}`}>
-                            <p className="text-xs font-semibold mb-1 ${r.by === 'admin' ? 'text-primary' : 'text-gray-500'}">
+                            <p className={`text-xs font-semibold mb-1 ${r.by === 'admin' ? 'text-primary' : 'text-gray-500'}`}>
                               {r.by === 'admin' ? 'LUXURY JEWELRY Support' : 'You'} &bull; {new Date(r.at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                             </p>
                             <p className="text-sm text-gray-700 whitespace-pre-wrap">{r.message}</p>
                           </div>
                         ))}
+
+                        {/* Customer reply form */}
+                        {t.status !== 'closed' && (
+                          <div
+                            className="pt-2 space-y-3"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <textarea
+                              value={activeTicket?._id === t._id ? replyText : ''}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              rows={3}
+                              placeholder="Write a reply…"
+                              className="input-luxury resize-none text-sm"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleReply(t._id)}
+                              disabled={replying || !replyText.trim()}
+                              className="btn-primary text-sm px-5 py-2.5 disabled:opacity-60"
+                            >
+                              {replying ? 'Sending…' : 'Send Reply'}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   )}

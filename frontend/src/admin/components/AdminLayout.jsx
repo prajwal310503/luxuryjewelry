@@ -29,11 +29,6 @@ const icons = {
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
     </svg>
   ),
-  quotes: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.7}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-    </svg>
-  ),
   vendors: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.7}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z" />
@@ -93,21 +88,22 @@ const icons = {
 };
 
 const ALL_NAV = [
-  { to: '/admin/dashboard',   label: 'Dashboard',     roles: ['admin'], icon: 'dashboard' },
-  { to: '/admin/products',    label: 'Products',      roles: ['admin'], icon: 'products' },
-  { to: '/admin/site-images', label: 'Site Images',   roles: ['admin'], icon: 'images' },
-  { to: '/admin/categories',  label: 'Categories',    roles: ['admin'], icon: 'categories' },
+  { to: '/admin/dashboard',   label: 'Dashboard',     roles: ['admin', 'child_admin'], permission: 'dashboard', icon: 'dashboard' },
+  { to: '/admin/products',    label: 'Products',      roles: ['admin', 'child_admin'], permission: 'products', icon: 'products' },
+  { to: '/admin/categories',  label: 'Categories',    roles: ['admin', 'child_admin'], permission: 'categories', icon: 'categories' },
   { to: '/admin/orders',      label: 'Orders',        roles: ['admin', 'child_admin'], permission: 'orders', icon: 'orders' },
-  { to: '/admin/vendors',     label: 'Vendors',       roles: ['admin'], icon: 'vendors' },
-  { to: '/admin/master-data', label: 'Metal Rates',   roles: ['admin'], icon: 'rates' },
-  { to: '/admin/coupons',     label: 'Coupons',       roles: ['admin'], icon: 'coupons' },
-  { to: '/admin/reports',     label: 'Reports',       roles: ['admin'], icon: 'chart' },
-  { to: '/admin/customers',   label: 'Customers',     roles: ['admin'], icon: 'users' },
+  { to: '/admin/vendors',     label: 'Vendors',       roles: ['admin', 'child_admin'], permission: 'vendors', icon: 'vendors' },
+  { to: '/admin/master-data', label: 'Metal Rates',   roles: ['admin', 'child_admin'], permission: 'master_data', icon: 'rates' },
+  { to: '/admin/coupons',     label: 'Coupons',       roles: ['admin', 'child_admin'], permission: 'coupons', icon: 'coupons' },
+  { to: '/admin/referral',    label: 'Refer & Earn',  roles: ['admin', 'child_admin'], permission: 'referral', icon: 'users' },
+  { to: '/admin/reports',     label: 'Reports',       roles: ['admin', 'child_admin'], permission: 'reports', icon: 'chart' },
+  { to: '/admin/customers',   label: 'Customers',     roles: ['admin', 'child_admin'], permission: 'customers', icon: 'users' },
   { to: '/admin/users',       label: 'Users & Roles', roles: ['admin'], icon: 'roles' },
-  { to: '/admin/cms',         label: 'Home Page',     roles: ['admin'], icon: 'cms' },
-  { to: '/admin/blog',        label: 'Blog Posts',    roles: ['admin'], icon: 'blog' },
-  { to: '/admin/support',     label: 'Support',       roles: ['admin', 'child_admin'], permission: 'orders', icon: 'support' },
-  { to: '/admin/settings',    label: 'Settings',      roles: ['admin'], icon: 'settings' },
+  { to: '/admin/cms',         label: 'Home Page',     roles: ['admin', 'child_admin'], permission: 'cms', icon: 'cms' },
+  { to: '/admin/blog',        label: 'Blog Posts',    roles: ['admin', 'child_admin'], permission: 'blog', icon: 'blog' },
+  { to: '/admin/notifications', label: 'Notifications', roles: ['admin', 'child_admin'], permission: 'notifications', icon: 'support' },
+  { to: '/admin/support',     label: 'Support',       roles: ['admin', 'child_admin'], permission: 'support', icon: 'support' },
+  { to: '/admin/settings',    label: 'Settings',      roles: ['admin', 'child_admin'], permission: 'settings', icon: 'settings' },
 ];
 
 function canSee(item, user) {
@@ -124,17 +120,19 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  useEffect(() => { setSidebarOpen(false); }, [pathname]);
+  const closeSidebar = () => setSidebarOpen(false);
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  useEffect(() => { closeSidebar(); }, [pathname]);
+
+  const handleLogout = () => { closeSidebar(); logout(); navigate('/login'); };
 
   const navItems = ALL_NAV.filter((item) => canSee(item, user));
   const currentLabel = navItems.find((n) => pathname.startsWith(n.to))?.label || 'Admin Panel';
 
-  const SidebarContent = () => (
+  const renderSidebar = () => (
     <div className="flex flex-col h-full">
       <div className="px-5 py-6 border-b border-gray-100">
-        <Link to="/admin/dashboard" className="flex items-center gap-2.5 group">
+        <Link to="/admin/dashboard" onClick={closeSidebar} className="flex items-center gap-2.5 group">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ background: 'linear-gradient(135deg, #1a0e08 0%, #3a2520 100%)' }}>
             <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
@@ -171,7 +169,7 @@ export default function AdminLayout() {
               <li key={item.to}>
                 <Link
                   to={item.to}
-                  onClick={() => setSidebarOpen(false)}
+                  onClick={closeSidebar}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
                   style={{
                     background: active ? 'rgba(201,168,76,0.12)' : 'transparent',
@@ -194,6 +192,7 @@ export default function AdminLayout() {
         <ul>
           <li>
             <button
+              type="button"
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-red-500 hover:bg-red-50 transition-all duration-200"
             >
@@ -205,7 +204,7 @@ export default function AdminLayout() {
       </nav>
 
       <div className="px-5 py-4 border-t border-gray-100">
-        <Link to="/" className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-primary transition-colors">
+        <Link to="/" onClick={closeSidebar} className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-primary transition-colors">
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
@@ -221,25 +220,33 @@ export default function AdminLayout() {
         className="hidden lg:flex flex-col flex-shrink-0 w-60 border-r border-gray-100 bg-white overflow-hidden"
         style={{ boxShadow: '4px 0 20px rgba(0,0,0,0.04)' }}
       >
-        <SidebarContent />
+        {renderSidebar()}
       </aside>
 
       <AnimatePresence>
         {sidebarOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/30 z-40 lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            />
-            <motion.aside
-              initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
-              transition={{ type: 'tween', duration: 0.28 }}
-              className="fixed inset-y-0 left-0 z-50 w-64 bg-white lg:hidden shadow-2xl"
-            >
-              <SidebarContent />
-            </motion.aside>
-          </>
+          <motion.div
+            key="admin-sidebar-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/30 z-40 lg:hidden"
+            onClick={closeSidebar}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.aside
+            key="admin-sidebar-drawer"
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'tween', duration: 0.28 }}
+            className="fixed inset-y-0 left-0 z-50 w-64 bg-white lg:hidden shadow-2xl"
+          >
+            {renderSidebar()}
+          </motion.aside>
         )}
       </AnimatePresence>
 
@@ -249,6 +256,7 @@ export default function AdminLayout() {
           style={{ boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}
         >
           <button
+            type="button"
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-50"
           >

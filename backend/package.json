@@ -25,6 +25,7 @@
     "seed:category-images": "node src/utils/seedCategoryImages.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1095.0",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^1.41.3",
     "cookie-parser": "^1.4.7",
@@ -34,17 +35,20 @@
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^7.2.0",
     "express-validator": "^7.0.1",
+    "google-auth-library": "^10.9.1",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.3.1",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
+    "multer-s3": "^3.0.1",
     "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^6.9.13",
     "pdfkit": "^0.19.1",
     "razorpay": "^2.9.2",
     "slug": "^9.1.0",
     "stripe": "^15.7.0",
+    "web-push": "^3.6.7",
     "xlsx": "^0.18.5",
     "xss-clean": "^0.1.4"
   },

@@ -25,22 +25,8 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ── Sanitise localhost URLs that were saved before Cloudinary was configured ──
-const LOCAL_URL_RE = /http:\/\/localhost:\d+\/uploads\/[^"'\s]+/g;
-const FALLBACK_MAP = [
-  ['promo-shipping',     'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&h=600&fit=crop&q=80&auto=format'],
-  ['promo-ring',         'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=800&h=600&fit=crop&q=80&auto=format'],
-  ['promo-consultation', 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&h=600&fit=crop&q=80&auto=format'],
-  ['promo-bespoke',      'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=600&fit=crop&q=80&auto=format'],
-  ['store-main',         'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&h=800&fit=crop&q=80&auto=format'],
-  ['store-panel2',       'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=800&h=600&fit=crop&q=80&auto=format'],
-  ['store-panel3',       'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=800&h=600&fit=crop&q=80&auto=format'],
-  ['lifestyle-everyday', 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=1200&h=800&fit=crop&q=80&auto=format'],
-  ['lifestyle-bridal',   'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=1200&h=800&fit=crop&q=80&auto=format'],
-  ['banner',             'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=1920&h=800&fit=crop&q=80&auto=format'],
-  ['hero',               'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=1920&h=1080&fit=crop&q=80&auto=format'],
-];
-const GENERIC_FALLBACK = 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=600&fit=crop&q=80&auto=format';
+// ── Rewrite localhost upload URLs → relative /uploads (Vite proxies these) ──
+const LOCAL_URL_RE = /http:\/\/localhost:\d+(\/uploads\/[^"'\s]+)/g;
 
 // Convert Google Drive sharing/viewer URLs to thumbnail URLs (CORS-safe)
 const GDRIVE_RE = /https?:\/\/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?[^"'\s]*id=)([a-zA-Z0-9_-]+)[^"'\s]*/g;
@@ -50,19 +36,11 @@ function sanitiseResponse(data) {
     let raw = JSON.stringify(data);
     let changed = false;
 
-    // Fix localhost URLs → Unsplash fallbacks
-    if (raw.includes('localhost')) {
-      raw = raw.replace(LOCAL_URL_RE, (match) => {
-        const filename = match.split('/uploads/')[1]?.replace(/\.[^.]+$/, '') || '';
-        for (const [hint, url] of FALLBACK_MAP) {
-          if (filename.includes(hint)) return url;
-        }
-        return GENERIC_FALLBACK;
-      });
+    if (raw.includes('localhost') && raw.includes('/uploads/')) {
+      raw = raw.replace(LOCAL_URL_RE, (_, path) => path);
       changed = true;
     }
 
-    // Fix Google Drive sharing/viewer links → thumbnail URLs (served by lh3, CORS-safe)
     if (raw.includes('drive.google.com')) {
       raw = raw.replace(GDRIVE_RE, (_, id) => `https://drive.google.com/thumbnail?id=${id}&sz=w1200`);
       changed = true;
@@ -116,6 +94,16 @@ export const authAPI = {
   updatePassword: (data) => api.put('/auth/update-password', data),
   updateProfile: (formData) => api.put('/auth/profile', formData),
   updateAddresses: (addresses) => api.put('/auth/addresses', { addresses }),
+  getWishlist: () => api.get('/auth/wishlist'),
+  setWishlist: (productIds) => api.put('/auth/wishlist', { productIds }),
+  toggleWishlist: (productId) => api.post(`/auth/wishlist/${productId}`),
+  getReferral: () => api.get('/auth/referral'),
+  requestReferralPayout: (data) => api.post('/auth/referral/payout', data),
+  googleAuth: (data) => api.post('/auth/google', data),
+  getGoogleClientId: () => api.get('/auth/google/client-id'),
+  getVapidKey: () => api.get('/auth/push/vapid-key'),
+  subscribePush: (subscription) => api.post('/auth/push/subscribe', { subscription }),
+  unsubscribePush: (endpoint) => api.post('/auth/push/unsubscribe', { endpoint }),
 };
 
 // ==================== PRODUCTS ====================
@@ -232,6 +220,13 @@ export const adminAPI = {
   uploadProductVideos: (id, formData) => api.post(`/admin/products/${id}/videos`, formData),
   removeProductVideo:  (id, idx) => api.delete(`/admin/products/${id}/videos/${idx}`),
   uploadCertImage: (formData) => api.post('/admin/upload/cert-image', formData),
+  getReferralSettings: () => api.get('/admin/referral/settings'),
+  updateReferralSettings: (data) => api.put('/admin/referral/settings', data),
+  getReferralRewards: (params) => api.get('/admin/referral/rewards', { params }),
+  getReferralPayouts: (params) => api.get('/admin/referral/payouts', { params }),
+  updateReferralPayout: (id, data) => api.put(`/admin/referral/payouts/${id}`, data),
+  getNotifications: (params) => api.get('/admin/notifications', { params }),
+  sendNotification: (data) => api.post('/admin/notifications/send', data),
 };
 
 // ==================== REVIEWS ====================
@@ -240,16 +235,6 @@ export const reviewAPI = {
   create: (formData) => api.post('/reviews', formData),
   update: (id, data) => api.put(`/reviews/${id}`, data),
   delete: (id) => api.delete(`/reviews/${id}`),
-};
-
-// ==================== QUOTES ====================
-export const quoteAPI = {
-  create:          (data)         => api.post('/quotes', data),
-  getById:         (id)           => api.get(`/quotes/${id}`),
-  getMyQuotes:     (params)       => api.get('/quotes/my', { params }),
-  placeOrder:      (id, data)     => api.post(`/quotes/${id}/place-order`, data),
-  adminGetAll:     (params)       => api.get('/quotes/admin/all', { params }),
-  adminUpdate:     (id, data)     => api.put(`/quotes/admin/${id}`, data),
 };
 
 // ==================== STORES ====================
@@ -366,6 +351,7 @@ export const supportAPI = {
   create:        (formData) => api.post('/support', formData),
   getMyTickets:  ()         => api.get('/support/my'),
   getById:       (id)       => api.get(`/support/${id}`),
+  reply:         (id, data) => api.put(`/support/${id}/reply`, data),
   adminGetAll:   (params)   => api.get('/support/admin/all', { params }),
   adminGetById:  (id)       => api.get(`/support/admin/${id}`),
   adminReply:    (id, data) => api.put(`/support/admin/${id}/reply`, data),

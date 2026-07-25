@@ -26,6 +26,8 @@ const sendTokenResponse = (user, statusCode, res, message = 'Success') => {
     vendorStatus: user.vendorStatus,
     kyc: user.kyc,
     store: user.store,
+    referralCode: user.referralCode,
+    referralBalance: user.referralBalance || 0,
     vendorDetails: user.vendorDetails
       ? { shopName: user.vendorDetails.shopName, city: user.vendorDetails.city }
       : undefined,

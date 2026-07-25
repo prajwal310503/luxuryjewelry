@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
+import toast from 'react-hot-toast';
 import useCartStore from '../store/cartStore';
 
 const formatPrice = (p) => `₹${Math.round(p).toLocaleString('en-IN')}`;
@@ -70,22 +71,28 @@ export default function CartPage() {
                 <div className="space-y-4">
                   {group.items.map((item) => {
                     const price = item.product.discountedPrice ?? item.product.price;
+                    const stock = Number(item.product.stock) || 0;
+                    const oos = stock <= 0;
                     return (
-                      <motion.div key={item.key} layout className="card-luxury p-4 flex gap-4">
-                        <Link to={`/products/${item.product.slug}`} className="w-24 h-24 rounded-xl bg-luxury-cream overflow-hidden flex-shrink-0">
+                      <motion.div key={item.key} layout className="card-luxury p-4 flex flex-col sm:flex-row gap-4">
+                        <Link to={`/products/${item.product.slug}`} className="w-full sm:w-24 h-40 sm:h-24 rounded-xl bg-luxury-cream overflow-hidden flex-shrink-0 relative">
                           {item.product.images?.[0]?.url && <img src={item.product.images[0].url} alt={item.product.title} className="w-full h-full object-cover" />}
+                          {oos && (
+                            <span className="absolute inset-x-0 bottom-0 bg-gray-800/80 text-white text-[10px] font-bold text-center py-1">Out of Stock</span>
+                          )}
                         </Link>
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <Link to={`/products/${item.product.slug}`} className="font-medium text-gray-800 hover:text-primary text-sm line-clamp-2">{item.product.title}</Link>
                           <p className="price-tag text-base mt-1">{formatPrice(price)}</p>
-                          <div className="flex items-center gap-4 mt-3">
+                          {oos && <p className="text-xs text-red-500 font-medium mt-1">This item is out of stock — remove it to checkout</p>}
+                          <div className="flex items-center gap-3 mt-3 flex-wrap">
                             <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                              <button onClick={() => updateQuantity(item.key, item.quantity - 1)} className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100">−</button>
+                              <button type="button" onClick={() => updateQuantity(item.key, item.quantity - 1)} className="min-w-10 min-h-10 flex items-center justify-center text-gray-600 hover:bg-gray-100">−</button>
                               <span className="w-10 text-center text-sm font-medium">{item.quantity}</span>
-                              <button onClick={() => updateQuantity(item.key, item.quantity + 1)} className="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100">+</button>
+                              <button type="button" disabled={oos || item.quantity >= stock} onClick={() => updateQuantity(item.key, item.quantity + 1)} className="min-w-10 min-h-10 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed">+</button>
                             </div>
                             <span className="text-sm font-semibold text-gray-800">{formatPrice(price * item.quantity)}</span>
-                            <button onClick={() => removeItem(item.key)} className="text-red-400 hover:text-red-600 text-sm ml-auto">Remove</button>
+                            <button type="button" onClick={() => removeItem(item.key)} className="text-red-400 hover:text-red-600 text-sm sm:ml-auto">Remove</button>
                           </div>
                         </div>
                       </motion.div>
@@ -103,7 +110,18 @@ export default function CartPage() {
                 <div className="flex justify-between text-sm text-gray-600"><span>Shipping</span><span className={getShipping() === 0 ? 'text-green-600 font-medium' : ''}>{getShipping() === 0 ? 'FREE' : formatPrice(getShipping())}</span></div>
                 <div className="border-t pt-3 flex justify-between font-semibold"><span>Total</span><span className="price-tag">{formatPrice(getTotal())}</span></div>
               </div>
-              <Link to="/checkout" className="btn-primary w-full justify-center py-4 text-base">Proceed to Checkout</Link>
+              <Link
+                to="/checkout"
+                onClick={(e) => {
+                  if (items.some((i) => (Number(i.product.stock) || 0) <= 0)) {
+                    e.preventDefault();
+                    toast.error('Remove out-of-stock items before checkout');
+                  }
+                }}
+                className="btn-primary w-full justify-center py-4 text-base"
+              >
+                Proceed to Checkout
+              </Link>
               <Link to="/collections" className="block text-center text-sm text-gray-500 hover:text-primary mt-3">Continue Shopping</Link>
             </div>
           </div>

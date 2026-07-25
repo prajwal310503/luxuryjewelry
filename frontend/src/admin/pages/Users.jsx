@@ -7,11 +7,21 @@ import Tip from '../components/Tip';
 import Select from '../../components/ui/Select';
 
 const ALL_PERMISSIONS = [
-  { key: 'orders',     label: 'Orders' },
-  { key: 'products',   label: 'Products' },
-  { key: 'categories', label: 'Categories' },
-  { key: 'blog',       label: 'Blog' },
-  { key: 'cms',        label: 'Home Page' },
+  { key: 'dashboard',     label: 'Dashboard' },
+  { key: 'orders',        label: 'Orders' },
+  { key: 'products',      label: 'Products' },
+  { key: 'categories',    label: 'Categories' },
+  { key: 'vendors',       label: 'Vendors' },
+  { key: 'customers',     label: 'Customers' },
+  { key: 'coupons',       label: 'Coupons' },
+  { key: 'referral',      label: 'Refer & Earn' },
+  { key: 'reports',       label: 'Reports' },
+  { key: 'blog',          label: 'Blog' },
+  { key: 'cms',           label: 'Home Page / CMS' },
+  { key: 'support',       label: 'Support' },
+  { key: 'notifications', label: 'Browser Notifications' },
+  { key: 'master_data',   label: 'Metal Rates' },
+  { key: 'settings',      label: 'Settings' },
 ];
 
 function permSummary(perms) {

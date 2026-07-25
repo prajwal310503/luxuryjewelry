@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, requirePermission } = require('../middleware/auth');
 const {
   validateCoupon,
   getAvailableCoupons,
@@ -16,10 +16,10 @@ const {
 router.post('/validate', protect, validateCoupon);
 router.get('/available', protect, getAvailableCoupons);
 
-router.get('/admin', protect, authorize('admin'), adminGetCoupons);
-router.post('/admin', protect, authorize('admin'), adminCreateCoupon);
-router.put('/admin/:id', protect, authorize('admin'), adminUpdateCoupon);
-router.delete('/admin/:id', protect, authorize('admin'), adminDeleteCoupon);
+router.get('/admin', protect, requirePermission('coupons'), adminGetCoupons);
+router.post('/admin', protect, requirePermission('coupons'), adminCreateCoupon);
+router.put('/admin/:id', protect, requirePermission('coupons'), adminUpdateCoupon);
+router.delete('/admin/:id', protect, requirePermission('coupons'), adminDeleteCoupon);
 
 router.get('/vendor', protect, authorize('vendor'), vendorGetCoupons);
 router.post('/vendor', protect, authorize('vendor'), vendorCreateCoupon);

@@ -47,13 +47,94 @@ exports.getProducts = async (req, res, next) => {
       }
     }
 
-    // Attribute filters (dynamic)
-    const attributeFilters = {};
+    // Attribute filters (dynamic) — apply to attributes[] OR mapped product fields
+    const Attribute = require('../models/Attribute');
+    const AttributeValue = require('../models/AttributeValue');
+    const mongoose = require('mongoose');
+    const FIELD_MAP = {
+      'metal-purity': 'purity',
+      'collection-style': 'collectionStyles',
+      theme: 'themes',
+      occasion: 'occasions',
+      segments: 'segments',
+      'gift-tags': 'giftTags',
+      'wearing-type': 'wearingTypes',
+      'product-persona': 'productPersonas',
+    };
+
     const attributeKeys = Object.keys(req.query).filter((k) => k.startsWith('attr_'));
     for (const key of attributeKeys) {
       const attrSlug = key.replace('attr_', '');
-      const values = Array.isArray(req.query[key]) ? req.query[key] : [req.query[key]];
-      attributeFilters[`attributes.values`] = { $in: values };
+      let raw = req.query[key];
+      if (raw === undefined || raw === null || raw === '') continue;
+      if (!Array.isArray(raw)) raw = String(raw).split(',').map((s) => s.trim()).filter(Boolean);
+      if (!raw.length) continue;
+
+      const attr = await Attribute.findOne({ slug: attrSlug }).select('_id slug');
+      if (!attr) {
+        // Unknown attribute slug → no matches
+        baseQuery = baseQuery.where('_id').equals(new mongoose.Types.ObjectId('000000000000000000000000'));
+        continue;
+      }
+
+      const objectIds = raw.filter((v) => mongoose.Types.ObjectId.isValid(v) && String(v).length === 24);
+      const valueDocs = await AttributeValue.find({
+        attribute: attr._id,
+        $or: [
+          ...(objectIds.length ? [{ _id: { $in: objectIds } }] : []),
+          { slug: { $in: raw } },
+          { value: { $in: raw } },
+        ],
+      }).select('_id value slug');
+
+      // Client sent filter values that don't belong to this attribute → empty result
+      if (!valueDocs.length) {
+        baseQuery = baseQuery.where('_id').equals(new mongoose.Types.ObjectId('000000000000000000000000'));
+        continue;
+      }
+
+      const valueIds = valueDocs.map((v) => v._id);
+      const valueLabels = valueDocs.map((v) => v.value).filter(Boolean);
+      const orClauses = [
+        {
+          attributes: {
+            $elemMatch: {
+              attribute: attr._id,
+              values: { $in: valueIds },
+            },
+          },
+        },
+      ];
+
+      // Fallback: map common jewelry attrs to denormalized product fields
+      const field = FIELD_MAP[attrSlug];
+      if (field && valueLabels.length) {
+        if (field === 'purity') {
+          const purityRegexes = valueLabels.map((label) => {
+            const digits = String(label).replace(/[^0-9]/g, '');
+            if (digits) return new RegExp(digits, 'i');
+            return new RegExp(`^${String(label).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+          });
+          orClauses.push({ $or: purityRegexes.map((re) => ({ purity: re })) });
+        } else {
+          orClauses.push({ [field]: { $in: valueLabels } });
+        }
+      }
+
+      // Metal color: match pricing.metalType or title text
+      if (attrSlug === 'metal-color' && valueLabels.length) {
+        orClauses.push({
+          $or: valueLabels.flatMap((label) => {
+            const safe = String(label).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            return [
+              { 'pricing.metalType': new RegExp(safe, 'i') },
+              { title: new RegExp(safe, 'i') },
+            ];
+          }),
+        });
+      }
+
+      baseQuery = baseQuery.find(orClauses.length === 1 ? orClauses[0] : { $or: orClauses });
     }
 
     // Store / vendor filter
@@ -134,12 +215,25 @@ exports.getProducts = async (req, res, next) => {
 // @access  Public
 exports.getProduct = async (req, res, next) => {
   try {
-    const product = await Product.findOne({ slug: req.params.slug, status: 'approved', isActive: true })
+    const mongoose = require('mongoose');
+    const slug = req.params.slug;
+    const filter = { status: 'approved', isActive: true };
+    let product = await Product.findOne({ ...filter, slug })
       .populate('category', 'name slug ancestors')
       .populate('subcategory', 'name slug')
       .populate('store', 'name slug logo rating phone city description')
       .populate('attributes.attribute', 'name slug type displayType')
       .populate('attributes.values', 'value slug colorCode image');
+
+    // Fallback: allow /products/:id when slug missing / link used _id
+    if (!product && mongoose.Types.ObjectId.isValid(slug)) {
+      product = await Product.findOne({ ...filter, _id: slug })
+        .populate('category', 'name slug ancestors')
+        .populate('subcategory', 'name slug')
+        .populate('store', 'name slug logo rating phone city description')
+        .populate('attributes.attribute', 'name slug type displayType')
+        .populate('attributes.values', 'value slug colorCode image');
+    }
 
     if (!product) return sendError(res, 404, 'Product not found');
 
@@ -169,76 +263,21 @@ exports.adminDeleteProduct = async (req, res, next) => {
 // @route   DELETE /api/admin/products/:id/images/:imageIndex
 // @access  Admin
 exports.adminRemoveProductImage = async (req, res, next) => {
-  try {
-    const product = await Product.findById(req.params.id);
-    if (!product) return sendError(res, 404, 'Product not found');
-
-    const idx = parseInt(req.params.imageIndex);
-    if (isNaN(idx) || idx < 0 || idx >= product.images.length) {
-      return sendError(res, 400, 'Invalid image index');
-    }
-
-    product.images.splice(idx, 1);
-    // Ensure the first image is always marked as primary
-    if (product.images.length > 0) {
-      product.images[0].isPrimary = true;
-      product.images[0].sortOrder = 0;
-      if (product.images[1]) {
-        product.images[1].isPrimary = false;
-        product.images[1].sortOrder = 1;
-      }
-    }
-    await product.save();
-
-    sendSuccess(res, 200, 'Image removed', product.images);
-  } catch (error) {
-    next(error);
-  }
+  return sendError(res, 403, 'Admin cannot change product images. Ask the vendor to update images.');
 };
 
 // @desc    Upload product videos (admin)
 // @route   POST /api/admin/products/:id/videos
 // @access  Admin
 exports.adminUploadProductVideos = async (req, res, next) => {
-  try {
-    const product = await Product.findById(req.params.id);
-    if (!product) return sendError(res, 404, 'Product not found');
-    if (!req.files || req.files.length === 0) return sendError(res, 400, 'No videos uploaded');
-
-    if (!product.videos) product.videos = [];
-    const newVideos = req.files.map((file, idx) => ({
-      url: getFileUrl(file),
-      publicId: file.filename || file.public_id || '',
-      sortOrder: product.videos.length + idx,
-    })).filter((v) => v.url);
-
-    product.videos.push(...newVideos);
-    await product.save();
-    sendSuccess(res, 200, 'Videos uploaded', product.videos);
-  } catch (error) {
-    next(error);
-  }
+  return sendError(res, 403, 'Admin cannot change product media. Ask the vendor to update videos.');
 };
 
 // @desc    Remove product video (admin)
 // @route   DELETE /api/admin/products/:id/videos/:videoIndex
 // @access  Admin
 exports.adminRemoveProductVideo = async (req, res, next) => {
-  try {
-    const product = await Product.findById(req.params.id);
-    if (!product) return sendError(res, 404, 'Product not found');
-
-    const idx = parseInt(req.params.videoIndex);
-    if (isNaN(idx) || idx < 0 || !product.videos || idx >= product.videos.length) {
-      return sendError(res, 400, 'Invalid video index');
-    }
-
-    product.videos.splice(idx, 1);
-    await product.save();
-    sendSuccess(res, 200, 'Video removed', product.videos);
-  } catch (error) {
-    next(error);
-  }
+  return sendError(res, 403, 'Admin cannot change product media. Ask the vendor to update videos.');
 };
 
 // @desc    Admin: get all products
@@ -376,7 +415,8 @@ exports.adminGetProductById = async (req, res, next) => {
     const product = await Product.findById(req.params.id)
       .populate('category', 'name slug')
       .populate('subcategory', 'name slug')
-      .populate('attributes.attribute', 'name slug');
+      .populate('attributes.attribute', 'name slug type displayType')
+      .populate('attributes.values', 'value slug colorCode image');
     if (!product) return sendError(res, 404, 'Product not found');
     sendSuccess(res, 200, 'Product fetched', product);
   } catch (error) {
@@ -402,7 +442,26 @@ exports.adminUpdateProduct = async (req, res, next) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) return sendError(res, 404, 'Product not found');
-    Object.assign(product, req.body);
+    const body = { ...req.body };
+    if (body.attributes !== undefined) {
+      const attrs = Array.isArray(body.attributes) ? body.attributes : [];
+      body.attributes = attrs
+        .map((a) => {
+          if (!a?.attribute) return null;
+          const values = Array.isArray(a.values)
+            ? a.values.map((v) => (v && (v._id || v))).filter(Boolean)
+            : [];
+          const customValue = a.customValue ? String(a.customValue).trim() : '';
+          if (!values.length && !customValue) return null;
+          return {
+            attribute: a.attribute._id || a.attribute,
+            values,
+            ...(customValue ? { customValue } : {}),
+          };
+        })
+        .filter(Boolean);
+    }
+    Object.assign(product, body);
     await product.save();
     sendSuccess(res, 200, 'Product updated', product);
   } catch (error) {
@@ -414,25 +473,7 @@ exports.adminUpdateProduct = async (req, res, next) => {
 // @route   POST /api/admin/products/:id/images
 // @access  Admin
 exports.adminUploadProductImages = async (req, res, next) => {
-  try {
-    const product = await Product.findById(req.params.id);
-    if (!product) return sendError(res, 404, 'Product not found');
-    if (!req.files || req.files.length === 0) return sendError(res, 400, 'No images uploaded');
-
-    const newImages = req.files.map((file, idx) => ({
-      url: getFileUrl(file),
-      publicId: file.filename || file.public_id || '',
-      alt: product.title,
-      isPrimary: product.images.length === 0 && idx === 0,
-      sortOrder: product.images.length + idx,
-    })).filter((img) => img.url);
-
-    product.images.push(...newImages);
-    await product.save();
-    sendSuccess(res, 200, 'Images uploaded', product.images);
-  } catch (error) {
-    next(error);
-  }
+  return sendError(res, 403, 'Admin cannot change product images. Ask the vendor to update images.');
 };
 
 // @desc    Upload single cert image (admin)
@@ -566,15 +607,179 @@ exports.adminBulkArchiveProducts = async (req, res, next) => {
   }
 };
 
-// @desc    Admin bulk create disabled — vendors own product catalog
+// @desc    Admin: bulk create products from CSV/Excel
 // @route   POST /api/admin/products/bulk-upload
 // @access  Admin
-exports.adminBulkUploadProducts = async (req, res) => {
-  return sendError(
-    res,
-    403,
-    'Admins cannot upload products. Only vendors can add products for admin approval.'
-  );
+exports.adminBulkUploadProducts = async (req, res, next) => {
+  try {
+    const XLSX = require('xlsx');
+
+    if (!req.file) return sendError(res, 400, 'No file uploaded');
+
+    const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+
+    if (!rows.length) return sendError(res, 400, 'File is empty or has no data rows');
+
+    const categories = await Category.find({}, 'name slug _id').lean();
+    const catMap = {};
+    categories.forEach((c) => {
+      catMap[c.name.toLowerCase().trim()] = c._id;
+      catMap[c.slug.toLowerCase().trim()] = c._id;
+    });
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    const emit = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+    emit({ type: 'start', total: rows.length });
+
+    const str  = (v) => String(v == null ? '' : v).trim();
+    const num  = (v) => { const n = parseFloat(v); return Number.isNaN(n) ? undefined : n; };
+    const int  = (v) => { const n = parseInt(v, 10); return Number.isNaN(n) ? undefined : n; };
+    const bool = (v) => {
+      const s = str(v).toLowerCase();
+      if (['true', 'yes', '1'].includes(s)) return true;
+      if (['false', 'no', '0'].includes(s)) return false;
+      return undefined;
+    };
+    const arr  = (v) => (str(v) ? str(v).split(',').map((s) => s.trim()).filter(Boolean) : []);
+    const pick = (row, ...keys) => {
+      for (const k of keys) {
+        if (row[k] !== undefined && row[k] !== '') return row[k];
+      }
+      return '';
+    };
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowNum = i + 2;
+
+      try {
+        const title = str(pick(row, 'title', 'Title'));
+        const price = parseFloat(pick(row, 'price', 'Price') || 0);
+        const categoryRaw = str(pick(row, 'category', 'Category'));
+
+        if (!title) throw new Error('title is required');
+        if (!price || price <= 0) throw new Error('price must be a positive number');
+        if (!categoryRaw) throw new Error('category is required');
+
+        const categoryId = catMap[categoryRaw.toLowerCase()];
+        if (!categoryId) throw new Error(`Category "${categoryRaw}" not found — check spelling`);
+
+        const rawStatus = str(pick(row, 'status')).toLowerCase();
+        const status = ['approved', 'draft', 'pending', 'archived'].includes(rawStatus) ? rawStatus : 'approved';
+
+        const data = {
+          title,
+          price,
+          category: categoryId,
+          stock: 0,
+          status,
+          isActive: status === 'approved',
+          approvedBy: req.user.id,
+          approvedAt: new Date(),
+        };
+
+        const sku = str(pick(row, 'sku', 'SKU'));
+        const shortDesc = str(pick(row, 'shortDescription', 'short_description'));
+        const desc = str(pick(row, 'description', 'Description'));
+        if (sku) data.sku = sku;
+        if (shortDesc) data.shortDescription = shortDesc;
+        if (desc) data.description = desc;
+
+        const subRaw = str(pick(row, 'subcategory', 'Subcategory'));
+        if (subRaw) {
+          const subId = catMap[subRaw.toLowerCase()];
+          if (subId) data.subcategory = subId;
+        }
+
+        const cst = num(pick(row, 'costPrice', 'cost_price'));
+        if (cst != null) data.costPrice = cst;
+        const disc = num(pick(row, 'discount'));
+        if (disc != null) data.discount = disc;
+        const stk = int(pick(row, 'stock', 'Stock'));
+        if (stk != null) data.stock = stk;
+
+        const purity = str(pick(row, 'purity'));
+        data.purity = purity || '22kt';
+        const mw = num(pick(row, 'metalWeight', 'metal_weight'));
+        if (mw != null) data.metalWeight = mw;
+        const dd = int(pick(row, 'deliveryDays', 'delivery_days'));
+        if (dd != null) data.deliveryDays = dd;
+
+        const dc = str(pick(row, 'diamondClarity', 'diamond_clarity'));
+        if (dc) data.diamondClarity = dc;
+
+        const sc = arr(pick(row, 'stoneColors', 'stone_colors'));
+        if (sc.length) data.stoneColors = sc;
+
+        const sizesEn = bool(pick(row, 'sizesEnabled', 'sizes_enabled'));
+        const sizesAv = arr(pick(row, 'sizesAvailable', 'sizes_available')).map(Number).filter((n) => !Number.isNaN(n));
+        if (sizesEn !== undefined || sizesAv.length) {
+          data.sizes = { enabled: sizesEn || false, available: sizesAv };
+        }
+
+        const lenEn = bool(pick(row, 'lengthEnabled', 'length_enabled'));
+        const lenAv = arr(pick(row, 'lengthAvailable', 'length_available')).map(Number).filter((n) => !Number.isNaN(n));
+        if (lenEn !== undefined || lenAv.length) {
+          data.lengths = { enabled: lenEn || false, available: lenAv };
+        }
+
+        const rawImageUrls = [];
+        for (let n = 1; n <= 4; n++) {
+          const u = str(pick(row, `image${n}`, `Image${n}`));
+          if (u && /^https?:\/\/.+/.test(u)) rawImageUrls.push(u);
+        }
+        if (rawImageUrls.length) {
+          const uploadedImages = await Promise.all(rawImageUrls.map((u) => uploadExternalUrl(u, 'image')));
+          data.images = uploadedImages.map((url, idx) => ({
+            url, publicId: '', alt: title, isPrimary: idx === 0, sortOrder: idx,
+          }));
+        }
+
+        const rawVideoUrls = [];
+        for (let n = 1; n <= 2; n++) {
+          const u = str(pick(row, `video${n}`, `Video${n}`));
+          if (u && /^https?:\/\/.+/.test(u)) rawVideoUrls.push(u);
+        }
+        if (rawVideoUrls.length) {
+          const uploadedVideos = await Promise.all(rawVideoUrls.map((u) => uploadExternalUrl(u, 'video')));
+          data.videos = uploadedVideos.map((url, idx) => ({ url, publicId: '', sortOrder: idx }));
+        }
+
+        const product = await Product.create(data);
+        successCount++;
+        emit({ type: 'row', done: i + 1, total: rows.length, row: { rowNum, title, status: 'success', id: String(product._id) } });
+      } catch (err) {
+        const title = str(pick(row, 'title', 'Title')) || `Row ${rowNum}`;
+        failCount++;
+        let errMsg = err.message;
+        if (err.code === 11000) {
+          const field = Object.keys(err.keyPattern || {})[0] || 'field';
+          const value = err.keyValue ? err.keyValue[field] : null;
+          errMsg = value
+            ? `Duplicate ${field}: "${value}" already exists in the database`
+            : `Duplicate ${field} — already exists in the database`;
+        }
+        emit({ type: 'row', done: i + 1, total: rows.length, row: { rowNum, title, status: 'error', error: errMsg } });
+      }
+    }
+
+    emit({ type: 'done', successCount, failCount, total: rows.length });
+    res.end();
+  } catch (error) {
+    if (!res.headersSent) return next(error);
+    res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+    res.end();
+  }
 };
 
 // @desc    Apply jewelry field defaults to all existing products

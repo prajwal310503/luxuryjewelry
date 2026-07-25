@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { protect, authorize } = require('../middleware/auth');
+const { protect, requirePermission } = require('../middleware/auth');
 const { getSettings, updateSettings, getStatus } = require('../controllers/settingsController');
 const Settings = require('../models/Settings');
 const { uploadSiteImage, getFileUrl } = require('../config/cloudinary');
 
-const adminAuth = [protect, authorize('admin')];
+const adminAuth = [protect, requirePermission('settings')];
 
 const SITE_IMAGE_KEYS = [
   'categoryBannerDesktop',

@@ -1,4 +1,5 @@
 const { sendEmail } = require('./emailService');
+const { emailShell: brandedShell, ctaButton, BRAND } = require('./emailTemplates');
 const { generateInvoiceBuffer } = require('./invoiceService');
 
 const frontendBase = () => (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
@@ -25,14 +26,7 @@ function formatInr(amount) {
 }
 
 function emailShell(title, bodyHtml) {
-  return `
-    <div style="font-family: Inter, sans-serif; max-width: 600px; margin: 0 auto;">
-      <div style="background: #5a413f; padding: 30px; text-align: center;">
-        <h1 style="color: white; font-family: 'Playfair Display', serif; margin: 0;">LUXURY JEWELRY</h1>
-      </div>
-      <div style="padding: 40px 30px;">${bodyHtml}</div>
-    </div>
-  `;
+  return brandedShell({ title, preheader: title, bodyHtml });
 }
 
 function orderItemsTable(order) {
@@ -69,15 +63,11 @@ function orderItemsTable(order) {
 function actionLinks(detailLink, listLink, extraHtml = '') {
   return `
     <div style="margin: 28px 0; text-align: center;">
-      ${extraHtml}
-      <a href="${detailLink}" style="display: inline-block; background: #5a413f; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 0 8px 12px;">
-        View Order
-      </a>
-      <a href="${listLink}" style="display: inline-block; background: #f3f4f6; color: #374151; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 0 8px 12px;">
-        Order History
-      </a>
+      ${extraHtml || ''}
+      <div style="margin: 8px 0;">${ctaButton(detailLink, 'View Order')}</div>
+      <div style="margin: 8px 0;">${ctaButton(listLink, 'Order History')}</div>
     </div>
-    <p style="color: #9ca3af; font-size: 12px; text-align: center;">Invoice PDF is attached to this email. You can also download it from Order History.</p>
+    <p style="color: #9ca3af; font-size: 12px; text-align: center;">Invoice PDF is attached. You can also download it from Order History on ${BRAND}.</p>
   `;
 }
 

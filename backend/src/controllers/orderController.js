@@ -539,7 +539,34 @@ exports.adminUpdateOrderStatus = async (req, res, next) => {
     if (Object.keys(setFields).length) mongoUpdate.$set = setFields;
     if (pushFields.statusHistory) mongoUpdate.$push = { statusHistory: pushFields.statusHistory };
 
-    const updated = await Order.findByIdAndUpdate(req.params.id, mongoUpdate, { new: true });
+    const updated = await Order.findByIdAndUpdate(req.params.id, mongoUpdate, { new: true })
+      .populate('customer', 'name email');
+
+    // Referral rewards: create on delivered; cancel on returned/cancelled
+    try {
+      const {
+        createReferralRewardForDeliveredOrder,
+        cancelReferralRewardForOrder,
+      } = require('../utils/referral');
+      const finalStatus = updated.status;
+      if (finalStatus === 'delivered') {
+        await createReferralRewardForDeliveredOrder(updated);
+      } else if (finalStatus === 'returned' || finalStatus === 'cancelled' || finalStatus === 'refunded') {
+        await cancelReferralRewardForOrder(updated._id, `Order ${finalStatus}`);
+      }
+    } catch (_) {
+      // Non-critical — don't block order update
+    }
+
+    if (status && updated.customer?.email) {
+      try {
+        const { sendOrderStatusEmail } = require('../services/emailService');
+        await sendOrderStatusEmail(updated.customer, updated, status, comment || '');
+      } catch (_) {
+        // Non-critical
+      }
+    }
+
     sendSuccess(res, 200, 'Order updated', updated);
   } catch (error) {
     next(error);

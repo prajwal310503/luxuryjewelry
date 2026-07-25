@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import axios from 'axios';
 import VendorLayout from '../components/VendorLayout';
 import { IconPlus, IconCurrency, IconBox, EmptyStateIcon, StarRating } from '../../components/ui/Icons';
-
-const API = import.meta.env.VITE_API_URL || '/api';
+import { vendorAPI } from '../../services/api';
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 const StatCard = ({ label, value, icon, accent, sub, index }) => (
@@ -55,7 +53,7 @@ export default function VendorDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get(`${API}/vendor/dashboard`, { withCredentials: true })
+    vendorAPI.getDashboard()
       .then((r) => setData(r.data.data))
       .catch(console.error)
       .finally(() => setLoading(false));

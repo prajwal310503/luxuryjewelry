@@ -2,7 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const { body } = require('express-validator');
 const validate = require('../middleware/validate');
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, requirePermission } = require('../middleware/auth');
 const { uploadProduct, uploadVideo } = require('../config/cloudinary');
 const {
   registerVendor,
@@ -32,7 +32,7 @@ const {
 } = require('../controllers/vendorController');
 
 const vendorAuth = [protect, authorize('vendor')];
-const adminAuth  = [protect, authorize('admin')];
+const adminAuth  = [protect, requirePermission('vendors')];
 const storeUpload = uploadProduct.fields([{ name: 'logo', maxCount: 1 }, { name: 'banner', maxCount: 1 }]);
 const productUpload = uploadProduct.fields([{ name: 'images', maxCount: 6 }]);
 const productImageUpload = uploadProduct.array('images', 6);

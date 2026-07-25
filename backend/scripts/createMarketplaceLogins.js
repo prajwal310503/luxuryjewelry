@@ -151,6 +151,66 @@ async function upsertVendor() {
     console.log('Vendor store ready:', store.name);
   }
 
+  // Ensure test vendor has sample products (assign orphans / create a few)
+  const Product = require('../src/models/Product');
+  const Category = require('../src/models/Category');
+  let owned = await Product.countDocuments({ store: store._id });
+    if (owned < 6) {
+    const need = 6 - owned;
+    // Prefer orphan products; otherwise take any approved listings not already on this store
+    let candidates = await Product.find({
+      $or: [{ store: null }, { store: { $exists: false } }],
+    }).limit(need);
+
+    if (candidates.length < need) {
+      const extra = await Product.find({
+        store: { $ne: store._id },
+        status: 'approved',
+        isActive: true,
+      }).limit(need - candidates.length);
+      candidates = [...candidates, ...extra];
+    }
+
+    if (candidates.length) {
+      await Product.updateMany(
+        { _id: { $in: candidates.map((p) => p._id) } },
+        { $set: { store: store._id, status: 'approved', isActive: true } }
+      );
+      owned += candidates.length;
+      console.log(`Assigned ${candidates.length} product(s) to test vendor`);
+    }
+
+    const stillNeed = Math.max(0, 6 - owned);
+    if (stillNeed > 0) {
+      let category = await Category.findOne({ parent: null, isActive: { $ne: false } });
+      if (!category) {
+        category = await Category.create({ name: 'Rings', slug: `rings-seed-${Date.now().toString(36)}`, isActive: true });
+      }
+      const samples = [];
+      for (let i = 0; i < stillNeed; i++) {
+        const n = owned + i + 1;
+        samples.push({
+          title: `VK Test ${category.name || 'Jewel'} ${n}`,
+          slug: `vk-test-jewel-${store._id.toString().slice(-4)}-${n}-${Date.now().toString(36)}`,
+          price: 15000 + n * 2500,
+          stock: 10 + n,
+          category: category._id,
+          store: store._id,
+          status: 'approved',
+          isActive: true,
+          shortDescription: 'Seeded demo product for vendor panel testing',
+          purity: '22kt',
+          approvedAt: new Date(),
+        });
+      }
+      await Product.insertMany(samples);
+      owned += samples.length;
+      console.log(`Created ${samples.length} demo product(s) for test vendor`);
+    }
+  }
+  await Store.findByIdAndUpdate(store._id, { totalProducts: await Product.countDocuments({ store: store._id }) });
+  console.log(`Test vendor products: ${owned}`);
+
   return user;
 }
 

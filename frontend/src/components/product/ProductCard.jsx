@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import useWishlistStore from '../../store/wishlistStore';
 import useCartStore from '../../store/cartStore';
@@ -55,7 +55,7 @@ const StarRating = ({ rating, count }) => (
 
 export default function ProductCard({ product, className = '', index = 0 }) {
   const { toggleItem, isInWishlist } = useWishlistStore();
-  const navigate = useNavigate();
+  const { addItem } = useCartStore();
   const [activeSwatch, setActiveSwatch] = useState(0);
 
   const primaryImage  = product.images?.find((img) => img.isPrimary) || product.images?.[0];
@@ -65,8 +65,17 @@ export default function ProductCard({ product, className = '', index = 0 }) {
   const discountedPrice = salePrice ?? product.price;
   const hasDiscount    = product.discount > 0;
   const gradient       = CARD_GRADIENTS[index % CARD_GRADIENTS.length];
+  const productHref    = product.slug ? `/products/${product.slug}` : `/products/${product._id}`;
 
   const hasImage = !!primaryImage?.url;
+  const outOfStock = (Number(product.stock) || 0) <= 0;
+
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!product?._id || outOfStock) return;
+    addItem(product, 1);
+  };
 
   return (
     <motion.div
@@ -89,7 +98,7 @@ export default function ProductCard({ product, className = '', index = 0 }) {
       }}
     >
       {/* ── Image ── */}
-      <Link to={`/products/${product.slug}`} className="relative block overflow-hidden flex-shrink-0" style={{ aspectRatio: '1/1' }}>
+      <Link to={productHref} className="relative block overflow-hidden flex-shrink-0" style={{ aspectRatio: '1/1' }}>
 
         {hasImage ? (
           <>
@@ -134,26 +143,36 @@ export default function ProductCard({ product, className = '', index = 0 }) {
         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
           style={{ background: 'linear-gradient(135deg, transparent 40%, rgba(201,168,76,0.08) 60%, transparent 80%)' }} />
 
-        {/* Badges */}
-        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5">
-          {hasDiscount && (
-            <span className="inline-flex items-center gap-0.5 text-[11px] font-black text-white px-2.5 py-1 rounded-lg tracking-wide"
-              style={{ background: 'linear-gradient(135deg,#f43f5e,#e11d48)', boxShadow: '0 3px 10px rgba(244,63,94,0.45)' }}>
-              -{product.discount}% OFF
+        {/* Badges — compact on mobile so image stays visible */}
+        <div className="absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 flex flex-col gap-0.5 sm:gap-1.5 max-w-[55%] sm:max-w-none pointer-events-none">
+          {outOfStock && (
+            <span className="inline-flex items-center self-start text-[8px] sm:text-[11px] font-black text-white px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded sm:rounded-lg tracking-wide"
+              style={{ background: 'linear-gradient(135deg,#6b7280,#4b5563)', boxShadow: '0 2px 6px rgba(75,85,99,0.4)' }}>
+              Out of Stock
+            </span>
+          )}
+          {hasDiscount && !outOfStock && (
+            <span className="inline-flex items-center self-start text-[8px] sm:text-[11px] font-black text-white px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded sm:rounded-lg tracking-wide"
+              style={{ background: 'linear-gradient(135deg,#f43f5e,#e11d48)', boxShadow: '0 2px 6px rgba(244,63,94,0.4)' }}>
+              -{product.discount}%
+              <span className="hidden sm:inline">&nbsp;OFF</span>
             </span>
           )}
           {product.isBestSeller && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-black text-white px-2.5 py-1 rounded-lg tracking-wide uppercase"
-              style={{ background: 'linear-gradient(135deg,#C9A84C,#a07828)', boxShadow: '0 3px 10px rgba(201,168,76,0.5)' }}>
-              <svg className="w-2.5 h-2.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-              Bestseller
+            <span className="inline-flex items-center gap-0.5 sm:gap-1 self-start text-[7px] sm:text-[10px] font-black text-white px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded sm:rounded-lg tracking-wide uppercase"
+              style={{ background: 'linear-gradient(135deg,#C9A84C,#a07828)', boxShadow: '0 2px 6px rgba(201,168,76,0.4)' }}>
+              <svg className="w-2 h-2 sm:w-2.5 sm:h-2.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <span className="sm:hidden">Best</span>
+              <span className="hidden sm:inline">Bestseller</span>
             </span>
           )}
+          {/* On mobile hide New when Bestseller already shows — avoids covering the photo */}
           {product.isNewArrival && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-black text-white px-2.5 py-1 rounded-lg tracking-wide uppercase"
-              style={{ background: 'linear-gradient(135deg,#10b981,#059669)', boxShadow: '0 3px 10px rgba(16,185,129,0.45)' }}>
-              <svg className="w-2.5 h-2.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
-              New Arrival
+            <span className={`inline-flex items-center gap-0.5 sm:gap-1 self-start text-[7px] sm:text-[10px] font-black text-white px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded sm:rounded-lg tracking-wide uppercase ${product.isBestSeller ? 'hidden sm:inline-flex' : ''}`}
+              style={{ background: 'linear-gradient(135deg,#10b981,#059669)', boxShadow: '0 2px 6px rgba(16,185,129,0.4)' }}>
+              <svg className="w-2 h-2 sm:w-2.5 sm:h-2.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
+              <span className="sm:hidden">New</span>
+              <span className="hidden sm:inline">New Arrival</span>
             </span>
           )}
         </div>
@@ -178,31 +197,35 @@ export default function ProductCard({ product, className = '', index = 0 }) {
           </svg>
         </button>
 
-        {/* Add to Cart slide-up */}
-        <div className="absolute inset-x-0 bottom-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+        {/* Add to Cart — always visible on mobile, hover on desktop */}
+        <div className="absolute inset-x-0 bottom-0 p-2 sm:p-3 translate-y-0 sm:translate-y-full sm:group-hover:translate-y-0 transition-transform duration-300">
           <button
-            onClick={(e) => { e.preventDefault(); navigate(`/products/${product.slug}`); }}
-            className="w-full text-white text-sm font-bold py-2.5 rounded-xl transition-all duration-200 hover:opacity-90 active:scale-95"
+            type="button"
+            onClick={handleAddToCart}
+            disabled={outOfStock}
+            className="w-full text-white text-xs sm:text-sm font-bold py-2 sm:py-2.5 rounded-xl transition-all duration-200 hover:opacity-90 active:scale-95 disabled:opacity-55 disabled:cursor-not-allowed disabled:active:scale-100"
             style={{
-              background: 'linear-gradient(135deg, #5a413f 0%, #3a2927 100%)',
-              boxShadow: '0 4px 16px rgba(90,65,63,0.4)',
+              background: outOfStock
+                ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)'
+                : 'linear-gradient(135deg, #5a413f 0%, #3a2927 100%)',
+              boxShadow: outOfStock ? 'none' : '0 4px 16px rgba(90,65,63,0.4)',
               backdropFilter: 'blur(8px)',
             }}
           >
-            Add to Cart
+            {outOfStock ? 'Out of Stock' : 'Add to Cart'}
           </button>
         </div>
       </Link>
 
       {/* ── Info ── */}
-      <div className="p-4 flex flex-col gap-1.5 flex-1">
+      <div className="p-2.5 sm:p-4 flex flex-col gap-1.5 flex-1">
         {product.vendor?.storeName && (
           <p className="text-[11px] text-gold-dark uppercase tracking-[0.15em] font-semibold truncate">
             {product.vendor.storeName}
           </p>
         )}
 
-        <Link to={`/products/${product.slug}`}>
+        <Link to={productHref}>
           <h3 className="text-[14px] font-semibold text-gray-800 hover:text-primary transition-colors leading-snug line-clamp-2">
             {product.title}
           </h3>

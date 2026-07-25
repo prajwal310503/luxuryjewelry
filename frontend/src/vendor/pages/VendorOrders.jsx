@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import axios from 'axios';
 import toast from 'react-hot-toast';
 import VendorLayout from '../components/VendorLayout';
 import { EmptyStateIcon, IconBox } from '../../components/ui/Icons';
-import { orderAPI } from '../../services/api';
+import { vendorAPI, orderAPI } from '../../services/api';
 import Pagination from '../../admin/components/Pagination';
 
-const API = import.meta.env.VITE_API_URL || '/api';
 const PAGE_SIZE = 15;
 
 const STATUS_OPTS = ['all', 'pending', 'processing', 'shipped', 'delivered', 'cancelled'];
@@ -47,7 +45,7 @@ export default function VendorOrders() {
     try {
       const params = { page, limit: PAGE_SIZE };
       if (statusFilter !== 'all') params.status = statusFilter;
-      const { data } = await axios.get(`${API}/vendor/orders`, { params, withCredentials: true });
+      const { data } = await vendorAPI.getOrders(params);
       setOrders(data.data.orders || []);
       setTotal(data.data.total || 0);
     } catch { toast.error('Failed to load orders'); }
@@ -64,7 +62,7 @@ export default function VendorOrders() {
       if (courierName) payload.courierName = courierName;
       if (trackingNumber) payload.trackingNumber = trackingNumber;
       if (trackingUrl) payload.trackingUrl = trackingUrl;
-      await axios.put(`${API}/vendor/orders/${selected._id}/status`, payload, { withCredentials: true });
+      await vendorAPI.updateOrderStatus(selected._id, payload);
       toast.success('Order status updated');
       setSelected(null);
       setNewStatus('');
@@ -81,7 +79,7 @@ export default function VendorOrders() {
     setUpdating(selected._id);
     try {
       const payload = type === 'cancel' ? { cancellationAction: action } : { returnAction: action };
-      await axios.put(`${API}/vendor/orders/${selected._id}/status`, payload, { withCredentials: true });
+      await vendorAPI.updateOrderStatus(selected._id, payload);
       toast.success(`${type === 'cancel' ? 'Cancellation' : 'Return'} ${action}`);
       setSelected(null);
       fetchOrders();

@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../../store/authStore';
-import { authAPI, orderAPI } from '../../services/api';
+import { authAPI } from '../../services/api';
 import toast from 'react-hot-toast';
+import GoogleAuthButton from '../../components/auth/GoogleAuthButton';
+import { tryEnableBrowserPushQuiet } from '../../utils/pushNotifications';
 
 const inputCls = (err) =>
   `input-luxury w-full h-11 pl-10 pr-4 text-sm text-gray-800 placeholder:text-gray-400 ${err ? 'border-red-400 focus:ring-red-200' : ''}`;
@@ -31,14 +33,40 @@ const IconInput = ({ icon, rightEl, error, ...props }) => (
   </div>
 );
 
+function staffHome(user) {
+  const perms = user?.permissions || [];
+  const order = ['dashboard', 'orders', 'products', 'support', 'notifications', 'customers', 'vendors', 'reports', 'cms', 'blog', 'coupons', 'referral', 'categories', 'master_data', 'settings'];
+  const map = {
+    dashboard: '/admin/dashboard',
+    orders: '/admin/orders',
+    products: '/admin/products',
+    support: '/admin/support',
+    notifications: '/admin/notifications',
+    customers: '/admin/customers',
+    vendors: '/admin/vendors',
+    reports: '/admin/reports',
+    cms: '/admin/cms',
+    blog: '/admin/blog',
+    coupons: '/admin/coupons',
+    referral: '/admin/referral',
+    categories: '/admin/categories',
+    master_data: '/admin/master-data',
+    settings: '/admin/settings',
+  };
+  for (const p of order) {
+    if (perms.includes(p) && map[p]) return map[p];
+  }
+  return '/';
+}
+
 export default function LoginPage() {
-  const [form, setForm]       = useState({ email: '', password: '' });
-  const [errors, setErrors]   = useState({});
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [errors, setErrors] = useState({});
   const [serverErr, setServerErr] = useState('');
   const [needsVerify, setNeedsVerify] = useState(false);
   const [resending, setResending] = useState(false);
   const [showPass, setShowPass] = useState(false);
-  const { login, loading }    = useAuthStore();
+  const { login, googleLogin, loading } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -48,15 +76,20 @@ export default function LoginPage() {
 
   const validate = () => {
     const e = {};
-    if (!form.email.trim())
-      e.email = 'Email address is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-      e.email = 'Enter a valid email address';
-    if (!form.password)
-      e.password = 'Password is required';
-    else if (form.password.length < 6)
-      e.password = 'Password must be at least 6 characters';
+    if (!form.email.trim()) e.email = 'Email address is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Enter a valid email address';
+    if (!form.password) e.password = 'Password is required';
+    else if (form.password.length < 6) e.password = 'Password must be at least 6 characters';
     return e;
+  };
+
+  const goAfterAuth = (user) => {
+    tryEnableBrowserPushQuiet();
+    if (from && from !== '/') navigate(from);
+    else if (user.role === 'admin') navigate('/admin/dashboard');
+    else if (user.role === 'child_admin') navigate(staffHome(user));
+    else if (user.role === 'vendor') navigate('/vendor/dashboard');
+    else navigate('/');
   };
 
   const handleSubmit = async (e) => {
@@ -68,21 +101,21 @@ export default function LoginPage() {
     setErrors({});
     try {
       const user = await login(form);
-      if (user) {
-        if (from && from !== '/') navigate(from);
-        else if (user.role === 'admin') navigate('/admin/dashboard');
-        else if (user.role === 'child_admin') {
-          const perms = user.permissions || [];
-          if (perms.includes('orders')) navigate('/admin/orders');
-          else navigate('/');
-        } else if (user.role === 'vendor') {
-          navigate('/vendor/dashboard');
-        } else navigate('/');
-      }
+      if (user) goAfterAuth(user);
     } catch (err) {
       const msg = err?.response?.data?.message || err?.message || 'Invalid email or password. Please try again.';
       setServerErr(msg);
       setNeedsVerify(/verify/i.test(msg));
+    }
+  };
+
+  const handleGoogle = async (credential) => {
+    setServerErr('');
+    try {
+      const user = await googleLogin(credential);
+      if (user) goAfterAuth(user);
+    } catch (err) {
+      setServerErr(err?.response?.data?.message || 'Google sign-in failed');
     }
   };
 
@@ -98,7 +131,7 @@ export default function LoginPage() {
     }
   };
 
-  const EyeOn  = <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>;
+  const EyeOn = <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>;
   const EyeOff = <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>;
 
   return (
@@ -113,7 +146,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Server error banner */}
       <AnimatePresence>
         {serverErr && (
           <motion.div
@@ -121,10 +153,10 @@ export default function LoginPage() {
             className="mb-4 flex flex-col gap-1 bg-red-50 border border-red-200 rounded-xl px-4 py-3"
           >
             <div className="flex items-center gap-2.5">
-            <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-            <p className="text-sm text-red-700">{serverErr}</p>
+              <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <p className="text-sm text-red-700">{serverErr}</p>
             </div>
             {needsVerify && (
               <button type="button" onClick={handleResend} disabled={resending} className="ml-6 text-xs font-semibold text-primary hover:underline text-left">
@@ -166,6 +198,13 @@ export default function LoginPage() {
           )}
         </button>
       </form>
+
+      <div className="flex items-center gap-3 my-5">
+        <div className="flex-1 h-px bg-gray-100" />
+        <span className="text-[11px] text-gray-400 tracking-wider">OR</span>
+        <div className="flex-1 h-px bg-gray-100" />
+      </div>
+      <GoogleAuthButton onSuccess={handleGoogle} />
 
       <div className="flex items-center gap-3 my-5">
         <div className="flex-1 h-px bg-gray-100" />

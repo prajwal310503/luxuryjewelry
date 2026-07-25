@@ -218,13 +218,17 @@ exports.createUser = async (req, res, next) => {
     const exists = await User.findOne({ email });
     if (exists) return sendError(res, 400, 'Email already registered');
 
+    const { PERMISSIONS } = require('../models/User');
+    const allowed = new Set(PERMISSIONS);
     const user = await User.create({
       name,
       email,
       password,
       phone: phone || undefined,
       role: role || 'child_admin',
-      permissions: role === 'child_admin' ? (permissions || []) : [],
+      permissions: role === 'child_admin'
+        ? (permissions || []).filter((p) => allowed.has(p))
+        : [],
     });
 
     const userObj = user.toObject();
@@ -267,7 +271,9 @@ exports.updateUserPermissions = async (req, res, next) => {
     if (!user) return sendError(res, 404, 'User not found');
     if (user.role !== 'child_admin') return sendError(res, 400, 'Permissions only apply to child_admin users');
 
-    user.permissions = Array.isArray(permissions) ? permissions : [];
+    const { PERMISSIONS } = require('../models/User');
+    const allowed = new Set(PERMISSIONS);
+    user.permissions = (Array.isArray(permissions) ? permissions : []).filter((p) => allowed.has(p));
     await user.save({ validateBeforeSave: false });
 
     sendSuccess(res, 200, 'Permissions updated', { permissions: user.permissions });

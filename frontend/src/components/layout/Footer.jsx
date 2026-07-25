@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { cmsAPI } from '../../services/api';
 import vkLogo from '../../assets/vklogo.png';
 
-// ─── Social Icons ──────────────────────────────────────────────────────────────
 const SOCIAL_ICONS = {
   instagram: (
     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -33,28 +32,65 @@ const SOCIAL_ICONS = {
 };
 
 const DEFAULT_BRAND = {
-  brandName:   'LUXURY JEWELRY',
-  legalName:   'SHRI VENKATESHWARA ENTERPRISES',
-  tagline:     'Luxury. Joy. Comfort.',
-  about:       'Premium lab-grown diamond and gold jewelry for every occasion.',
-  email:       'care@luxuryjewelry.com',
-  phone:       '+91 9004436052',
-  gst:         '27AFCPR0683K1Z4',
-  address:     'Gala No-D 24, R S No 657, Y P Powar Nagar,\nKolhapur Udyam Co Op Society,\nKolhapur – 416008, Maharashtra',
-  copyright:   '© 2026 LUXURY JEWELRY. All Rights Reserved.',
+  brandName: 'LUXURY JEWELRY',
+  legalName: 'SHRI VENKATESHWARA ENTERPRISES',
+  tagline: 'Luxury. Joy. Comfort.',
+  about: 'Premium lab-grown diamond and gold jewelry for every occasion.',
+  email: 'care@luxuryjewelry.com',
+  phone: '+91 9004436052',
+  gst: '27AFCPR0683K1Z4',
+  address: 'Gala No-D 24, R S No 657, Y P Powar Nagar,\nKolhapur Udyam Co Op Society,\nKolhapur – 416008, Maharashtra',
+  copyright: '© 2026 LUXURY JEWELRY. All Rights Reserved.',
 };
-const DEFAULT_SOCIAL  = { instagram: '#', facebook: '#', youtube: '#', pinterest: '#', linkedin: '#' };
+
+const DEFAULT_SOCIAL = { instagram: '#', facebook: '#', youtube: '#', pinterest: '#', linkedin: '#' };
+
+/** Only real app routes — no dead /guides or /policies links */
 const DEFAULT_COLUMNS = [
-  { heading: 'About LUXURY JEWELRY',  links: [{ label: 'About Our Company', to: '/about' }, { label: 'Terms & Conditions', to: '/terms' }, { label: 'Privacy Policy', to: '/privacy' }, { label: 'Shipping Policy', to: '/shipping' }] },
-  { heading: 'Jewelry Guide', links: [{ label: 'Diamond Education', to: '/guides/diamonds' }, { label: 'Metal Education', to: '/guides/metals' }, { label: 'Size Guide', to: '/guides/size' }, { label: 'Jewelry Care Tips', to: '/guides/care' }] },
-  { heading: 'Why Choose Us', links: [{ label: '15 Days Return', to: '/policies/return' }, { label: 'Lifetime Exchange', to: '/policies/exchange' }, { label: 'Old Gold Exchange', to: '/old-gold' }, { label: "FAQ's", to: '/faq' }] },
-  { heading: 'Sell With Us', links: [{ label: 'Become a Seller', to: '/become-a-seller' }, { label: 'Vendor Registration', to: '/vendor/register' }, { label: 'Seller Support', to: '/support' }] },
+  {
+    heading: 'Company',
+    links: [
+      { label: 'About Us', to: '/about' },
+      { label: 'Contact & Support', to: '/support' },
+      { label: "FAQ's", to: '/faq' },
+    ],
+  },
+  {
+    heading: 'Policies',
+    links: [
+      { label: 'Terms & Conditions', to: '/terms' },
+      { label: 'Privacy Policy', to: '/privacy' },
+      { label: 'Shipping Policy', to: '/shipping' },
+    ],
+  },
+  {
+    heading: 'Sell With Us',
+    links: [
+      { label: 'Become a Seller', to: '/become-a-seller' },
+      { label: 'Vendor Registration', to: '/vendor/register' },
+    ],
+  },
 ];
+
 const DEFAULT_PAYMENT = ['Visa', 'Mastercard', 'UPI', 'Razorpay', 'GPay', 'Paytm'];
 
+/** Drop CMS columns that only contain dead paths */
+const LIVE_PATH_RE = /^\/(about|faq|terms|privacy|shipping|support|become-a-seller|vendor\/register|orders|account|collections)/;
+
+function sanitizeColumns(cols) {
+  if (!Array.isArray(cols) || !cols.length) return DEFAULT_COLUMNS;
+  const cleaned = cols
+    .map((col) => ({
+      ...col,
+      links: (col.links || []).filter((l) => l?.to && LIVE_PATH_RE.test(String(l.to).split('?')[0])),
+    }))
+    .filter((col) => col.links?.length);
+  return cleaned.length ? cleaned : DEFAULT_COLUMNS;
+}
+
 export default function Footer() {
-  const [brand,   setBrand]   = useState(DEFAULT_BRAND);
-  const [social,  setSocial]  = useState(DEFAULT_SOCIAL);
+  const [brand, setBrand] = useState(DEFAULT_BRAND);
+  const [social, setSocial] = useState(DEFAULT_SOCIAL);
   const [columns, setColumns] = useState(DEFAULT_COLUMNS);
   const [payment, setPayment] = useState(DEFAULT_PAYMENT);
 
@@ -64,8 +100,8 @@ export default function Footer() {
       const byType = {};
       sections.forEach((s) => { byType[s.sectionType] = s.content; });
       if (byType.footer_brand?.brandName) setBrand({ ...DEFAULT_BRAND, ...byType.footer_brand });
-      if (byType.footer_social)           setSocial({ ...DEFAULT_SOCIAL, ...byType.footer_social });
-      if (byType.footer_links?.columns?.length) setColumns(byType.footer_links.columns);
+      if (byType.footer_social) setSocial({ ...DEFAULT_SOCIAL, ...byType.footer_social });
+      if (byType.footer_links?.columns?.length) setColumns(sanitizeColumns(byType.footer_links.columns));
       if (byType.footer_payment?.methods?.length) setPayment(byType.footer_payment.methods);
     }).catch(() => {});
   }, []);
@@ -74,35 +110,31 @@ export default function Footer() {
 
   return (
     <footer className="bg-gray-900 text-gray-400">
-      {/* Main Footer */}
-      <div className="container-luxury py-16">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-10">
+      <div className="container-luxury py-12 sm:py-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
 
-          {/* Brand Column */}
-          <div className="col-span-2 md:col-span-1 space-y-5">
-            <Link to="/" className="block">
-              <img src={vkLogo} alt="LUXURY JEWELRY" className="h-20 w-auto object-contain" />
+          {/* Brand */}
+          <div className="space-y-4 text-center sm:text-left flex flex-col items-center sm:items-start">
+            <Link to="/" className="inline-block">
+              <img src={vkLogo} alt="LUXURY JEWELRY" className="h-16 sm:h-20 w-auto object-contain mx-auto sm:mx-0" />
             </Link>
 
             <div>
               <p className="text-white text-xs font-semibold uppercase tracking-widest mb-0.5">{brand.legalName}</p>
               <p className="text-sm text-gray-500">{brand.tagline}</p>
-              <p className="text-xs text-gray-600 mt-1 leading-relaxed">{brand.about}</p>
+              <p className="text-xs text-gray-600 mt-1 leading-relaxed max-w-xs mx-auto sm:mx-0">{brand.about}</p>
             </div>
 
-            {/* Address */}
             {brand.address && (
-              <div>
+              <div className="max-w-xs">
                 <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Registered Address</p>
                 <p className="text-xs text-gray-500 leading-relaxed whitespace-pre-line">{brand.address}</p>
               </div>
             )}
 
-            {/* Contact */}
             <div className="space-y-1.5">
-              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Contact</p>
               {brand.email && (
-                <a href={`mailto:${brand.email}`} className="flex items-center gap-2 text-xs text-gray-500 hover:text-gold transition-colors">
+                <a href={`mailto:${brand.email}`} className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-500 hover:text-gold transition-colors">
                   <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
@@ -110,7 +142,7 @@ export default function Footer() {
                 </a>
               )}
               {brand.phone && (
-                <a href={`tel:${brand.phone}`} className="flex items-center gap-2 text-xs text-gray-500 hover:text-gold transition-colors">
+                <a href={`tel:${brand.phone}`} className="flex items-center justify-center sm:justify-start gap-2 text-xs text-gray-500 hover:text-gold transition-colors">
                   <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
@@ -119,7 +151,6 @@ export default function Footer() {
               )}
             </div>
 
-            {/* GST */}
             {brand.gst && (
               <div className="inline-flex items-center gap-2 px-2.5 py-1.5 bg-gray-800 rounded-lg border border-gray-700">
                 <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">GST</span>
@@ -127,9 +158,8 @@ export default function Footer() {
               </div>
             )}
 
-            {/* Social links */}
             {activeSocials.length > 0 && (
-              <div className="flex gap-3">
+              <div className="flex gap-3 justify-center sm:justify-start">
                 {activeSocials.map(([key, url]) => (
                   <a
                     key={key}
@@ -146,11 +176,11 @@ export default function Footer() {
             )}
           </div>
 
-          {/* Link Columns */}
+          {/* Link columns */}
           {columns.map((col) => (
-            <div key={col.heading}>
-              <h4 className="text-white text-sm font-semibold uppercase tracking-wider mb-5">{col.heading}</h4>
-              <ul className="space-y-3">
+            <div key={col.heading} className="text-center sm:text-left">
+              <h4 className="text-white text-sm font-semibold uppercase tracking-wider mb-4">{col.heading}</h4>
+              <ul className="space-y-2.5">
                 {col.links.map((link) => (
                   <li key={link.label}>
                     <Link to={link.to} className="text-sm text-gray-500 hover:text-gold transition-colors duration-150">
@@ -164,15 +194,17 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Bottom Bar */}
       <div className="border-t border-gray-800 py-5">
-        <div className="container-luxury space-y-3">
+        <div className="container-luxury">
           <div className="flex flex-col md:flex-row items-center justify-between gap-3">
             <div className="text-center md:text-left">
               <p className="text-xs text-gray-600">{brand.copyright}</p>
               {brand.legalName && (
                 <p className="text-[11px] text-gray-700 mt-0.5">
-                  {brand.legalName}{brand.gst && <span className="ml-2">· GSTIN: <span className="font-mono tracking-wider">{brand.gst}</span></span>}
+                  {brand.legalName}
+                  {brand.gst && (
+                    <span className="ml-2">· GSTIN: <span className="font-mono tracking-wider">{brand.gst}</span></span>
+                  )}
                 </p>
               )}
             </div>

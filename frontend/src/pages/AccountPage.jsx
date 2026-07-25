@@ -1,4 +1,5 @@
 ﻿import { useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -184,6 +185,12 @@ export default function AccountPage() {
           <div>
             <h1 className="font-heading text-2xl font-bold text-gray-900">{user?.name}</h1>
             <p className="text-sm text-gray-400 capitalize">{user?.role} Account</p>
+            <Link
+              to="/refer-and-earn"
+              className="inline-flex items-center gap-1.5 mt-2 text-sm font-semibold text-primary hover:underline"
+            >
+              Refer & Earn →
+            </Link>
           </div>
         </div>
 
@@ -219,6 +226,21 @@ export default function AccountPage() {
                 {profileSaving ? 'Saving...' : 'Save Profile'}
               </button>
             </form>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const { enableBrowserPush } = await import('../utils/pushNotifications');
+                  await enableBrowserPush();
+                  toast.success('Browser notifications enabled');
+                } catch (err) {
+                  toast.error(err.message || 'Could not enable notifications');
+                }
+              }}
+              className="mt-4 w-full h-10 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:border-primary hover:text-primary transition-colors"
+            >
+              Enable browser notifications
+            </button>
           </div>
 
           {/* ── Change Password ── */}

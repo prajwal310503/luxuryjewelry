@@ -135,6 +135,10 @@ exports.updateMyStore = async (req, res, next) => {
     const updates = {};
     allowed.forEach((k) => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
 
+    if (typeof updates.makingCharges === 'string') {
+      try { updates.makingCharges = JSON.parse(updates.makingCharges); } catch { /* ignore */ }
+    }
+
     if (req.files?.logo?.[0]) updates.logo = getFileUrl(req.files.logo[0]);
     if (req.files?.banner?.[0]) updates.banner = getFileUrl(req.files.banner[0]);
     if (req.file && req.file.fieldname === 'logo') updates.logo = getFileUrl(req.file);
@@ -440,6 +444,31 @@ function parseMaybeJson(value) {
   return value;
 }
 
+/** Keep AttributeValue ObjectIds on product.attributes[].values (not only customValue). */
+function normalizeAttributes(attrs) {
+  if (!Array.isArray(attrs)) return [];
+  return attrs
+    .map((a) => {
+      if (!a) return null;
+      const attribute = a.attribute?._id || a.attribute;
+      if (!attribute) return null;
+      let values = [];
+      if (Array.isArray(a.values)) {
+        values = a.values.map((v) => (v && (v._id || v))).filter(Boolean).map(String);
+      } else if (a.value || a.attributeValue) {
+        values = [String(a.value || a.attributeValue)];
+      }
+      const customValue = a.customValue ? String(a.customValue).trim() : '';
+      if (!values.length && !customValue) return null;
+      return {
+        attribute,
+        values,
+        ...(customValue ? { customValue } : {}),
+      };
+    })
+    .filter(Boolean);
+}
+
 function parseVendorProductBody(body) {
   const payload = {};
   const b = body || {};
@@ -464,12 +493,16 @@ function parseVendorProductBody(body) {
     if (b[field] !== undefined) payload[field] = parseMaybeJson(b[field]) === true || b[field] === 'true' || b[field] === true;
   });
 
-  ['giftTags', 'wearingTypes', 'stoneColors', 'attributes', 'sizes', 'lengths', 'seo'].forEach((field) => {
+  ['giftTags', 'wearingTypes', 'stoneColors', 'sizes', 'lengths', 'seo'].forEach((field) => {
     if (b[field] !== undefined) {
       const parsed = parseMaybeJson(b[field]);
       if (parsed !== undefined) payload[field] = parsed;
     }
   });
+
+  if (b.attributes !== undefined) {
+    payload.attributes = normalizeAttributes(parseMaybeJson(b.attributes));
+  }
 
   // Vendor products stay pending until admin approves — ignore client status for create; allow draft only if sent as draft
   if (b.status === 'draft') payload.status = 'draft';
@@ -495,7 +528,8 @@ exports.getVendorProduct = async (req, res, next) => {
     const product = await Product.findOne({ _id: req.params.id, store: store._id })
       .populate('category', 'name slug commissionRate')
       .populate('subcategory', 'name slug')
-      .populate('attributes.attribute', 'name');
+      .populate('attributes.attribute', 'name slug type displayType')
+      .populate('attributes.values', 'value slug colorCode');
     if (!product) return sendError(res, 404, 'Product not found');
 
     sendSuccess(res, 200, 'Product fetched', product);

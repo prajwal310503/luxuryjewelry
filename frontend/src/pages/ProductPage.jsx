@@ -357,24 +357,37 @@ export default function ProductPage() {
   const { toggleItem, isInWishlist } = useWishlistStore();
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
       setLoading(true);
+      setProduct(null);
+      setReviews([]);
+      setRelated([]);
+      setImgIdx(0);
+      setSelectedSize('');
+      setSelectedLength('');
+      setSelectedStoneColor('');
       try {
         const { data } = await productAPI.getBySlug(slug);
+        if (cancelled) return;
         setProduct(data.data);
-        setImgIdx(0);
         const [revRes, relRes] = await Promise.allSettled([
           reviewAPI.getProductReviews(data.data._id, { limit: 10 }),
           productAPI.getAll({ category: data.data.category?.slug, limit: 6 }),
         ]);
+        if (cancelled) return;
         if (revRes.status === 'fulfilled') setReviews(revRes.value.data.data || []);
         if (relRes.status === 'fulfilled')
           setRelated((relRes.value.data.data || []).filter((p) => p._id !== data.data._id).slice(0, 5));
-      } catch (_) {}
-      finally { setLoading(false); }
+      } catch (_) {
+        if (!cancelled) setProduct(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
-    load();
+    if (slug) load();
     window.scrollTo(0, 0);
+    return () => { cancelled = true; };
   }, [slug]);
 
   useEffect(() => {
@@ -507,7 +520,7 @@ export default function ProductPage() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -56, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-md"
+            className="fixed bottom-0 sm:top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t sm:border-t-0 sm:border-b border-gray-100 shadow-md pb-[env(safe-area-inset-bottom)] sm:pb-0"
           >
             <div className="container-luxury py-2.5 flex items-center gap-4">
               {product.images?.[0] && (
@@ -519,7 +532,7 @@ export default function ProductPage() {
               </div>
               <button onClick={handleAddToCart} disabled={product.stock === 0}
                 className="btn-primary text-xs px-5 py-2.5 flex-shrink-0 disabled:opacity-40 shadow-md shadow-primary/20">
-                Add to Cart
+                {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
               </button>
             </div>
           </motion.div>
@@ -593,11 +606,11 @@ export default function ProductPage() {
               {mediaItems.length > 1 && (
                 <>
                   <button onClick={() => goTo((imgIdx - 1 + mediaItems.length) % mediaItems.length)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/85 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity border border-white/60">
+                    className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/85 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity border border-white/60">
                     <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
                   </button>
                   <button onClick={() => goTo((imgIdx + 1) % mediaItems.length)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/85 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity border border-white/60">
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white/85 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity border border-white/60">
                     <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                   </button>
                 </>
@@ -608,7 +621,10 @@ export default function ProductPage() {
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
                   {mediaItems.map((_, i) => (
                     <button key={i} onClick={() => goTo(i)}
-                      className={`rounded-full transition-all duration-300 ${imgIdx === i ? 'w-5 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/50'}`} />
+                      className={`rounded-full transition-all duration-300 p-2 -m-1 ${imgIdx === i ? '[&>span]:w-5 [&>span]:h-1.5 [&>span]:bg-white' : '[&>span]:w-2 [&>span]:h-2 [&>span]:bg-white/50'}`}
+                    >
+                      <span className="block rounded-full" />
+                    </button>
                   ))}
                 </div>
               )}

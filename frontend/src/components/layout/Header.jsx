@@ -878,20 +878,20 @@ export default function Header() {
 
         {/* ── Main row: Logo | Search | Icons ──────────────────────────── */}
         <div className="container-luxury">
-          <div className="flex items-center gap-6 h-[80px]">
+          <div className="flex items-center justify-between gap-2 sm:gap-6 h-14 sm:h-[80px] w-full">
 
             {/* Logo */}
             <Link to="/" className="flex-shrink-0 group leading-none">
-              <img src={vkLogo} alt="LUXURY JEWELRY" className="h-24 w-auto object-contain" />
+              <img src={vkLogo} alt="LUXURY JEWELRY" className="h-9 sm:h-16 md:h-24 w-auto max-w-[120px] sm:max-w-none object-contain" />
             </Link>
 
             {/* Search bar */}
-            <div className="flex-1 hidden md:block">
+            <div className="flex-1 hidden md:block min-w-0">
               <SearchBar />
             </div>
 
-            {/* Right icons */}
-            <div className="flex items-center gap-0.5 flex-shrink-0">
+            {/* Right icons — pushed to the far right on mobile */}
+            <div className="flex items-center gap-0.5 flex-shrink-0 ml-auto md:ml-0">
 
               {/* Account */}
               {user ? (
@@ -958,6 +958,13 @@ export default function Header() {
                               <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                             My Account
+                          </Link>
+                          <Link onClick={() => setAccountOpen(false)} to="/refer-and-earn"
+                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
+                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                            </svg>
+                            Refer & Earn
                           </Link>
                           <Link onClick={() => setAccountOpen(false)} to="/orders"
                             className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-luxury-cream hover:text-primary transition-colors">
@@ -1114,7 +1121,7 @@ export default function Header() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'tween', duration: 0.28 }}
-              className="fixed inset-y-0 right-0 w-80 z-50 flex flex-col"
+              className="fixed inset-y-0 right-0 w-full max-w-sm z-50 flex flex-col"
               style={{
                 background: 'rgba(255,255,255,0.92)',
                 backdropFilter: 'blur(24px) saturate(200%)',
@@ -1125,7 +1132,7 @@ export default function Header() {
               }}
             >
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <img src={vkLogo} alt="LUXURY JEWELRY" className="h-20 w-auto object-contain" />
+                <img src={vkLogo} alt="LUXURY JEWELRY" className="h-12 w-auto object-contain" />
                 <button onClick={() => setMobileOpen(false)} className="p-1 text-gray-500">
                   <CloseIcon />
                 </button>
@@ -1160,6 +1167,7 @@ export default function Header() {
                     <Link to="/vendor/dashboard" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Vendor Panel</Link>
                   )}
                   <Link to="/account" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">My Account</Link>
+                  <Link to="/refer-and-earn" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Refer & Earn</Link>
                   <Link to="/orders" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Track Orders</Link>
                   <Link to="/my-addresses" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">My Addresses</Link>
                   <Link to="/support" onClick={() => setMobileOpen(false)} className="block text-sm text-gray-700 py-1.5 hover:text-primary tracking-wide">Support</Link>

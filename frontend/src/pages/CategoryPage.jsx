@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -59,22 +59,63 @@ const FilterSection = ({ title, children, defaultOpen = true }) => {
   );
 };
 
+/* Count logical filters — price min+max count as 1 */
+function countActiveFilters(filters = {}) {
+  let count = 0;
+  let priceCounted = false;
+  for (const [k, v] of Object.entries(filters)) {
+    if (k === 'sort' || k === 'page') continue;
+    if (v === undefined || v === null || v === '') continue;
+    if (Array.isArray(v) && v.length === 0) continue;
+    if (k === 'minPrice' || k === 'maxPrice') {
+      if (!priceCounted) {
+        count += 1;
+        priceCounted = true;
+      }
+      continue;
+    }
+    count += 1;
+  }
+  return count;
+}
+
+function filtersFromSearchParams(searchParams) {
+  const filters = {
+    sort: searchParams.get('sort') || 'newest',
+    store: searchParams.get('store') || undefined,
+    minPrice: searchParams.has('minPrice') ? parseInt(searchParams.get('minPrice'), 10) : undefined,
+    maxPrice: searchParams.has('maxPrice') ? parseInt(searchParams.get('maxPrice'), 10) : undefined,
+    page: parseInt(searchParams.get('page'), 10) || 1,
+    collectionStyles: searchParams.get('collectionStyles') || undefined,
+    themes: searchParams.get('themes') || undefined,
+    segments: searchParams.get('segments') || undefined,
+    occasions: searchParams.get('occasions') || undefined,
+  };
+  for (const [k, v] of searchParams.entries()) {
+    if (!k.startsWith('attr_') || !v) continue;
+    const parts = String(v).split(',').map((s) => s.trim()).filter(Boolean);
+    filters[k] = filters[k] ? [...new Set([...(Array.isArray(filters[k]) ? filters[k] : [filters[k]]), ...parts])] : parts;
+  }
+  return filters;
+}
+
 /* ─── Filter sidebar ─── */
 const FilterSidebar = ({ attributes, filters, onChange, onReset, isMobile, onClose, stores = [] }) => {
   const handlePriceRange = (range) => {
-    const isActive = filters.minPrice === range.min && (range.max ? filters.maxPrice === range.max : !filters.maxPrice);
-    onChange({ ...filters, minPrice: isActive ? undefined : range.min, maxPrice: isActive ? undefined : range.max });
+    const isActive = filters.minPrice === range.min && (range.max != null ? filters.maxPrice === range.max : filters.maxPrice == null);
+    onChange({ ...filters, minPrice: isActive ? undefined : range.min, maxPrice: isActive ? undefined : (range.max ?? undefined) });
   };
 
   const handleAttributeFilter = (attrSlug, valueId) => {
     const key = `attr_${attrSlug}`;
     const current = filters[key] ? (Array.isArray(filters[key]) ? filters[key] : [filters[key]]) : [];
-    const updated = current.includes(valueId) ? current.filter((v) => v !== valueId) : [...current, valueId];
+    const id = String(valueId);
+    const updated = current.map(String).includes(id) ? current.filter((v) => String(v) !== id) : [...current, id];
     onChange({ ...filters, [key]: updated.length ? updated : undefined });
   };
 
   const filterableAttributes = attributes.filter((a) => a.isFilterable && a.values?.length > 0);
-  const activeFilterCount = Object.keys(filters).filter((k) => k !== 'sort' && k !== 'page' && filters[k] !== undefined).length;
+  const activeFilterCount = countActiveFilters(filters);
 
   return (
     <div className={isMobile ? 'h-full overflow-y-auto px-5 py-4' : ''}>
@@ -106,7 +147,7 @@ const FilterSidebar = ({ attributes, filters, onChange, onReset, isMobile, onClo
       <FilterSection title="Price">
         <div className="space-y-1">
           {PRICE_RANGES.map((range) => {
-            const isActive = filters.minPrice === range.min && (range.max ? filters.maxPrice === range.max : !filters.maxPrice);
+            const isActive = filters.minPrice === range.min && (range.max != null ? filters.maxPrice === range.max : filters.maxPrice == null);
             return (
               <label key={range.label} className="flex items-center gap-2.5 cursor-pointer py-1 group">
                 <input
@@ -155,7 +196,7 @@ const FilterSidebar = ({ attributes, filters, onChange, onReset, isMobile, onClo
                     onClick={() => handleAttributeFilter(attr.slug, val._id)}
                     title={val.value}
                     className={`w-7 h-7 rounded-full border-2 transition-all duration-150 ${
-                      selectedValues.includes(val._id) ? 'border-primary scale-110 shadow-md' : 'border-gray-200 hover:border-gray-400'
+                    selectedValues.map(String).includes(String(val._id)) ? 'border-primary scale-110 shadow-md' : 'border-gray-200 hover:border-gray-400'
                     }`}
                     style={{ backgroundColor: val.colorCode || '#ccc' }}
                   />
@@ -168,7 +209,7 @@ const FilterSidebar = ({ attributes, filters, onChange, onReset, isMobile, onClo
                     key={val._id}
                     onClick={() => handleAttributeFilter(attr.slug, val._id)}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all duration-150 ${
-                      selectedValues.includes(val._id)
+                      selectedValues.map(String).includes(String(val._id))
                         ? 'bg-primary text-white border-primary'
                         : 'border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
                     }`}
@@ -183,11 +224,11 @@ const FilterSidebar = ({ attributes, filters, onChange, onReset, isMobile, onClo
                   <label key={val._id} className="flex items-center gap-2.5 cursor-pointer py-1 group">
                     <input
                       type="checkbox"
-                      checked={selectedValues.includes(val._id)}
+                      checked={selectedValues.map(String).includes(String(val._id))}
                       onChange={() => handleAttributeFilter(attr.slug, val._id)}
                       className="w-4 h-4 rounded accent-primary"
                     />
-                    <span className={`text-sm transition-colors ${selectedValues.includes(val._id) ? 'text-primary font-medium' : 'text-gray-600 group-hover:text-gray-900'}`}>
+                    <span className={`text-sm transition-colors ${selectedValues.map(String).includes(String(val._id)) ? 'text-primary font-medium' : 'text-gray-600 group-hover:text-gray-900'}`}>
                       {val.value}
                     </span>
                   </label>
@@ -306,24 +347,14 @@ export default function CategoryPage() {
   const [bannerImages, setBannerImages] = useState({});
   const [stores, setStores] = useState([]);
 
-  const [filters, setFilters] = useState({
-    sort: searchParams.get('sort') || 'newest',
-    store: searchParams.get('store') || undefined,
-    minPrice: searchParams.get('minPrice') ? parseInt(searchParams.get('minPrice')) : undefined,
-    maxPrice: searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice')) : undefined,
-    page: parseInt(searchParams.get('page')) || 1,
-    collectionStyles: searchParams.get('collectionStyles') || undefined,
-    themes: searchParams.get('themes') || undefined,
-    segments: searchParams.get('segments') || undefined,
-    occasions: searchParams.get('occasions') || undefined,
-  });
+  const [filters, setFilters] = useState(() => filtersFromSearchParams(searchParams));
 
   useEffect(() => {
     settingsAPI.getSiteImages().then((r) => setBannerImages(r.data.data || {})).catch(() => {});
   }, []);
 
   useEffect(() => {
-    categoryAPI.getBySlug(slug).then(({ data }) => setCategory(data.data)).catch(() => {});
+    categoryAPI.getBySlug(slug).then(({ data }) => setCategory(data.data)).catch(() => setCategory(null));
   }, [slug]);
 
   useEffect(() => {
@@ -331,15 +362,34 @@ export default function CategoryPage() {
     storeAPI.getStores().then(({ data }) => setStores(data.data || [])).catch(() => {});
   }, []);
 
+  // Reset filters when category slug changes (not on first mount)
+  const prevSlugRef = useRef(slug);
+  useEffect(() => {
+    if (prevSlugRef.current === slug) return;
+    prevSlugRef.current = slug;
+    setFilters({ sort: 'newest', page: 1 });
+  }, [slug]);
+
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { category: slug, ...filters };
+      const params = { category: slug, limit: 20 };
+      Object.entries(filters).forEach(([k, v]) => {
+        if (v === undefined || v === null || v === '') return;
+        if (Array.isArray(v)) {
+          if (!v.length) return;
+          params[k] = v.join(',');
+          return;
+        }
+        params[k] = v;
+      });
       const { data } = await productAPI.getAll(params);
-      setProducts(data.data || []);
-      setMeta(data.meta || {});
+      const list = data.data || [];
+      setProducts(list);
+      setMeta(data.meta || { total: list.length, pages: 1 });
     } catch (_) {
       setProducts([]);
+      setMeta({ total: 0, pages: 1 });
     } finally {
       setLoading(false);
     }
@@ -349,20 +399,21 @@ export default function CategoryPage() {
 
   useEffect(() => {
     const params = {};
-    Object.entries(filters).forEach(([k, v]) => { if (v !== undefined && v !== null) params[k] = v; });
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v === undefined || v === null || v === '') return;
+      params[k] = Array.isArray(v) ? v.join(',') : String(v);
+    });
     setSearchParams(params, { replace: true });
-  }, [filters]);
+  }, [filters, setSearchParams]);
 
   const handleFilterChange = (newFilters) => setFilters({ ...newFilters, page: 1 });
-  const handleResetFilters = () => setFilters({ sort: 'newest', page: 1, collectionStyles: undefined, themes: undefined, segments: undefined, occasions: undefined });
+  const handleResetFilters = () => setFilters({ sort: 'newest', page: 1 });
   const handlePageChange = (page) => {
     setFilters((f) => ({ ...f, page }));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const activeFilterCount = Object.keys(filters).filter(
-    (k) => k !== 'sort' && k !== 'page' && filters[k] !== undefined
-  ).length;
+  const activeFilterCount = countActiveFilters(filters);
 
   const desktopBg = bannerImages.categoryBannerDesktop || 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=1440&h=320&fit=crop&q=80&auto=format';
   const mobileBg  = bannerImages.categoryBannerMobile  || 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=768&h=400&fit=crop&q=80&auto=format';
@@ -387,9 +438,9 @@ export default function CategoryPage() {
         {/* Dark overlay for text readability */}
         <div className="absolute inset-0 bg-black/50" />
 
-        <div className="container-luxury py-8 relative z-10">
+        <div className="container-luxury py-5 sm:py-8 relative z-10">
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-[13px] mb-4">
+          <nav className="flex items-center gap-2 text-[13px] mb-4 overflow-x-auto whitespace-nowrap no-scrollbar">
             <Link to="/" className="text-white/60 hover:text-white transition-colors">Home</Link>
             <span className="text-white/30">/</span>
             <Link to="/collections" className="text-white/60 hover:text-white transition-colors">Collections</Link>
@@ -403,7 +454,7 @@ export default function CategoryPage() {
             <span className="text-white/90 font-medium">{category?.name || slug}</span>
           </nav>
 
-          <div className="flex items-end justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
             <div>
               {/* Gold eyebrow */}
               <span className="text-[11px] font-bold uppercase tracking-[0.3em] mb-2 block"
@@ -504,7 +555,7 @@ export default function CategoryPage() {
                   value={filters.sort}
                   onChange={(e) => setFilters({ ...filters, sort: e.target.value, page: 1 })}
                   compact
-                  className="w-48"
+                  className="w-full sm:w-48"
                 >
                   {SORT_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -515,7 +566,7 @@ export default function CategoryPage() {
 
             {/* Product Grid */}
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-5 mt-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-5 mt-6">
                 {Array.from({ length: 9 }).map((_, i) => <ProductSkeleton key={i} />)}
               </div>
             ) : products.length === 0 ? (
@@ -534,7 +585,7 @@ export default function CategoryPage() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-5 mt-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-5 mt-6">
                   {products.map((product, idx) => (
                     <ProductCard key={product._id} product={product} index={idx} />
                   ))}
@@ -562,7 +613,7 @@ export default function CategoryPage() {
             <motion.div
               initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
               transition={{ type: 'tween', duration: 0.28 }}
-              className="fixed left-0 top-0 bottom-0 w-80 z-50 overflow-hidden flex flex-col lg:hidden"
+              className="fixed left-0 top-0 bottom-0 w-full max-w-sm z-50 overflow-hidden flex flex-col lg:hidden"
               style={{
                 background: 'rgba(255,255,255,0.96)',
                 backdropFilter: 'blur(24px)',
@@ -573,12 +624,22 @@ export default function CategoryPage() {
               <FilterSidebar
                 attributes={attributes}
                 filters={filters}
-                onChange={(f) => { handleFilterChange(f); setMobileFilterOpen(false); }}
-                onReset={() => { handleResetFilters(); setMobileFilterOpen(false); }}
+                onChange={(f) => { handleFilterChange(f); }}
+                onReset={() => { handleResetFilters(); }}
                 isMobile
                 onClose={() => setMobileFilterOpen(false)}
                 stores={stores}
               />
+              <div className="p-4 border-t border-gray-100 bg-white">
+                <button
+                  type="button"
+                  onClick={() => setMobileFilterOpen(false)}
+                  className="w-full py-3 rounded-xl text-white font-bold text-sm"
+                  style={{ background: 'linear-gradient(135deg, #5a413f 0%, #3a2927 100%)' }}
+                >
+                  Show Results
+                </button>
+              </div>
             </motion.div>
           </>
         )}

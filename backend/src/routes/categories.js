@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect, authorize } = require('../middleware/auth');
+const { protect, requirePermission } = require('../middleware/auth');
 const { uploadBanner } = require('../config/cloudinary');
 const {
   getCategories,
@@ -16,9 +16,9 @@ router.get('/', getCategories);
 router.get('/:slug', getCategory);
 
 // Admin
-router.post('/admin', protect, authorize('admin'), uploadBanner.single('image'), createCategory);
-router.put('/admin/:id', protect, authorize('admin'), uploadBanner.single('image'), updateCategory);
-router.delete('/admin/permanent/:id', protect, authorize('admin'), permanentDeleteCategory);
-router.delete('/admin/:id', protect, authorize('admin'), deleteCategory);
+router.post('/admin', protect, requirePermission('categories'), uploadBanner.single('image'), createCategory);
+router.put('/admin/:id', protect, requirePermission('categories'), uploadBanner.single('image'), updateCategory);
+router.delete('/admin/permanent/:id', protect, requirePermission('categories'), permanentDeleteCategory);
+router.delete('/admin/:id', protect, requirePermission('categories'), deleteCategory);
 
 module.exports = router;

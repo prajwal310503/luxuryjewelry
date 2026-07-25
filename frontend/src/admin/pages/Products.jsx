@@ -353,7 +353,7 @@ function BulkUploadModal({ onClose, onSuccess }) {
               <div className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
                 <div>
                   <p className="text-sm font-semibold text-blue-800">Download Sample Template</p>
-                  <p className="text-xs text-blue-500 mt-0.5">Fill in the CSV and upload below — all 53 columns included</p>
+                  <p className="text-xs text-blue-500 mt-0.5">Download sample CSV, fill rows, then upload — columns match the template</p>
                 </div>
                 <button onClick={downloadTemplate} className="flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900 transition-colors">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
@@ -628,11 +628,6 @@ export default function AdminProducts() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="font-heading text-xl sm:text-2xl font-bold text-gray-900">Products</h1>
         <div className="flex gap-2 flex-wrap">
-          <button onClick={() => navigate('/admin/products/images')} className="btn-outline text-sm flex items-center gap-2 py-2 px-4">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-            <span className="hidden sm:inline">Manage Images</span>
-            <span className="sm:hidden">Images</span>
-          </button>
           <button onClick={() => navigate('/admin/vendors')} className="btn-primary text-sm flex items-center gap-2 py-2 px-4">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
             Manage Vendors
@@ -641,7 +636,7 @@ export default function AdminProducts() {
       </div>
 
       <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-        <strong>Marketplace rule:</strong> Only vendors upload products. Admin can Approve / Reject / Archive listings and set homepage flags — product content is not edited by admin. Set commission under Categories.
+        <strong>Marketplace:</strong> Vendors upload products and images. Admin can <strong>edit</strong> listing details, Approve / Reject / Archive, and set homepage flags. Product images cannot be changed by admin.
       </div>
 
       {/* Filters */}
@@ -831,9 +826,12 @@ export default function AdminProducts() {
                       <Toggle active={product.isLifestyle2} onClick={() => handleToggle(product._id, 'lifestyle2')} disabled={!!updating} label="Everyday"  color="bg-[#B76E79]" flagKey="lifestyle2" />
                     </div>
                   </td>
-                  {/* Actions — approve / reject / archive only (vendors own product content) */}
+                  {/* Actions — edit + approve / reject / archive */}
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-1.5">
+                      <IconBtn onClick={() => navigate(`/admin/products/edit/${product._id}`)} title="Edit" color="bg-blue-50 text-blue-600 hover:bg-blue-100">
+                        <IcEdit />
+                      </IconBtn>
                       {product.status === 'pending' && (
                         <>
                           <IconBtn onClick={() => handleStatusUpdate(product._id, 'approved')} disabled={updating === product._id} title="Approve" color="bg-green-50 text-green-600 hover:bg-green-100">
@@ -858,9 +856,6 @@ export default function AdminProducts() {
                         <IconBtn onClick={() => handleStatusUpdate(product._id, 'approved')} disabled={updating === product._id} title="Re-approve" color="bg-green-50 text-green-600 hover:bg-green-100">
                           <IcRefresh />
                         </IconBtn>
-                      )}
-                      {product.status !== 'pending' && product.status !== 'approved' && product.status !== 'rejected' && product.status !== 'archived' && (
-                        <span className="text-xs text-gray-400">—</span>
                       )}
                     </div>
                   </td>

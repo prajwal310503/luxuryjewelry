@@ -120,6 +120,19 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     if (loading) return;
+    const oos = items.filter((item) => (Number(item.product.stock) || 0) <= 0);
+    if (oos.length) {
+      toast.error('Remove out-of-stock items before placing the order');
+      return;
+    }
+    const over = items.find((item) => {
+      const stock = Number(item.product.stock) || 0;
+      return stock > 0 && item.quantity > stock;
+    });
+    if (over) {
+      toast.error(`Only ${over.product.stock} left for "${over.product.title}"`);
+      return;
+    }
     setLoading(true);
     try {
       const orderItems = items.map((item) => ({
@@ -196,7 +209,7 @@ export default function CheckoutPage() {
                 <span className="text-sm font-medium hidden sm:block">{step}</span>
               </button>
               {idx < steps.length - 1 && (
-                <div className={`w-16 h-0.5 transition-all ${idx < currentStep ? 'bg-primary' : 'bg-gray-200'}`} />
+                <div className={`w-8 sm:w-16 h-0.5 transition-all ${idx < currentStep ? 'bg-primary' : 'bg-gray-200'}`} />
               )}
             </div>
           ))}

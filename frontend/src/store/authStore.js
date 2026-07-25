@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { authAPI } from '../services/api';
 import toast from 'react-hot-toast';
+import useWishlistStore from './wishlistStore';
 
 const useAuthStore = create(
   persist(
@@ -22,6 +23,7 @@ const useAuthStore = create(
           const { data } = await authAPI.getMe();
           if (typeof localStorage !== 'undefined') localStorage.setItem('token', token);
           set({ user: data.data.user || data.data, token, authReady: true });
+          useWishlistStore.getState().syncFromServer().catch(() => {});
         } catch (_) {
           if (typeof localStorage !== 'undefined') localStorage.removeItem('token');
           set({ user: null, token: null, authReady: true });
@@ -35,10 +37,27 @@ const useAuthStore = create(
           if (typeof localStorage !== 'undefined') localStorage.setItem('token', data.token);
           set({ user: data.data, token: data.token, loading: false });
           toast.success('Welcome back!');
+          useWishlistStore.getState().syncFromServer().catch(() => {});
           return data.data;
         } catch (error) {
           set({ loading: false });
           toast.error(error.response?.data?.message || error.message || 'Login failed');
+          throw error;
+        }
+      },
+
+      googleLogin: async (credential, referralCode) => {
+        set({ loading: true });
+        try {
+          const { data } = await authAPI.googleAuth({ credential, referralCode });
+          if (typeof localStorage !== 'undefined') localStorage.setItem('token', data.token);
+          set({ user: data.data, token: data.token, loading: false });
+          toast.success('Welcome!');
+          useWishlistStore.getState().syncFromServer().catch(() => {});
+          return data.data;
+        } catch (error) {
+          set({ loading: false });
+          toast.error(error.response?.data?.message || error.message || 'Google login failed');
           throw error;
         }
       },
@@ -50,6 +69,7 @@ const useAuthStore = create(
           if (typeof localStorage !== 'undefined') localStorage.setItem('token', data.token);
           set({ user: data.data, token: data.token, loading: false });
           toast.success('Account created successfully!');
+          useWishlistStore.getState().syncFromServer().catch(() => {});
           return data.data;
         } catch (error) {
           set({ loading: false });
@@ -63,6 +83,8 @@ const useAuthStore = create(
           await authAPI.logout();
         } catch (_) {}
         if (typeof localStorage !== 'undefined') localStorage.removeItem('token');
+        // Avoid leaking the previous account's wishlist into the next login on this browser
+        useWishlistStore.setState({ items: [] });
         set({ user: null, token: null, authReady: true });
         toast.success('Logged out successfully');
       },

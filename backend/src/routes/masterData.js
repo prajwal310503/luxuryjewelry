@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect, authorize } = require('../middleware/auth');
+const { protect, requirePermission } = require('../middleware/auth');
 const {
   getMasterData,
   updateMasterData,
@@ -8,7 +8,7 @@ const {
   getSyncLogs,
 } = require('../controllers/masterDataController');
 
-const adminAuth = [protect, authorize('admin')];
+const adminAuth = [protect, requirePermission('master_data')];
 
 router.get('/', ...adminAuth, getMasterData);
 router.put('/', ...adminAuth, updateMasterData);

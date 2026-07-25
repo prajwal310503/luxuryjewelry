@@ -46,9 +46,11 @@ const icons = {
 const NAV = [
   { to: '/vendor/dashboard',  label: 'Dashboard',      icon: 'dashboard' },
   { to: '/vendor/kyc',        label: 'KYC & Policies', icon: 'store' },
+  { to: '/vendor/store',      label: 'Store Profile',  icon: 'store' },
   { to: '/vendor/products',   label: 'My Products',    icon: 'products' },
   { to: '/vendor/orders',     label: 'My Orders',      icon: 'orders' },
   { to: '/vendor/pricing',    label: 'Making Charges', icon: 'pricing' },
+  { to: '/vendor/coupons',    label: 'Coupons',        icon: 'pricing' },
   { to: '/vendor/analytics',  label: 'Analytics',      icon: 'chart' },
 ];
 
@@ -59,7 +61,9 @@ export default function VendorLayout({ children }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-  useEffect(() => { setSidebarOpen(false); }, [pathname]);
+  const closeSidebar = () => setSidebarOpen(false);
+
+  useEffect(() => { closeSidebar(); }, [pathname]);
 
   useEffect(() => {
     vendorAPI.getKyc()
@@ -75,13 +79,13 @@ export default function VendorLayout({ children }) {
     }
   }, [kycStatus, pathname, navigate]);
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  const handleLogout = () => { closeSidebar(); logout(); navigate('/login'); };
 
-  const SidebarContent = () => (
+  const renderSidebar = () => (
     <div className="flex flex-col h-full">
       {/* Logo / brand */}
       <div className="px-5 py-6 border-b border-gray-100">
-        <Link to="/" className="flex items-center gap-2.5 group">
+        <Link to="/" onClick={closeSidebar} className="flex items-center gap-2.5 group">
           <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ background: 'linear-gradient(135deg, #1a0e08 0%, #3a2520 100%)' }}>
             <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
@@ -120,6 +124,7 @@ export default function VendorLayout({ children }) {
               <li key={item.to}>
                 <Link
                   to={item.to}
+                  onClick={closeSidebar}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
                   style={{
                     background: active ? 'rgba(201,168,76,0.12)' : 'transparent',
@@ -142,6 +147,7 @@ export default function VendorLayout({ children }) {
         <ul>
           <li>
             <button
+              type="button"
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-red-500 hover:bg-red-50 transition-all duration-200"
             >
@@ -154,7 +160,7 @@ export default function VendorLayout({ children }) {
 
       {/* Footer note */}
       <div className="px-5 py-4 border-t border-gray-100">
-        <Link to="/" className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-primary transition-colors">
+        <Link to="/" onClick={closeSidebar} className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-primary transition-colors">
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
@@ -172,26 +178,34 @@ export default function VendorLayout({ children }) {
         className="hidden lg:flex flex-col flex-shrink-0 w-60 border-r border-gray-100 bg-white overflow-hidden"
         style={{ boxShadow: '4px 0 20px rgba(0,0,0,0.04)' }}
       >
-        <SidebarContent />
+        {renderSidebar()}
       </aside>
 
       {/* Mobile Sidebar Drawer */}
       <AnimatePresence>
         {sidebarOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/30 z-40 lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            />
-            <motion.aside
-              initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
-              transition={{ type: 'tween', duration: 0.28 }}
-              className="fixed inset-y-0 left-0 z-50 w-64 bg-white lg:hidden shadow-2xl"
-            >
-              <SidebarContent />
-            </motion.aside>
-          </>
+          <motion.div
+            key="vendor-sidebar-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/30 z-40 lg:hidden"
+            onClick={closeSidebar}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.aside
+            key="vendor-sidebar-drawer"
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'tween', duration: 0.28 }}
+            className="fixed inset-y-0 left-0 z-50 w-64 bg-white lg:hidden shadow-2xl"
+          >
+            {renderSidebar()}
+          </motion.aside>
         )}
       </AnimatePresence>
 

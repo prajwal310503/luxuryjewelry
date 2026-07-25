@@ -16,8 +16,24 @@ const AddressSchema = new mongoose.Schema({
   isDefault: { type: Boolean, default: false },
 });
 
-// Permissions available for child_admin role
-const PERMISSIONS = ['orders', 'products', 'blog', 'cms', 'categories'];
+// Permissions available for child_admin role (module toggles)
+const PERMISSIONS = [
+  'dashboard',
+  'orders',
+  'products',
+  'categories',
+  'vendors',
+  'customers',
+  'coupons',
+  'referral',
+  'reports',
+  'blog',
+  'cms',
+  'support',
+  'notifications',
+  'master_data',
+  'settings',
+];
 
 const UserSchema = new mongoose.Schema(
   {
@@ -30,7 +46,10 @@ const UserSchema = new mongoose.Schema(
       match: [/^\S+@\S+\.\S+$/, 'Invalid email format'],
     },
     phone: { type: String, match: [/^[0-9]{10}$/, 'Invalid phone number'] },
-    password: { type: String, required: [true, 'Password is required'], minlength: 6, select: false },
+    password: { type: String, minlength: 6, select: false },
+    // Google OAuth
+    googleId: { type: String, sparse: true, unique: true },
+    authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
     role: {
       type: String,
       enum: ['admin', 'child_admin', 'vendor', 'customer'],
@@ -89,6 +108,16 @@ const UserSchema = new mongoose.Schema(
     avatarPublicId: { type: String, default: '' },
     addresses: [AddressSchema],
     wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
+    // Referral program
+    referralCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+      uppercase: true,
+      trim: true,
+    },
+    referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    referralBalance: { type: Number, default: 0, min: 0 },
     isActive: { type: Boolean, default: true },
     isEmailVerified: { type: Boolean, default: false },
     emailVerificationToken: String,
@@ -101,12 +130,13 @@ const UserSchema = new mongoose.Schema(
 );
 
 UserSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password') || !this.password) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
 UserSchema.methods.comparePassword = async function (enteredPassword) {
+  if (!this.password) return false;
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
